@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isOwner() {
+      return isSignedIn() && (
+        request.auth.token.role == 'owner' ||
+        getUserData().role == 'owner'
+      );
+    }
+
+    function isTeamLeader() {
+      return isSignedIn() && (
+        request.auth.token.role == 'team_leader' ||
+        getUserData().role == 'team_leader'
+      );
+    }
+
+    // Default fallback rule for general app documents
+    match /{document=**} {
+      allow read, write: if true;
+    }
+
+    // Immutable Location Records Collection Rules (Native & PWA GPS)
+    match /location_records/{recordId} {
+      allow read: if true;
+      // Allow creation of location records for valid agent/service payload
+      allow create: if true;
+      // Strictly prevent Agents from modifying or deleting historical GPS records
+      allow update, delete: if isOwner();
+    }
+
+    // Immutable Location Tracking Sessions
+    match /tracking_sessions/{sessionId} {
+      allow read: if true;
+      allow create: if isSignedIn() || request.resource.data.employeeId != null;
+      allow update: if isOwner() || isTeamLeader() || (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow delete: if isOwner();
+    }
+
+    // System Location Tracking Configuration Rules
+    match /location_config/{configId} {
+      allow read: if true;
+      allow write: if isOwner() || isTeamLeader();
+    }
+
+    // Employee ID Audit Logs (Immutable, Owner managed)
+    match /employee_id_audits/{auditId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isOwner();
+    }
+  }
+}

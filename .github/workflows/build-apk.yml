@@ -1,0 +1,66 @@
+name: Build Permanent Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build & Package DD World Enterprise APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java 21 (JDK)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-36 build-tools;36.0.0 platform-tools'
+
+      - name: Install Dependencies
+        run: |
+          npm install --legacy-peer-deps
+          npm install react-is --legacy-peer-deps
+
+      - name: Build Web Application
+        run: npm run build
+
+      - name: Sync Capacitor Android Assets
+        run: npx cap sync android
+
+      - name: Make Gradlew Executable
+        run: chmod +x android/gradlew
+
+      - name: Build Standalone Android APK
+        working-directory: ./android
+        run: ./gradlew :app:assembleDebug -x checkDebugAarMetadata -x checkReleaseAarMetadata --no-daemon --stacktrace
+
+      - name: Prepare APK for Direct Download
+        run: |
+          mkdir -p dist-apk
+          find android/app/build/outputs/apk -name "*.apk" -exec cp {} dist-apk/DD-World-Enterprise.apk \;
+          ls -lh dist-apk/
+          echo "APK successfully prepared at dist-apk/DD-World-Enterprise.apk"
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DD-World-Enterprise-APK
+          path: dist-apk/DD-World-Enterprise.apk
+          retention-days: 90
