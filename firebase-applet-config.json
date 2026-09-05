@@ -3,10 +3,8 @@
   "appId": "1:869043614850:web:71fd531345f6415c94b09b",
   "apiKey": "AIzaSyCz-5puonwrxk9NldOkvhuzz4qagDRbWGc",
   "authDomain": "phat-osprey-d6shk.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-remixddworldsecu-f95ed47f-2881-42bc-a885-dc06f935e3ba",
+  "firestoreDatabaseId": "(default)",
   "storageBucket": "phat-osprey-d6shk.firebasestorage.app",
   "messagingSenderId": "869043614850",
-  "measurementId": "",
-  "oAuthClientId": "869043614850-e45bb6s9acfcarovnlceggbhi0bue7ne.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "oAuthClientId": "869043614850-e45bb6s9acfcarovnlceggbhi0bue7ne.apps.googleusercontent.com"
 }
