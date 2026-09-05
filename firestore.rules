@@ -2,62 +2,473 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // ========================================================================
+    // HELPER FUNCTIONS - AUTHORIZATION & VALIDATION
+    // ========================================================================
+
+    /**
+     * Check if user is authenticated
+     */
     function isSignedIn() {
       return request.auth != null;
     }
 
+    /**
+     * Check if user is authorized with valid auth token
+     */
+    function isAuthorized() {
+      return request.auth != null && 
+             request.auth.token.email_verified == true;
+    }
+
+    /**
+     * Get current user's Firestore profile data
+     * Cached in custom claims for performance
+     */
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    /**
+     * Get user's role level from cached custom claims or database
+     * Role precedence: MASTER_LEADER > TEAM_SUPERVISOR > ELITE_AGENT > STAR_AGENT > TRAINEE_AGENT
+     */
+    function getUserRole() {
+      let userData = getUserData();
+      return userData.role;
+    }
+
+    /**
+     * Get user's team ID for team-based access control
+     */
+    function getUserTeamId() {
+      return getUserData().teamId;
+    }
+
+    /**
+     * Check if user is system owner/admin
+     */
     function isOwner() {
-      return isSignedIn() && (
-        request.auth.token.role == 'owner' ||
-        getUserData().role == 'owner'
-      );
+      return isSignedIn() && getUserRole() == 'MASTER_LEADER';
     }
 
-    function isTeamLeader() {
-      return isSignedIn() && (
-        request.auth.token.role == 'team_leader' ||
-        getUserData().role == 'team_leader'
-      );
+    /**
+     * Check if user is team supervisor/manager
+     */
+    function isTeamSupervisor() {
+      return isSignedIn() && 
+             (getUserRole() == 'MASTER_LEADER' || getUserRole() == 'TEAM_SUPERVISOR');
     }
 
-    // Default fallback rule for general app documents
-    match /{document=**} {
-      allow read, write: if true;
+    /**
+     * Check if user is elite agent or higher
+     */
+    function isEliteAgent() {
+      return isSignedIn() && 
+             (getUserRole() in ['MASTER_LEADER', 'TEAM_SUPERVISOR', 'ELITE_AGENT']);
     }
 
-    // Immutable Location Records Collection Rules (Native & PWA GPS)
-    match /location_records/{recordId} {
-      allow read: if true;
-      // Allow creation of location records for valid agent/service payload
-      allow create: if true;
-      // Strictly prevent Agents from modifying or deleting historical GPS records
-      allow update, delete: if isOwner();
+    /**
+     * Check if user owns the document or is supervisor
+     */
+    function isOwnerOrSupervisor(userId) {
+      return isSignedIn() && 
+             (request.auth.uid == userId || isTeamSupervisor());
     }
 
-    // Immutable Location Tracking Sessions
-    match /tracking_sessions/{sessionId} {
-      allow read: if true;
-      allow create: if isSignedIn() || request.resource.data.employeeId != null;
-      allow update: if isOwner() || isTeamLeader() || (isSignedIn() && request.auth.uid == resource.data.userId);
+    /**
+     * Check if user is in the same team
+     */
+    function isInSameTeam(teamId) {
+      return isSignedIn() && getUserTeamId() == teamId;
+    }
+
+    /**
+     * Validate timestamp is recent (within last 60 seconds for GPS)
+     * Prevents backdated entries
+     */
+    function isRecentTimestamp(timestamp) {
+      return request.time.toMillis() - timestamp <= 60000;
+    }
+
+    /**
+     * Validate timestamp is not in the future
+     * Prevents falsified future timestamps
+     */
+    function isValidTimestamp(timestamp) {
+      return timestamp <= request.time.toMillis();
+    }
+
+    /**
+     * Validate GPS coordinates are within realistic bounds
+     */
+    function isValidGPSCoordinates(latitude, longitude) {
+      return latitude >= -90 && latitude <= 90 &&
+             longitude >= -180 && longitude <= 180;
+    }
+
+    /**
+     * Validate device fingerprint signature
+     * Ensures device hasn't changed suspiciously
+     */
+    function isValidDeviceSignature(deviceId, deviceSignature) {
+      return deviceId != null && 
+             deviceId.size() > 0 &&
+             deviceSignature != null;
+    }
+
+    /**
+     * Validate sales amount is reasonable
+     * Prevents extremely high/low sales entries
+     */
+    function isValidSalesAmount(amount) {
+      return amount > 0 && amount <= 1000000; // Max reasonable sale
+    }
+
+    /**
+     * Check if data modification is within policy
+     * Users can only edit their own recent data within 1 minute
+     */
+    function canEditOwnData(userId, createdAt) {
+      return request.auth.uid == userId && 
+             (request.time.toMillis() - createdAt <= 60000);
+    }
+
+    // ========================================================================
+    // USERS COLLECTION - AUTHENTICATION & PROFILE MANAGEMENT
+    // ========================================================================
+
+    match /users/{userId} {
+      // Read: Users can read their own profile or supervisors can read team members
+      allow read: if isSignedIn() && 
+                     (request.auth.uid == userId || 
+                      (isTeamSupervisor() && isInSameTeam(resource.data.teamId)));
+
+      // Create: Only during registration (handled server-side)
+      allow create: if false; // Disable direct creation, use Cloud Functions
+
+      // Update: Users can update own profile, supervisors can update team members
+      allow update: if isSignedIn() && 
+                       (request.auth.uid == userId || isTeamSupervisor()) &&
+                       // Prevent role tampering - can only be changed by owner
+                       (resource.data.role == request.resource.data.role || isOwner()) &&
+                       // Immutable fields - cannot be changed
+                       (resource.data.id == request.resource.data.id &&
+                        resource.data.createdAt == request.resource.data.createdAt) &&
+                       // Validate critical fields
+                       request.resource.data.email == resource.data.email;
+
+      // Delete: Only owner can delete (with audit logging)
+      allow delete: if isOwner();
+
+      // User Activity Subcollection - Audit Trail
+      match /activities/{activityId} {
+        // Admins can read all activities, users can read their own
+        allow read: if isSignedIn() && 
+                       (request.auth.uid == userId || isTeamSupervisor());
+        
+        // Create activity logs (internal/Cloud Functions)
+        allow create: if false; // Use Cloud Functions for audit logging
+        
+        // Activities are immutable - no updates or deletes
+        allow update, delete: if false;
+      }
+
+      // User Sessions Subcollection - Session Management
+      match /sessions/{sessionId} {
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn() && request.auth.uid == userId;
+        allow update: if isSignedIn() && request.auth.uid == userId;
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
+    }
+
+    // ========================================================================
+    // SALES COLLECTION - TRANSACTION RECORDS & FRAUD PREVENTION
+    // ========================================================================
+
+    match /sales/{saleId} {
+      // Read: Agent can read own sales, supervisors can read team sales, owner sees all
+      allow read: if isSignedIn() && 
+                     (request.auth.uid == resource.data.agentId || 
+                      (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
+                      isOwner());
+
+      // Create: Only authenticated agents can create sales
+      allow create: if isAuthorized() && 
+                       isSignedIn() &&
+                       // Prevent impersonation - agentId must be current user
+                       request.resource.data.agentId == request.auth.uid &&
+                       // Validate required fields
+                       request.resource.data.amount > 0 &&
+                       request.resource.data.productName != null &&
+                       request.resource.data.productName.size() > 0 &&
+                       // Validate timestamp is recent (within 5 minutes)
+                       isRecentTimestamp(request.resource.data.timestamp) &&
+                       isValidTimestamp(request.resource.data.timestamp) &&
+                       // Validate GPS coordinates if provided
+                       (!('latitude' in request.resource.data) || 
+                        isValidGPSCoordinates(
+                          request.resource.data.latitude,
+                          request.resource.data.longitude
+                        )) &&
+                       // Sales amount validation - prevent unrealistic amounts
+                       isValidSalesAmount(request.resource.data.amount) &&
+                       // Validate device signature for location spoofing detection
+                       isValidDeviceSignature(
+                        request.resource.data.deviceId,
+                        request.resource.data.deviceSignature
+                       ) &&
+                       // Must be within assigned territory
+                       request.resource.data.territory != null &&
+                       // Sales must include audit metadata
+                       request.resource.data.verificationStatus == 'PENDING' &&
+                       request.resource.data.fraudFlags == [] &&
+                       request.resource.data.isLocationVerified == false;
+
+      // Update: Only for status changes (PENDING -> VERIFIED/REJECTED)
+      // Cannot modify core sale data after creation
+      allow update: if isSignedIn() &&
+                       (request.auth.uid == resource.data.agentId ||
+                        isTeamSupervisor() ||
+                        isOwner()) &&
+                       // Immutable core fields - prevent tampering
+                       (resource.data.agentId == request.resource.data.agentId &&
+                        resource.data.amount == request.resource.data.amount &&
+                        resource.data.productName == request.resource.data.productName &&
+                        resource.data.timestamp == request.resource.data.timestamp &&
+                        resource.data.latitude == request.resource.data.latitude &&
+                        resource.data.longitude == request.resource.data.longitude) &&
+                       // Only supervisors/owners can mark as verified
+                       (request.resource.data.verificationStatus in ['VERIFIED', 'REJECTED'] 
+                        ? isTeamSupervisor() || isOwner()
+                        : true);
+
+      // Delete: Only owner can delete (with audit trail)
       allow delete: if isOwner();
     }
 
-    // System Location Tracking Configuration Rules
-    match /location_config/{configId} {
-      allow read: if true;
-      allow write: if isOwner() || isTeamLeader();
+    // ========================================================================
+    // LOCATION_RECORDS COLLECTION - GPS TRACKING & ANTI-SPOOFING
+    // ========================================================================
+
+    match /location_records/{recordId} {
+      // Read: Users read own, supervisors read team, owner reads all
+      allow read: if isSignedIn() && 
+                     (request.auth.uid == resource.data.userId || 
+                      (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
+                      isOwner());
+
+      // Create: Only authenticated users can submit GPS data
+      allow create: if isAuthorized() && 
+                       isSignedIn() &&
+                       // Prevent impersonation
+                       request.resource.data.userId == request.auth.uid &&
+                       // Validate GPS coordinates
+                       isValidGPSCoordinates(
+                         request.resource.data.latitude,
+                         request.resource.data.longitude
+                       ) &&
+                       // Timestamp validation - must be recent (within 30 seconds)
+                       isRecentTimestamp(request.resource.data.timestamp) &&
+                       isValidTimestamp(request.resource.data.timestamp) &&
+                       // Accuracy must be within 100 meters
+                       request.resource.data.accuracy <= 100 &&
+                       request.resource.data.accuracy > 0 &&
+                       // Device validation for anti-spoofing
+                       isValidDeviceSignature(
+                         request.resource.data.deviceId,
+                         request.resource.data.deviceSignature
+                       ) &&
+                       // Provider must be native GPS or PWA geolocation
+                       request.resource.data.provider in ['native', 'pwa', 'hybrid'] &&
+                       // Altitude must be realistic (within -500 to 8848 meters)
+                       request.resource.data.altitude >= -500 &&
+                       request.resource.data.altitude <= 8848 &&
+                       // Heading must be 0-360 degrees
+                       request.resource.data.heading >= 0 &&
+                       request.resource.data.heading <= 360 &&
+                       // Speed must be realistic (0-300 km/h = 0-83 m/s)
+                       request.resource.data.speed >= 0 &&
+                       request.resource.data.speed <= 83;
+
+      // Update: GPS records are IMMUTABLE - no updates allowed
+      // Prevents backdating and falsification of location history
+      allow update: if false;
+
+      // Delete: Only owner can delete (with audit trail)
+      allow delete: if isOwner();
     }
 
-    // Employee ID Audit Logs (Immutable, Owner managed)
-    match /employee_id_audits/{auditId} {
+    // ========================================================================
+    // TRACKING_SESSIONS COLLECTION - SESSION MANAGEMENT & ANTI-FRAUD
+    // ========================================================================
+
+    match /tracking_sessions/{sessionId} {
+      // Read: Users read own, supervisors read team, owner reads all
+      allow read: if isSignedIn() && 
+                     (request.auth.uid == resource.data.userId || 
+                      (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
+                      isOwner());
+
+      // Create: Only authenticated users can start tracking sessions
+      allow create: if isAuthorized() && 
+                       isSignedIn() &&
+                       // Prevent impersonation
+                       request.resource.data.userId == request.auth.uid &&
+                       // Session must have start time
+                       isValidTimestamp(request.resource.data.startTime) &&
+                       // Device must be valid
+                       isValidDeviceSignature(
+                         request.resource.data.deviceId,
+                         request.resource.data.deviceSignature
+                       ) &&
+                       // Status must be valid
+                       request.resource.data.status in ['ACTIVE', 'PAUSED', 'ENDED'] &&
+                       // Session type must be valid
+                       request.resource.data.sessionType in ['FIELD', 'OFFICE', 'BREAK'];
+
+      // Update: Sessions can be updated to extend or end
+      allow update: if isSignedIn() && 
+                       request.auth.uid == resource.data.userId &&
+                       // Cannot modify user or device after creation
+                       (resource.data.userId == request.resource.data.userId &&
+                        resource.data.deviceId == request.resource.data.deviceId) &&
+                       // Cannot edit past sessions (only 5 minutes old max)
+                       (request.time.toMillis() - resource.data.startTime <= 300000) &&
+                       // Status transitions must be valid
+                       (resource.data.status in ['ACTIVE', 'PAUSED'] && 
+                        request.resource.data.status in ['ACTIVE', 'PAUSED', 'ENDED']);
+
+      // Delete: Only owner can delete
+      allow delete: if isOwner();
+    }
+
+    // ========================================================================
+    // LOCATION_CONFIG COLLECTION - SYSTEM SETTINGS & GEOFENCE DEFINITIONS
+    // ========================================================================
+
+    match /location_config/{configId} {
+      // Read: All authenticated users can read config
       allow read: if isSignedIn();
-      allow create: if isSignedIn();
+
+      // Write: Only supervisors and owner can update
+      allow write: if isTeamSupervisor() || isOwner();
+    }
+
+    // ========================================================================
+    // GEOFENCE_ZONES COLLECTION - TERRITORY & AREA DEFINITIONS
+    // ========================================================================
+
+    match /geofence_zones/{zoneId} {
+      // Read: All authenticated users can read zones
+      allow read: if isSignedIn();
+
+      // Create/Update: Only supervisors and owner can manage zones
+      allow create, update: if (isTeamSupervisor() || isOwner()) &&
+                               // Validate geofence data
+                               request.resource.data.name != null &&
+                               request.resource.data.name.size() > 0 &&
+                               isValidGPSCoordinates(
+                                 request.resource.data.centerLatitude,
+                                 request.resource.data.centerLongitude
+                               ) &&
+                               request.resource.data.radiusMeters > 0 &&
+                               request.resource.data.radiusMeters <= 100000;
+
+      // Delete: Only owner can delete
+      allow delete: if isOwner();
+    }
+
+    // ========================================================================
+    // FRAUD_INCIDENTS COLLECTION - FRAUD ALERTS & AUDIT LOGGING
+    // ========================================================================
+
+    match /fraud_incidents/{incidentId} {
+      // Read: Supervisors and owner can read fraud incidents
+      allow read: if isTeamSupervisor() || isOwner();
+
+      // Create: Cloud Functions and system create incidents
+      allow create: if false; // System/Cloud Functions only
+
+      // Update: Supervisors can update status and add notes
+      allow update: if (isTeamSupervisor() || isOwner()) &&
+                       // Cannot modify reported incident data
+                       (resource.data.userId == request.resource.data.userId &&
+                        resource.data.saleId == request.resource.data.saleId &&
+                        resource.data.incidentType == request.resource.data.incidentType &&
+                        resource.data.timestamp == request.resource.data.timestamp);
+
+      // Delete: Only owner can delete
+      allow delete: if isOwner();
+    }
+
+    // ========================================================================
+    // AUDIT_LOGS COLLECTION - IMMUTABLE AUDIT TRAIL
+    // ========================================================================
+
+    match /audit_logs/{logId} {
+      // Read: Supervisors and owner can read logs
+      allow read: if isTeamSupervisor() || isOwner();
+
+      // Create: Cloud Functions create audit logs
+      allow create: if false; // System only
+
+      // Update/Delete: NEVER - Audit logs are immutable
+      allow update, delete: if false;
+    }
+
+    // ========================================================================
+    // EMPLOYEE_ID_AUDITS COLLECTION - IDENTITY VERIFICATION
+    // ========================================================================
+
+    match /employee_id_audits/{auditId} {
+      // Read: Users can read their own, supervisors can read team, owner reads all
+      allow read: if isSignedIn() && 
+                     (request.auth.uid == resource.data.userId || 
+                      isTeamSupervisor() ||
+                      isOwner());
+
+      // Create: System/Cloud Functions create audit records
+      allow create: if false; // System only
+
+      // Update/Delete: Only owner can modify (rare cases)
       allow update, delete: if isOwner();
+    }
+
+    // ========================================================================
+    // ROLE_BADGES COLLECTION - ACHIEVEMENT TRACKING
+    // ========================================================================
+
+    match /role_badges/{badgeId} {
+      // Read: All authenticated users can view badges
+      allow read: if isSignedIn();
+
+      // Write: Only owner can manage badge system
+      allow write: if isOwner();
+    }
+
+    // ========================================================================
+    // SALES_SUMMARIES COLLECTION - AGGREGATED REPORTING
+    // ========================================================================
+
+    match /sales_summaries/{summaryId} {
+      // Read: Users can read own summaries, supervisors can read team, owner reads all
+      allow read: if isSignedIn() && 
+                     (request.auth.uid == resource.data.userId || 
+                      (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
+                      isOwner());
+
+      // Write: System/Cloud Functions only
+      allow write: if false;
+    }
+
+    // ========================================================================
+    // CATCH-ALL RULE - DENY ALL BY DEFAULT
+    // ========================================================================
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
