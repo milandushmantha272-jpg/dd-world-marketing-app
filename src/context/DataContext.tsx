@@ -916,6 +916,121 @@ export const useDataContext = (): DataContextType => {
 export default DataContext;
 
 export const useData = () => { const context = useContext(DataContext); if (!context) throw new Error("useData must be used within a DataProvider"); return context; };
+  // ============================================================================
+  // REAL-TIME FIRESTORE LISTENERS AND AUTO-SAVE MANAGEMENT
+  // ============================================================================
+  useEffect(() => {
+    let isMounted = true;
+    const db = getFirestoreInstance();
+    setLoading(true);
+
+    const usersQuery = query(collection(db, FIRESTORE_COLLECTIONS.USERS));
+    const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
+      if (!isMounted) return;
+      const usersList: User[] = [];
+      snapshot.forEach((doc) => {
+        usersList.push({ id: doc.id, ...doc.data() } as User);
+      });
+      setUsers(usersList);
+      setLoading(false);
+    }, (err) => {
+      console.error("Users listener critical error:", err);
+      setError(err.message);
+      setLoading(false);
+    });
+
+    const salesQuery = query(collection(db, FIRESTORE_COLLECTIONS.SALES), orderBy("createdAt", "desc"), limit(100));
+    const unsubscribeSales = onSnapshot(salesQuery, (snapshot) => {
+      if (!isMounted) return;
+      const salesList: ProductSale[] = [];
+      snapshot.forEach((doc) => {
+        salesList.push({ id: doc.id, ...doc.data() } as ProductSale);
+      });
+      
+      if (salesList.length > sales.length && sales.length > 0) {
+        playNotificationChime();
+      }
+      setSales(salesList);
+    });
+
+    unsubscribesRef.current = [unsubscribeUsers, unsubscribeSales];
+
+    return () => {
+      isMounted = false;
+      unsubscribesRef.current.forEach((unsub) => unsub());
+    };
+  }, []);
+
+  const addSale = useCallback(async (saleData: Omit<ProductSale, "id" | "createdAt" | "updatedAt">) => {
+    try {
+      const db = getFirestoreInstance();
+      const now = Timestamp.now().toMillis();
+      const newSaleEntry = {
+        ...saleData,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await addDoc(collection(db, FIRESTORE_COLLECTIONS.SALES), newSaleEntry);
+    } catch (err: any) {
+      console.error("Auto-save operation failed on 4G/5G mobile connection:", err);
+      throw err;
+    }
+  }, []);
+
+  const updateSaleStatus = useCallback(async (saleId: string, status: SaleVerificationStatus) => {
+    try {
+      const db = getFirestoreInstance();
+      const saleDocumentReference = doc(db, FIRESTORE_COLLECTIONS.SALES, saleId);
+      await updateDoc(saleDocumentReference, {
+        verificationStatus: status,
+        updatedAt: Timestamp.now().toMillis(),
+      });
+    } catch (err: any) {
+      console.error("Failed to update status on target sale record:", err);
+      throw err;
+    }
+  }, []);
+
+  const logLocation = useCallback(async (locationData: Omit<LocationLog, "id" | "timestamp">) => {
+    try {
+      const db = getFirestoreInstance();
+      const newLocationRecord = {
+        ...locationData,
+        timestamp: Timestamp.now().toMillis(),
+      };
+      await addDoc(collection(db, FIRESTORE_COLLECTIONS.LOCATION_LOGS), newLocationRecord);
+    } catch (err) {
+      console.error("GPS live map pipeline streaming exception:", err);
+    }
+  }, []);
+
+  const contextValue: DataContextType = {
+    sales,
+    locationLogs,
+    users,
+    teams,
+    liveMapAgents,
+    liveMapTeamView,
+    loading,
+    error,
+    isConnected,
+    addSale,
+    updateSaleStatus,
+    logLocation,
+  };
+
+  return <DataContext.Provider value={contextValue}>{children}</DataContext.Provider>;
+};
+
+export const useData = (): DataContextType => {
+  const context = useContext(DataContext);
+  if (!context) {
+    throw new Error("useData must be used within a DataProvider structure.");
+  }
+  return context;
+};
+
+export default DataContext;
 
 
   
