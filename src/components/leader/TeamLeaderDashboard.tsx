@@ -27,7 +27,11 @@ import {
   Radio,
   Trophy,
   MessageSquare,
+  Phone,
+  PhoneCall,
 } from 'lucide-react';
+import { IvrKeypadAndAppShareModal } from '../sales/IvrKeypadAndAppShareModal';
+import { IvrAndAppActivationsHub } from '../owner/IvrAndAppActivationsHub';
 import { SriLankaGpsMapView } from '../common/SriLankaGpsMapModal';
 import { getAttendanceSummary, getSalesSummary } from '../../utils/summaryUtils';
 import { AutoMotivationBanner } from '../common/AutoMotivationBanner';
@@ -47,6 +51,8 @@ import { detectFakeGps } from '../../utils/antiCheatDetector';
 type TlTab =
   | 'attendance'
   | 'sales'
+  | 'ivr_keypad'
+  | 'ivr_hub'
   | 'team_agents'
   | 'gps'
   | 'product_knowledge'
@@ -74,6 +80,7 @@ export const TeamLeaderDashboard: React.FC = () => {
 
   const [showSmartLinkModal, setShowSmartLinkModal] = useState(false);
   const [showWebViewModal, setShowWebViewModal] = useState(false);
+  const [showKeypadModal, setShowKeypadModal] = useState(false);
   const [webViewChannel, setWebViewChannel] = useState<'website' | 'facebook' | 'whatsapp' | 'dialog'>('website');
 
   const [activeTab, setActiveTab] = useState<TlTab>('attendance');
@@ -355,6 +362,30 @@ export const TeamLeaderDashboard: React.FC = () => {
         >
           <TrendingUp className="w-4 h-4" />
           <span>📈 Team Sales &amp; Summary</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ivr_keypad')}
+          className={`py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'ivr_keypad'
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-lg shadow-amber-500/20 font-black'
+              : 'text-amber-300 hover:text-white hover:bg-amber-500/10 border border-amber-500/30'
+          }`}
+        >
+          <Phone className="w-4 h-4 text-amber-400" />
+          <span>📞 #828# / #616# Keypad &amp; App</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ivr_hub')}
+          className={`py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'ivr_hub'
+              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-lg shadow-emerald-500/20 font-black'
+              : 'text-emerald-300 hover:text-white hover:bg-emerald-500/10 border border-emerald-500/30'
+          }`}
+        >
+          <PhoneCall className="w-4 h-4 text-emerald-400" />
+          <span>📡 Activations Live Hub</span>
         </button>
 
         <button
@@ -979,6 +1010,32 @@ export const TeamLeaderDashboard: React.FC = () => {
 
       {/* MASTER TAB: VIRTUAL MEETING HUB */}
       {activeTab === 'meetings' && <VirtualMeetingHub />}
+
+      {/* TAB: IVR KEYPAD & PLAY STORE APP ACTIVATOR */}
+      {activeTab === 'ivr_keypad' && (
+        <IvrKeypadAndAppShareModal
+          currentUser={currentUser}
+          isOpen={true}
+          onClose={() => setActiveTab('sales')}
+        />
+      )}
+
+      {/* TAB: ACTIVATIONS LIVE HUB */}
+      {activeTab === 'ivr_hub' && (
+        <div className="mt-6">
+          <IvrAndAppActivationsHub
+            currentUser={currentUser}
+            onOpenMap={() => setActiveTab('gps')}
+          />
+        </div>
+      )}
+
+      {/* IVR Keypad & Play Store App Modal (when opened from buttons) */}
+      <IvrKeypadAndAppShareModal
+        currentUser={currentUser}
+        isOpen={showKeypadModal}
+        onClose={() => setShowKeypadModal(false)}
+      />
 
       {/* Universal Dynamic Smart Link Modal */}
       <UniversalSmartLinkModal

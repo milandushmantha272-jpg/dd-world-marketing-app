@@ -35,6 +35,8 @@ export interface User {
   ownerSignatureUrl?: string;
   idRejectedReason?: string;
   approvedByOwner?: boolean;
+  password?: string;
+  pinCode?: string;
   tempPassword?: string;
   status?: string;
   employeeId?: string;
@@ -98,11 +100,18 @@ export interface ProductSale {
   customerName?: string;
   customerMobile?: string;
   location?: string;
+  latitude?: number;
+  longitude?: number;
+  district?: string;
   saleDate?: string;
   date?: string;
+  time?: string;
   status?: 'COMPLETED' | 'PENDING' | 'CANCELLED' | string;
   amount?: number;
   notes?: string;
+  activationMethod?: 'KEYPAD_DIAL' | 'APP_LINK_SHARE' | 'MANUAL';
+  dialCode?: string;
+  appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';
 }
 
 export interface IvrEntry {

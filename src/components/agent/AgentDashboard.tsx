@@ -26,7 +26,12 @@ import {
   Radio,
   Share2,
   MessageSquare,
+  Fingerprint,
+  ShieldCheck,
+  Phone,
+  PhoneCall,
 } from 'lucide-react';
+import { IvrKeypadAndAppShareModal } from '../sales/IvrKeypadAndAppShareModal';
 import { SriLankaGpsMapView } from '../common/SriLankaGpsMapModal';
 import { getAttendanceSummary, getSalesSummary } from '../../utils/summaryUtils';
 import { AutoMotivationBanner } from '../common/AutoMotivationBanner';
@@ -48,6 +53,7 @@ import { Zap } from 'lucide-react';
 type AgentTab =
   | 'attendance'
   | 'sales'
+  | 'ivr_keypad'
   | 'gps'
   | 'product_knowledge'
   | 'target_dashboard'
@@ -73,6 +79,7 @@ export const AgentDashboard: React.FC = () => {
 
   const [showSmartLinkModal, setShowSmartLinkModal] = useState(false);
   const [showWebViewModal, setShowWebViewModal] = useState(false);
+  const [showKeypadModal, setShowKeypadModal] = useState(false);
   const [webViewChannel, setWebViewChannel] = useState<'website' | 'facebook' | 'whatsapp' | 'dialog'>('website');
 
   const [activeTab, setActiveTab] = useState<AgentTab>('attendance');
@@ -349,6 +356,18 @@ export const AgentDashboard: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('ivr_keypad')}
+          className={`py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'ivr_keypad'
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-lg shadow-amber-500/20 font-black'
+              : 'text-amber-300 hover:text-white hover:bg-amber-500/10 border border-amber-500/30'
+          }`}
+        >
+          <Phone className="w-4 h-4 text-amber-400" />
+          <span>📞 #828# / #616# Keypad &amp; App</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('leaderboard')}
           className={`py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'leaderboard'
@@ -504,12 +523,18 @@ export const AgentDashboard: React.FC = () => {
                 </p>
               </div>
 
-              {todayAttRecord?.checkInTime && (
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-extrabold flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Check-In Active ({todayAttRecord.checkInTime})</span>
+              <div className="flex items-center gap-2">
+                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[11px] font-bold">
+                  <Fingerprint className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Fingerprint: Active</span>
                 </span>
-              )}
+                {todayAttRecord?.checkInTime && (
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-extrabold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Check-In Active ({todayAttRecord.checkInTime})</span>
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -654,6 +679,67 @@ export const AgentDashboard: React.FC = () => {
               <span>✅ අලෙවිය (Sale) සාර්ථකව පද්ධතියට එක් කරන ලදී!</span>
             </div>
           )}
+
+          {/* Interactive IVR Keypad & Play Store App Activation Hero Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Card 1: Keypad Dial */}
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-amber-500/15 via-slate-900 to-slate-900 border-2 border-amber-500/50 shadow-xl space-y-3 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 font-extrabold text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+                  <PhoneCall className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Dialog USSD Keypad</span>
+                </span>
+                <span className="text-[10px] text-amber-400 font-mono font-bold">#828# | #616#</span>
+              </div>
+
+              <div>
+                <h3 className="text-base font-black text-white">දුරකථන Keypad IVR සක්‍රියකය</h3>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  ගොවිමිතුරු (#616#) සහ සයුරු (#828#) සේවාවන් දුරකථන Keypad එක මගින් Dial කර සක්‍රිය කර Sales Count, Time සහ GPS Location ක්ෂණිකව පද්ධතියට එක්කරන්න.
+                </p>
+              </div>
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowKeypadModal(true)}
+                  className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-[0.99]"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>#828# හා #616# Keypad එක විවෘත කරන්න</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Card 2: App Share & Activation */}
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-emerald-500/15 via-slate-900 to-slate-900 border-2 border-emerald-500/50 shadow-xl space-y-3 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Google Play Store</span>
+                </span>
+                <span className="text-[10px] text-emerald-400 font-bold">Official Apps</span>
+              </div>
+
+              <div>
+                <h3 className="text-base font-black text-white">පාරිභෝගික App සක්‍රියක Link</h3>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  ගොවිමිතුරු හා සයුරු Play Store Apps පාරිභෝගිකයාගේ දුරකථනයට WhatsApp, SMS හෝ QR Code මගින් Share කර සක්‍රිය කර Sales Count සහ Location සටහන් කරන්න.
+                </p>
+              </div>
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowKeypadModal(true)}
+                  className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.99]"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>Play Store Link Share &amp; QR Scanner</span>
+                </button>
+              </div>
+            </div>
+          </div>
 
           {/* Daily Fresh Sales Marking Form */}
           <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-5">
@@ -897,6 +983,22 @@ export const AgentDashboard: React.FC = () => {
 
       {/* MASTER TAB: VIRTUAL MEETING HUB */}
       {activeTab === 'meetings' && <VirtualMeetingHub />}
+
+      {/* TAB: IVR KEYPAD & PLAY STORE APP ACTIVATOR */}
+      {activeTab === 'ivr_keypad' && (
+        <IvrKeypadAndAppShareModal
+          currentUser={currentUser}
+          isOpen={true}
+          onClose={() => setActiveTab('sales')}
+        />
+      )}
+
+      {/* IVR Keypad & Play Store App Modal (when opened from buttons) */}
+      <IvrKeypadAndAppShareModal
+        currentUser={currentUser}
+        isOpen={showKeypadModal}
+        onClose={() => setShowKeypadModal(false)}
+      />
 
       {/* Universal Dynamic Smart Link Modal */}
       <UniversalSmartLinkModal

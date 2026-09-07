@@ -260,6 +260,8 @@ interface DataContextType {
   updateUserProfile: (userId: string, data: Partial<User>) => void;
   updateAgentCode: (agentId: string, newCode: string) => { success: boolean; message: string };
   deleteAgent: (agentId: string) => { success: boolean; message: string };
+  toggleUserBlock: (userId: string) => { success: boolean; message: string; isBlocked: boolean };
+  changeUserPassword: (userId: string, newPass: string) => { success: boolean; message: string };
   addAttendanceRecord: (record: {
     agentId: string;
     agentName: string;
@@ -284,6 +286,14 @@ interface DataContextType {
     customerMobile?: string;
     amount: number;
     notes?: string;
+    location?: string;
+    latitude?: number;
+    longitude?: number;
+    district?: string;
+    time?: string;
+    activationMethod?: 'KEYPAD_DIAL' | 'APP_LINK_SHARE' | 'MANUAL';
+    dialCode?: string;
+    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';
   }) => void;
   addIvrEntry: (entry: {
     agentId: string;
@@ -1999,6 +2009,106 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
+  // Toggle Block / Suspend User (Owner only action with real-time force logout)
+  const toggleUserBlock = (userId: string): { success: boolean; message: string; isBlocked: boolean } => {
+    const targetUser = users.find((u) => u.id === userId);
+    if (!targetUser) return { success: false, message: 'පරිශීලකයා හමු නොවීය.', isBlocked: false };
+    const currentlyBlocked =
+      targetUser.employmentStatus === 'BLOCKED' ||
+      targetUser.employmentStatus === 'SUSPENDED' ||
+      targetUser.status === 'blocked';
+
+    const newEmploymentStatus: EmploymentStatus = currentlyBlocked ? 'ACTIVE' : 'BLOCKED';
+    const newStatus = currentlyBlocked ? 'active' : 'blocked';
+
+    setUsers((prev) =>
+      prev.map((u) => {
+        if (u.id === userId) {
+          const updated: User = {
+            ...u,
+            employmentStatus: newEmploymentStatus,
+            status: newStatus,
+          };
+          if (db) {
+            safeSetDoc(doc(db, 'users', userId), { employmentStatus: newEmploymentStatus, status: newStatus }, { merge: true }).catch(console.error);
+          }
+          return updated;
+        }
+        return u;
+      })
+    );
+
+    if (!currentlyBlocked) {
+      // User is now blocked: trigger immediate force-logout
+      window.dispatchEvent(
+        new CustomEvent('ddworld_force_logout', {
+          detail: {
+            userId,
+            status: 'BLOCKED',
+            reason: 'පරිපාලක (Owner) විසින් ඔබගේ ගිණුම අත්හිටුවන ලදී (ACCOUNT SUSPENDED / BLOCKED).',
+          },
+        })
+      );
+    }
+
+    return {
+      success: true,
+      message: currentlyBlocked
+        ? `${targetUser.name} ගේ ගිණුම සාර්ථකව නැවත සක්‍රිය කරන ලදී (UNBLOCKED / ACTIVE).`
+        : `${targetUser.name} ගේ ගිණුම පරිපාලක විසින් අත්හිටුවන ලදී (BLOCKED / SUSPENDED).`,
+      isBlocked: !currentlyBlocked,
+    };
+  };
+
+  // Change / Reset User Password or PIN (Owner action)
+  const changeUserPassword = (userId: string, newPass: string): { success: boolean; message: string } => {
+    const trimmed = newPass.trim();
+    if (!trimmed || trimmed.length < 4) {
+      return { success: false, message: 'කරුණාකර අවම වශයෙන් අක්ෂර/අංක 4 ක මුරපදයක් (Password) ඇතුළත් කරන්න.' };
+    }
+    const targetUser = users.find((u) => u.id === userId);
+    if (!targetUser) return { success: false, message: 'පරිශීලකයා හමු නොවීය.' };
+
+    setUsers((prev) =>
+      prev.map((u) => {
+        if (u.id === userId) {
+          const updated: User = {
+            ...u,
+            password: trimmed,
+            tempPassword: trimmed,
+            pinCode: trimmed,
+          };
+          if (db) {
+            safeSetDoc(doc(db, 'users', userId), { password: trimmed, tempPassword: trimmed, pinCode: trimmed }, { merge: true }).catch(console.error);
+          }
+          return updated;
+        }
+        return u;
+      })
+    );
+
+    // If currently logged in user is updated, update localStorage
+    const currentSession = safeStorage.getItem('ddworld_current_user_v2');
+    if (currentSession) {
+      try {
+        const parsed = JSON.parse(currentSession);
+        if (parsed.id === userId) {
+          parsed.password = trimmed;
+          parsed.tempPassword = trimmed;
+          parsed.pinCode = trimmed;
+          safeStorage.setItem('ddworld_current_user_v2', JSON.stringify(parsed));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    return {
+      success: true,
+      message: `${targetUser.name} ගේ මුරපදය (Password / PIN) සාර්ථකව "${trimmed}" ලෙස වෙනස් කරන ලදී.`,
+    };
+  };
+
   const addLocationRecord = (record: Omit<LocationRecord, 'id' | 'created_at'>) => {
     const id = `loc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const nowIso = record.timestamp || new Date().toISOString();
@@ -2320,11 +2430,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     customerMobile?: string;
     amount: number;
     notes?: string;
+    location?: string;
+    latitude?: number;
+    longitude?: number;
+    district?: string;
+    time?: string;
+    activationMethod?: 'KEYPAD_DIAL' | 'APP_LINK_SHARE' | 'MANUAL';
+    dialCode?: string;
+    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';
   }) => {
     const agentUser = users.find(
       (u) => u.id === saleData.agentId || (saleData.agentCode && u.agentCode === saleData.agentCode)
     );
     const resolvedTeamId = agentUser?.teamId || saleData.teamId || 'team-1';
+    const nowTime =
+      saleData.time ||
+      new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const resolvedLat = saleData.latitude ?? agentUser?.location?.latitude;
+    const resolvedLng = saleData.longitude ?? agentUser?.location?.longitude;
+    const resolvedDistrict = saleData.district || agentUser?.location?.district || agentUser?.assignedDistrict || 'Colombo';
+
     const newSale: ProductSale = {
       id: `sale-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       agentId: saleData.agentId,
@@ -2339,6 +2464,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       customerMobile: saleData.customerMobile || '',
       amount: saleData.amount,
       date: new Date().toISOString().split('T')[0],
+      time: nowTime,
+      location: saleData.location || (resolvedDistrict ? `${resolvedDistrict} (${resolvedLat?.toFixed(4)}, ${resolvedLng?.toFixed(4)})` : undefined),
+      latitude: resolvedLat,
+      longitude: resolvedLng,
+      district: resolvedDistrict,
+      activationMethod: saleData.activationMethod || 'MANUAL',
+      dialCode: saleData.dialCode,
+      appShareChannel: saleData.appShareChannel,
+      status: 'COMPLETED',
       notes: saleData.notes,
     };
     setSales((prev) => {
@@ -2348,6 +2482,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     if (db) safeSetDoc(doc(db, 'sales', newSale.id), newSale).catch(console.error);
     broadcastRealtimeEvent('ADD_SALE', newSale);
+
+    // Notify Owner and Team Leader in real-time
+    window.dispatchEvent(
+      new CustomEvent('ddworld_sale_alert', {
+        detail: {
+          sale: newSale,
+          message: `🔔 නව සක්‍රිය කිරීමක්: ${newSale.agentName} විසින් ${newSale.productName} (${newSale.channel}) සක්‍රිය කර ඇත! ස්ථානය: ${resolvedDistrict}`,
+        },
+      })
+    );
   };
 
   const addIvrEntry = (entryData: {
@@ -3156,6 +3300,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateUserProfile,
         updateAgentCode,
         deleteAgent,
+        toggleUserBlock,
+        changeUserPassword,
         addAttendanceRecord,
         addProductSale,
         addIvrEntry,

@@ -49,10 +49,12 @@ import {
   Download,
   FileSpreadsheet,
   Smartphone,
+  Phone,
 } from 'lucide-react';
 import { AppDownloadStatusMonitor } from './AppDownloadStatusMonitor';
 import { CallNotificationModal } from '../common/CallNotificationModal';
 import { AllSalesView } from '../common/AllSalesView';
+import { IvrAndAppActivationsHub } from './IvrAndAppActivationsHub';
 import { OwnerAttendanceControlHub } from './OwnerAttendanceControlHub';
 import { InAppMeetingStudio } from '../common/InAppMeetingStudio';
 import { SriLankaGpsMapModal, SriLankaGpsMapView } from '../common/SriLankaGpsMapModal';
@@ -89,6 +91,7 @@ type OwnerTab =
   | 'agents'
   | 'attendance'
   | 'sales'
+  | 'ivr_app_hub'
   | 'leaves'
   | 'messages'
   | 'meetings'
@@ -879,6 +882,19 @@ export const OwnerDashboard: React.FC = () => {
             <span>📈 Team Leaders &amp; Teams Sales</span>
           </button>
 
+          {/* CORE: #828# / #616# IVR KEYPAD & APP ACTIVATIONS HUB */}
+          <button
+            onClick={() => setActiveTab('ivr_app_hub')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition whitespace-nowrap ${
+              activeTab === 'ivr_app_hub'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-lg shadow-amber-500/40'
+                : 'bg-slate-900 text-amber-300 border border-amber-500/40 hover:bg-slate-800'
+            }`}
+          >
+            <Phone className="w-4 h-4 text-amber-400" />
+            <span>📞 #828# / #616# &amp; App සක්‍රිය කිරීම්</span>
+          </button>
+
           {/* CORE 4: REAL-TIME GPS MAP */}
           <button
             onClick={() => setActiveTab('gps')}
@@ -1448,6 +1464,18 @@ export const OwnerDashboard: React.FC = () => {
         {activeTab === 'sales' && (
           <div className="mt-6">
             <AllSalesView />
+          </div>
+        )}
+
+        {/* ====================================================
+            IVR KEYPAD (#828# / #616#) & APP ACTIVATIONS HUB
+           ==================================================== */}
+        {activeTab === 'ivr_app_hub' && (
+          <div className="mt-6">
+            <IvrAndAppActivationsHub
+              currentUser={currentUser}
+              onOpenMap={() => setActiveTab('gps')}
+            />
           </div>
         )}
 
