@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { User, LocationRecord, LocationTrackingConfig } from '../../types';
 import { useData } from '../../context/DataContext';
+import { useAuth } from '../../context/AuthContext';
 
 // Fix Leaflet default icon URLs in Vite bundle
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -483,10 +484,13 @@ const InteractiveLeafletMapCanvas: React.FC<{
   return <div ref={mapContainerRef} className="w-full h-full min-h-[580px] sm:min-h-[660px] rounded-2xl overflow-hidden z-10" />;
 };
 
-export const SriLankaGpsMapView: React.FC<{ users: User[]; currentUser: User }> = ({
+export const SriLankaGpsMapView: React.FC<{ users: User[]; currentUser?: User; height?: string }> = ({
   users,
-  currentUser,
+  currentUser: propUser,
+  height,
 }) => {
+  const { currentUser: authUser } = useAuth();
+  const currentUser = propUser || authUser;
   const { updateUserGps, locationLogs, locationConfig, updateLocationConfig } = useData();
   const [activeTab, setActiveTab] = useState<'map' | 'daily_report' | 'hourly_history' | 'stationary' | 'settings'>('map');
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -577,7 +581,7 @@ export const SriLankaGpsMapView: React.FC<{ users: User[]; currentUser: User }> 
   // Role-based visibility filtering
   const allowedUsersForRole = useMemo(() => {
     return users.filter((u) => {
-      if (currentUser.role === 'owner') return true;
+      if (!currentUser || currentUser.role === 'owner') return true;
       if (currentUser.role === 'team_leader') return u.teamId === currentUser.teamId || u.id === currentUser.id;
       return u.id === currentUser.id;
     });
@@ -588,7 +592,7 @@ export const SriLankaGpsMapView: React.FC<{ users: User[]; currentUser: User }> 
     const districtCounts: Record<string, number> = {};
 
     return allowedUsersForRole.map((u, idx) => {
-      const isCurrentUser = u.id === currentUser.id;
+      const isCurrentUser = currentUser ? u.id === currentUser.id : false;
       const distKey = getMatchedDistrict(u);
       const distInfo = DISTRICT_COORDS[distKey] || DISTRICT_COORDS['Colombo'];
 

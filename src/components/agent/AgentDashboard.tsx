@@ -25,6 +25,7 @@ import {
   Map,
   Radio,
   Share2,
+  MessageSquare,
 } from 'lucide-react';
 import { SriLankaGpsMapView } from '../common/SriLankaGpsMapModal';
 import { getAttendanceSummary, getSalesSummary } from '../../utils/summaryUtils';
@@ -32,6 +33,7 @@ import { AutoMotivationBanner } from '../common/AutoMotivationBanner';
 import { ProductKnowledgeCenter } from '../common/ProductKnowledgeCenter';
 import { PerformanceTargetDashboard } from '../common/PerformanceTargetDashboard';
 import { CompanyMessageCenter } from '../common/CompanyMessageCenter';
+import { InteractiveChatBox } from '../common/InteractiveChatBox';
 import { DialogPerformanceManager } from '../common/DialogPerformanceManager';
 import { DigitalEmployeeIdCard } from '../common/DigitalEmployeeIdCard';
 import { DayStartWorkAreaModal } from '../common/DayStartWorkAreaModal';
@@ -50,6 +52,7 @@ type AgentTab =
   | 'product_knowledge'
   | 'target_dashboard'
   | 'company_messages'
+  | 'chat'
   | 'dialog_performance'
   | 'digital_id'
   | 'work_area'
@@ -403,6 +406,18 @@ export const AgentDashboard: React.FC = () => {
         >
           <Megaphone className="w-4 h-4 text-purple-400" />
           <span>📢 Messages</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('chat')}
+          className={`py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'chat'
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-lg shadow-amber-500/20 font-black'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4 text-amber-400" />
+          <span>💬 Live Chat</span>
         </button>
 
         <button
@@ -844,7 +859,7 @@ export const AgentDashboard: React.FC = () => {
 
           {/* Interactive Map */}
           <div className="rounded-2xl overflow-hidden border border-slate-800">
-            <SriLankaGpsMapView users={[currentUser]} height="400px" />
+            <SriLankaGpsMapView users={[currentUser]} currentUser={currentUser} height="400px" />
           </div>
         </div>
       )}
@@ -857,6 +872,13 @@ export const AgentDashboard: React.FC = () => {
 
       {/* MASTER TAB: COMPANY MESSAGES */}
       {activeTab === 'company_messages' && <CompanyMessageCenter />}
+
+      {/* MASTER TAB: LIVE CHAT */}
+      {activeTab === 'chat' && (
+        <div className="mt-6 space-y-4">
+          <InteractiveChatBox teamId={currentUser?.teamId} />
+        </div>
+      )}
 
       {/* MASTER TAB: DIALOG PERFORMANCE */}
       {activeTab === 'dialog_performance' && <DialogPerformanceManager />}

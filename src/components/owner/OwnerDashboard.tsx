@@ -840,6 +840,19 @@ export const OwnerDashboard: React.FC = () => {
             <span>📢 Message Center</span>
           </button>
 
+          {/* LIVE CHAT BOX (EXECUTIVE CONSOLE) */}
+          <button
+            onClick={() => setActiveTab('messages')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition whitespace-nowrap ${
+              activeTab === 'messages'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-lg shadow-amber-500/40'
+                : 'bg-slate-900 text-amber-300 border border-amber-500/30 hover:bg-slate-800'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4 text-amber-400" />
+            <span>💬 Live Chat Box (සජීවී පණිවිඩ)</span>
+          </button>
+
           {/* CORE 2: TEAM LEADERS & TEAMS ATTENDANCE + SUMMARIES */}
           <button
             onClick={() => setActiveTab('attendance')}

@@ -55,7 +55,10 @@ export const Navbar: React.FC = () => {
     }
   };
 
-  const directAppUrl = 'https://ais-pre-x3vgvdkcnqcxy6kg52vg7i-814098050496.asia-east1.run.app';
+  const directAppUrl =
+    typeof window !== 'undefined' && window.location.origin
+      ? window.location.origin
+      : 'https://ais-dev-dsekgfmwcewvlxn6gghirt-814098050496.asia-east1.run.app';
 
   if (!currentUser) return null;
 
