@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://android.com"
-    package="lk.ddworld.marketing">
+<manifest xmlns:android="http://android.com">
 
-    <!-- 📡 අන්තර්ජාලය සහ සජීවී GPS Tracking සඳහා අවශ්‍ය නිල අවසරයන් (Permissions) -->
+    <!-- 📡 අන්තර්ජාලය සහ සජීවී GPS Tracking/Biometric සඳහා නිල අවසරයන් -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
