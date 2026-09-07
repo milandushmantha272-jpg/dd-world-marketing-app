@@ -33,6 +33,9 @@ jobs:
         with:
           packages: "platforms;android-35 build-tools;35.0.0 platform-tools"
 
+      - name: Accept Android Licenses
+        run: yes | sdkmanager --licenses
+
       - name: Install Dependencies
         run: |
           npm install --legacy-peer-deps
@@ -47,9 +50,6 @@ jobs:
       - name: Make Gradle Executable
         working-directory: ./android
         run: chmod +x gradlew
-
-      - name: Accept Android Licenses
-        run: yes | sdkmanager --licenses
 
       - name: Generate Signing Report
         run: |
