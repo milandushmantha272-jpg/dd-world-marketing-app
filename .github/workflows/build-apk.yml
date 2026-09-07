@@ -33,6 +33,9 @@ jobs:
         with:
           packages: "platforms;android-35 build-tools;35.0.0 platform-tools"
 
+      - name: Accept Android Licenses
+        run: yes | sdkmanager --licenses
+
       - name: Install Dependencies
         run: |
           npm install --legacy-peer-deps
@@ -48,13 +51,19 @@ jobs:
         working-directory: ./android
         run: chmod +x gradlew
 
-      - name: Accept Android Licenses
-        run: yes | sdkmanager --licenses
+      - name: Create Default Debug Keystore in Exact Config Path
+        run: |
+          mkdir -p /home/runner/.config/.android
+          keytool -genkey -v -keystore /home/runner/.config/.android/debug.keystore -storepass android -alias AndroidDebugKey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          mkdir -p ~/.android
+          cp /home/runner/.config/.android/debug.keystore ~/.android/debug.keystore
+          mkdir -p android/app
+          cp /home/runner/.config/.android/debug.keystore android/app/debug.keystore
+          echo "Keystore successfully placed in the exact config directory."
 
       - name: Generate Signing Report
-        run: |
-          cd android
-          ./gradlew signingReport
+        working-directory: ./android
+        run: ./gradlew signingReport
 
       - name: Build Standalone Android APK
         working-directory: ./android
