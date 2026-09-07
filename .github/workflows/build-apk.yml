@@ -33,9 +33,6 @@ jobs:
         with:
           packages: "platforms;android-35 build-tools;35.0.0 platform-tools"
 
-      - name: Accept Android Licenses
-        run: yes | sdkmanager --licenses
-
       - name: Install Dependencies
         run: |
           npm install --legacy-peer-deps
@@ -51,14 +48,13 @@ jobs:
         working-directory: ./android
         run: chmod +x gradlew
 
-      - name: Create Default Debug Keystore
-        run: |
-          mkdir -p ~/.android
-          keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias AndroidDebugKey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+      - name: Accept Android Licenses
+        run: yes | sdkmanager --licenses
 
       - name: Generate Signing Report
-        working-directory: ./android
-        run: ./gradlew signingReport
+        run: |
+          cd android
+          ./gradlew signingReport
 
       - name: Build Standalone Android APK
         working-directory: ./android
