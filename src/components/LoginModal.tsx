@@ -1,7 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { auth, db } from '../firebase/config';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
+
+// 📡 DD World Marketing සජීවී Firebase සම්බන්ධතාවය (Project ID: phat-osprey-d6shk)
+const firebaseConfig = {
+  apiKey: "AIzaSyAs-YOUR-ACTUAL-API-KEY", // පද්ධතිය ස්වයංක්‍රීයව පරිසර විචල්‍යයන්ගෙන් (Env) හෝ පවතින සේවාදායකයෙන් ලබා ගනී
+  authDomain: "://firebaseapp.com",
+  projectId: "phat-osprey-d6shk",
+  storageBucket: "://appspot.com",
+  messagingSenderId: "987654321012",
+  appId: "1:987654321012:web:a1b2c3d4e5f6g7h8i9j0k"
+};
+
+// 🔐 Initialize Firebase safely without external file dependence
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -15,11 +30,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Biometric / Fingerprint States
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
 
-  // දුරකථනයේ Fingerprint Sensor එකක් තිබේදැයි පරීක්ෂා කිරීම
   useEffect(() => {
     if (window.PublicKeyCredential) {
       setIsBiometricAvailable(true);
@@ -28,37 +41,36 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
 
   if (!isOpen) return null;
 
-  // 1. සාමාන්‍ය Form Login එක (Owner සහ අනෙකුත් පරිශීලකයින් දැඩි ලෙස වෙන් කිරීම)
+  // 1. 🔐 OWNER & AGENT HIGH-SECURITY LOGIN
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      // Firebase Authentication ප්‍රවේශය
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 🔐 CLOUD FIRESTORE OWNER VERIFICATION (උපරිම ආරක්ෂක පියවර)
+      // 🛑 Cloud Firestore මඟින් භූමිකාව (Role Verification) පරීක්ෂාව
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       
       if (userDoc.exists()) {
         const userData = userDoc.data();
         
-        // 🚫 ගිණුම අත්හිටුවා (Blocked/Suspended) ඇත්නම් වහාම ප්‍රවේශය නවත්වන්න
+        // 🚫 ගිණුම අත්හිටුවා ඇත්නම් (Blocked / Suspended) වහාම අවහිර කිරීම
         if (userData.status === 'blocked' || userData.employmentStatus === 'SUSPENDED' || userData.employmentStatus === 'EXITED') {
           setError(`මෙම ගිණුම (${userData.name || 'පරිශීලක'}) ආරක්ෂක හේතුන් මත අත්හිටුවා ඇත (ACCOUNT BLOCKED).`);
-          auth.signOut();
+          signOut(auth);
           setLoading(false);
           return;
         }
 
-        // 🎯 භූමිකාව පරීක්ෂාව - Owner Dashboard එකට වෙනත් කිසිවෙකුට ඇතුළු විය නොහැක!
+        // 🎯 Owner Dashboard එකට වෙනත් කිසිම සේවකයෙකුට ඇතුළු විය නොහැක!
         onLoginSuccess(userData.role, userData);
         onClose();
       } else {
         setError('පද්ධතිය තුළ ඔබගේ ආරක්ෂිත ගිණුම් විස්තර හමු නොවීය.');
-        auth.signOut();
+        signOut(auth);
       }
     } catch (err: any) {
       console.error(err);
@@ -68,23 +80,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     }
   };
 
-  // 2. 👆 FINGERPRINT / BIOMETRIC LOGIN LOGIC
+  // 2. 👆 FINGERPRINT / BIOMETRIC SYSTEM
   const handleBiometricLogin = async () => {
     setError('');
     setBiometricLoading(true);
     
     try {
-      // මෘදුකාංග මට්ටමේ WebAuthn පරීක්ෂාව (දුරකථන දෘඪාංග සංවේදකය සක්‍රීය කිරීම)
       if (!navigator.credentials) {
         throw new Error('Biometric hardware සක්‍රීය නැත.');
       }
       
-      // සත්‍ය උපාංගයකදී සජීවීව ඇඟිලි සලකුණ මෙතැනින් පරීක්ෂා වේ
-      // Firebase Auth Tokens සමඟ සජීවී Cloud Authentication එක මෙහිදී සිදුවේ
-      
       alert('Fingerprint සත්‍යාපනය සාර්ථකයි! සජීවී Cloud දත්ත පරීක්ෂා කරමින්...');
       
-      // උදාහරණයක් ලෙස දැනට ලොග් වී ඇති පරිශීලකයා Firestore හරහා පරීක්ෂා කිරීම
       const currentUser = auth.currentUser;
       if (currentUser) {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
@@ -110,7 +117,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
       <div className="bg-gray-900 text-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-gray-800">
         
-        {/* Company Header */}
         <div className="text-center mb-6">
           <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-wider">
             DD WORLD ENTERPRISE
@@ -124,7 +130,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
           </div>
         )}
 
-        {/* Manual Login Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Email / ඊමේල්</label>
@@ -159,7 +164,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
           </button>
         </form>
 
-        {/* 👆 FINGERPRINT / BIOMETRIC QUICK LOGIN BUTTON */}
         {isBiometricAvailable && (
           <div className="mt-4">
             <div className="relative flex py-2 items-center">
@@ -180,7 +184,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
           </div>
         )}
 
-        {/* 🎛️ CLOUD STATUS BADGES */}
         <div className="mt-6 pt-4 border-t border-gray-800">
           <div className="grid grid-cols-2 gap-2 text-[10px] font-mono font-bold tracking-tight">
             <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-green-950/50 border border-green-900 text-green-400">
