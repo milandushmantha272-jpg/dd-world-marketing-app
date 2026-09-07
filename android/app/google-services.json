@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "920216054529",
+    "project_id": "dd-world-marketing",
+    "storage_bucket": "dd-world-marketing.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:920216054529:android:c507cfa6a68188aea10900",
+        "android_client_info": {
+          "package_name": "com.ddworld.marketing.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRwdtSzXYiavzn6gtA12pYwHqOjJNaoKc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
