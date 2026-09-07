@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://android.com">
+<manifest xmlns:android="http://android.com"
+    package="lk.ddworld.marketing">
 
+    <!-- 📡 අන්තර්ජාලය සහ සජීවී GPS Tracking සඳහා අවශ්‍ය නිල අවසරයන් (Permissions) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
 
     <application
         android:allowBackup="true"
@@ -14,17 +18,18 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:name=".MainActivity"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|layoutDirection|fontScale|screenLayout|density|smallestScreenSize"
             android:label="@string/title_activity_main"
-            android:launchMode="singleTask"
-            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:launchMode="singleTop"
             android:exported="true">
-            
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.action.LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
 
         <provider
