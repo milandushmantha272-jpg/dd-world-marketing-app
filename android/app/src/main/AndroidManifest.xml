@@ -1,44 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://android.com"
-
-    <uses-permission android:android:name="android.permission.INTERNET" />
-    <uses-permission android:android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-    <uses-permission android:android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-    <uses-permission android:android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:android:name="android.permission.WAKE_LOCK" />
-
+<manifest xmlns:android="http://android.com">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true">
-
+        android:theme="@style/AppTheme">
         <activity
-            android:android:name="com.ddworld.marketing.app.MainActivity"
+            android:name=".MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBar"
             android:launchMode="singleTop"
             android:exported="true">
             <intent-filter>
-                <action android:android:name="android.intent.action.MAIN" />
-                <category android:android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <provider
-            android:android:name="androidx.core.content.FileProvider"
+            android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
-                android:android:name="android.support.FILE_PROVIDER_PATHS"
+                android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
     </application>
