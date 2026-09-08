@@ -84,6 +84,17 @@ service cloud.firestore {
     }
 
     /**
+     * Check if a user record or ID represents the immutable Owner account
+     */
+    function isOwnerDoc(userDocData, targetId) {
+      return targetId == 'owner-1' || 
+             userDocData.role == 'owner' || 
+             userDocData.role == 'MASTER_LEADER' || 
+             userDocData.id == 'owner-1' ||
+             userDocData.email == 'd.d.worldmarketing1234@gmail.com';
+    }
+
+    /**
      * Validate timestamp is recent (within last 60 seconds for GPS)
      * Prevents backdated entries
      */
@@ -139,16 +150,24 @@ service cloud.firestore {
     // ========================================================================
 
     match /users/{userId} {
-      // Read: Users can read their own profile or supervisors can read team members
+      // Read: Authenticated users can read profiles or supervisors can read team members
       allow read: if isSignedIn() && 
                      (request.auth.uid == userId || 
-                      (isTeamSupervisor() && isInSameTeam(resource.data.teamId)));
+                      (isTeamSupervisor() && isInSameTeam(resource.data.teamId)) ||
+                      isOwner());
 
       // Create: Only during registration (handled server-side)
       allow create: if false; // Disable direct creation, use Cloud Functions
 
       // Update: Users can update own profile, supervisors can update team members
+      // SECURITY LOCKDOWN: Owner Credentials & Password Reset are fully restricted at the database level.
+      // Under no circumstances can any role, user, or service modify an Owner account document (Hardcoded Lockout).
+      // Also, non-owner users cannot escalate their role to owner.
       allow update: if isSignedIn() && 
+                       // Database-level Owner Lockout: Target document cannot be an Owner
+                       !isOwnerDoc(resource.data, userId) &&
+                       // Prevent escalation to Owner
+                       !isOwnerDoc(request.resource.data, userId) &&
                        (request.auth.uid == userId || isTeamSupervisor()) &&
                        // Prevent role tampering - can only be changed by owner
                        (resource.data.role == request.resource.data.role || isOwner()) &&
@@ -158,8 +177,8 @@ service cloud.firestore {
                        // Validate critical fields
                        request.resource.data.email == resource.data.email;
 
-      // Delete: Only owner can delete (with audit logging)
-      allow delete: if isOwner();
+      // Delete: Only owner can delete (with audit logging), and Owner document is strictly undeletable
+      allow delete: if isOwner() && !isOwnerDoc(resource.data, userId);
 
       // User Activity Subcollection - Audit Trail
       match /activities/{activityId} {

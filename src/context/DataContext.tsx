@@ -119,6 +119,25 @@ const broadcastRealtimeEvent = (type: string, data?: any) => {
   });
 };
 
+/**
+ * Hardcoded Owner account verification & security lockout guard.
+ * Prevents any modification, password reset, or privilege escalation of the Owner profile.
+ */
+export const isOwnerDoc = (user: any, targetId?: string): boolean => {
+  if (!user && !targetId) return false;
+  const id = user?.id || targetId;
+  const role = user?.role;
+  const email = user?.email;
+  return (
+    id === 'owner-1' ||
+    targetId === 'owner-1' ||
+    role === 'owner' ||
+    role === 'MASTER_LEADER' ||
+    email === 'd.d.worldmarketing1234@gmail.com' ||
+    email === 'owner@ddworld.local'
+  );
+};
+
 interface DataContextType {
   users: User[];
   teams: Team[];
@@ -260,6 +279,7 @@ interface DataContextType {
   updateUserProfile: (userId: string, data: Partial<User>) => void;
   updateAgentCode: (agentId: string, newCode: string) => { success: boolean; message: string };
   deleteAgent: (agentId: string) => { success: boolean; message: string };
+  deleteUser: (userId: string) => { success: boolean; message: string };
   toggleUserBlock: (userId: string) => { success: boolean; message: string; isBlocked: boolean };
   changeUserPassword: (userId: string, newPass: string) => { success: boolean; message: string };
   addAttendanceRecord: (record: {
@@ -1587,6 +1607,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Update general user profile in state & Firestore
   const updateUserProfile = (userId: string, data: Partial<User>) => {
+    // SECURITY LOCKDOWN: Owner credentials & login properties are strictly READ-ONLY / IMMUTABLE.
+    const target = users.find((u) => u.id === userId);
+    if (target && isOwnerDoc(target, userId)) {
+      const sanitizedData = { ...data };
+      delete sanitizedData.role;
+      delete sanitizedData.password;
+      delete sanitizedData.tempPassword;
+      delete sanitizedData.pinCode;
+      delete sanitizedData.agentCode;
+      delete sanitizedData.email;
+      delete sanitizedData.status;
+      delete sanitizedData.employmentStatus;
+      data = sanitizedData;
+    }
+
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === userId) {
@@ -1937,31 +1972,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
-  // Delete Agent (by Owner)
-  const deleteAgent = (agentId: string): { success: boolean; message: string } => {
-    const targetAgent = users.find((u) => u.id === agentId);
-    if (!targetAgent) {
-      return { success: false, message: 'Agent සොයාගත නොහැකි විය.' };
+  // Delete Employee / User (by Owner)
+  const deleteUser = (userId: string): { success: boolean; message: string } => {
+    const target = users.find((u) => u.id === userId);
+    if (!target) {
+      return { success: false, message: 'සේවකයා සොයාගත නොහැකි විය.' };
+    }
+    if (isOwnerDoc(target, userId)) {
+      return { success: false, message: 'ආයතන ප්‍රධානී (Owner) ගිණුම ඉවත් කළ නොහැක.' };
     }
 
     // Cascade removal from Users list
-    setUsers((prev) => prev.filter((u) => u.id !== agentId));
-    if (db) deleteDoc(doc(db, 'users', agentId)).catch(console.error);
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
+    if (db) deleteDoc(doc(db, 'users', userId)).catch(console.error);
 
-    // Also clean up any active sessions stored in localStorage if this user was logged in
+    // Clean up active session if this user was logged in
     const currentSession = safeStorage.getItem('ddworld_current_user_v2');
     if (currentSession) {
-      const parsed = JSON.parse(currentSession);
-      if (parsed.id === agentId) {
-        safeStorage.removeItem('ddworld_current_user_v2');
+      try {
+        const parsed = JSON.parse(currentSession);
+        if (parsed.id === userId) {
+          safeStorage.removeItem('ddworld_current_user_v2');
+        }
+      } catch (e) {
+        console.error(e);
       }
     }
 
     return {
       success: true,
-      message: `${targetAgent.name} පද්ධතියෙන් සහ අදාළ කණ්ඩායමෙන් ස්ථිරව ඉවත් කරන ලදී.`,
+      message: `${target.name} (${target.agentCode || target.employeeId || target.role}) පද්ධතියෙන් සාර්ථකව ඉවත් කරන ලදී.`,
     };
   };
+
+  // Delete Agent alias for backward compatibility
+  const deleteAgent = deleteUser;
 
   // Update or Confirm Agent Code (by Owner)
   const updateAgentCode = (agentId: string, newCode: string): { success: boolean; message: string } => {
@@ -2013,6 +2058,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const toggleUserBlock = (userId: string): { success: boolean; message: string; isBlocked: boolean } => {
     const targetUser = users.find((u) => u.id === userId);
     if (!targetUser) return { success: false, message: 'පරිශීලකයා හමු නොවීය.', isBlocked: false };
+    if (isOwnerDoc(targetUser, userId)) {
+      return { success: false, message: 'ආයතන ප්‍රධානී (Owner) ගිණුම අවහිර කිරීම (Block) කළ නොහැක.', isBlocked: false };
+    }
     const currentlyBlocked =
       targetUser.employmentStatus === 'BLOCKED' ||
       targetUser.employmentStatus === 'SUSPENDED' ||
@@ -2068,6 +2116,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     const targetUser = users.find((u) => u.id === userId);
     if (!targetUser) return { success: false, message: 'පරිශීලකයා හමු නොවීය.' };
+
+    // HARDCODED SECURITY LOCKDOWN: Owner Credentials & Password Reset are fully restricted at the database level.
+    // No role or service can modify the Owner login properties (Read-Only/Hardcoded Lockout).
+    if (isOwnerDoc(targetUser, userId)) {
+      return {
+        success: false,
+        message: 'ආයතන ප්‍රධානී (Owner) ගිණුමේ මුරපදය හෝ පිවිසුම් දත්ත වෙනස් කිරීම ආරක්ෂිතව අක්‍රිය කර ඇත (Hardcoded Lockout / Read-Only Security Lockdown).',
+      };
+    }
 
     setUsers((prev) =>
       prev.map((u) => {
@@ -2907,6 +2964,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateEmploymentStatus = (userId: string, status: EmploymentStatus, reason?: string) => {
     const targetUser = users.find((u) => u.id === userId);
+    if (!targetUser || isOwnerDoc(targetUser, userId)) {
+      return;
+    }
     const nowIso = new Date().toISOString();
     let updatedUser: User | null = null;
 
@@ -3300,6 +3360,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateUserProfile,
         updateAgentCode,
         deleteAgent,
+        deleteUser,
         toggleUserBlock,
         changeUserPassword,
         addAttendanceRecord,

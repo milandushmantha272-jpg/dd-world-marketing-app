@@ -9,6 +9,7 @@ import {
 } from '../utils/audioNotification';
 import { EmployeeVerificationModal } from './verification/EmployeeVerificationModal';
 import { OfficialCorporateIdCardModal } from './verification/OfficialCorporateIdCardModal';
+import { OfficialJobRulesModal } from './common/OfficialJobRulesModal';
 import { SriLankaGpsMapModal } from './common/SriLankaGpsMapModal';
 import { VisualGuideModal } from './common/VisualGuideModal';
 import { DdWorldLogo } from './common/DdWorldLogo';
@@ -25,6 +26,7 @@ export const Navbar: React.FC = () => {
   const [visualGuideOpen, setVisualGuideOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [appGuideOpen, setAppGuideOpen] = useState(false);
+  const [jobRulesOpen, setJobRulesOpen] = useState(false);
   const [notifGranted, setNotifGranted] = useState<boolean>(() => {
     return typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted';
   });
@@ -299,6 +301,16 @@ export const Navbar: React.FC = () => {
             <span className="hidden sm:inline">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
           </button>
 
+          {/* Job Rules & Compliance Button */}
+          <button
+            onClick={() => setJobRulesOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 text-xs font-bold transition"
+            title="නිල රාජකාරි රීති සහ විනය සංග්‍රහය (Official Job Rules & Compliance)"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-[#E1141E]" />
+            <span className="hidden sm:inline">රාජකාරි රීති</span>
+          </button>
+
           {/* App Guide / Install Button */}
           <button
             onClick={() => setAppGuideOpen(true)}
@@ -331,6 +343,12 @@ export const Navbar: React.FC = () => {
       <OfficialCorporateIdCardModal
         isOpen={idCardOpen}
         onClose={() => setIdCardOpen(false)}
+      />
+
+      {/* Official Job Rules & Anti-Fraud Compliance Modal */}
+      <OfficialJobRulesModal
+        isOpen={jobRulesOpen}
+        onClose={() => setJobRulesOpen(false)}
       />
 
       {/* Sri Lanka GPS Live Tracking Map Modal */}

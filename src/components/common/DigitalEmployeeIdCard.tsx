@@ -440,8 +440,22 @@ export const DigitalEmployeeIdCard: React.FC<DigitalEmployeeIdCardProps> = ({ us
               </div>
 
               <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-[10px] text-slate-400 text-left space-y-1">
+                <p className="text-amber-400 font-bold">• Authorized Field Partner for Dialog Axiata PLC (Govimithuru #616# &amp; Sayuru #828# Services).</p>
                 <p>• This Digital ID card is official property of DD World Marketing Pvt Limited.</p>
-                <p>• Authorized for official field visits and customer verification.</p>
+                <p>• Authorized for official field visits, merchant onboarding, and customer verification.</p>
+                <div className="pt-1 border-t border-slate-800/80 text-[9px] text-slate-400 space-y-0.5">
+                  <p>
+                    <span className="text-slate-500 font-bold uppercase">Official Hotline:</span>{' '}
+                    <span className="text-amber-300 font-mono font-bold">0767046094</span>
+                  </p>
+                  <p>
+                    <span className="text-slate-500 font-bold uppercase">Corporate Email:</span>{' '}
+                    <span className="text-slate-300 font-mono">d.d.worldmarketing1234@gmail.com</span>
+                  </p>
+                  <p className="text-slate-500 text-[8.5px]">
+                    44/c, Galabodawatha, Niungama, Piliyandala
+                  </p>
+                </div>
               </div>
 
               <div className="text-center text-[9px] text-slate-500 font-bold uppercase tracking-widest">

@@ -24,6 +24,7 @@ export interface User {
   designation?: string;
   workLocation?: string;
   district?: string;
+  address?: string;
   isAppDownloaded?: boolean;
   isLoggedIn?: boolean;
   lastLoginAt?: string;

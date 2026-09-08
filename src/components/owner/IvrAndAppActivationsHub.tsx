@@ -190,7 +190,11 @@ export const IvrAndAppActivationsHub: React.FC<IvrAndAppActivationsHubProps> = (
           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
           <input
             type="text"
-            placeholder="නියෝජිතයා, දුරකථන අංකය, දිස්ත්‍රික්කය..."
+            placeholder={
+              currentUser.role === 'team_leader'
+                ? 'නියෝජිතයා, Agent Code, දිස්ත්‍රික්කය...'
+                : 'නියෝජිතයා, දුරකථන අංකය, දිස්ත්‍රික්කය...'
+            }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"

@@ -83,8 +83,9 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'owner-1',
     name: 'Dushmantha Fernando (Owner / දුෂ්මන්ත)',
-    email: 'owner@ddworld.local',
-    mobile: '0771112233',
+    email: 'd.d.worldmarketing1234@gmail.com',
+    mobile: '0767046094',
+    address: '44/c, Galabodawatha, Niungama, Piliyandala',
     role: 'owner',
     agentCode: '9000',
     tempPassword: 'DDW@9000',
@@ -1338,6 +1339,19 @@ export const KNOWLEDGE_ARTICLES: KnowledgeArticle[] = [
 ];
 
 export const INITIAL_VERIFICATIONS: EmployeeVerification[] = [
+  {
+    id: 'verif-owner',
+    userId: 'owner-1',
+    userName: 'Dushmantha Fernando (Managing Director / Owner)',
+    userRole: 'owner',
+    agentCode: '9000',
+    idNumber: '198214509123',
+    address: '44/c, Galabodawatha, Niungama, Piliyandala',
+    contactNumber: '0767046094',
+    idPhotoUrl: '/official-logo.png',
+    status: 'verified',
+    submittedAt: '2026-01-01',
+  },
   {
     id: 'verif-ag-9291',
     userId: 'ag-9291',

@@ -1,18 +1,48 @@
 import React, { useState } from 'react';
-import { UserCheck, ShieldAlert, Search, Filter, AlertTriangle, Lock, CheckCircle2, UserX, Clock, Database } from 'lucide-react';
+import {
+  UserCheck,
+  ShieldAlert,
+  Search,
+  Filter,
+  AlertTriangle,
+  Lock,
+  CheckCircle2,
+  UserX,
+  Clock,
+  Database,
+  KeyRound,
+  Trash2,
+  Eye,
+  EyeOff,
+  Copy,
+  Check,
+  X,
+  RefreshCw,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useData } from '../../context/DataContext';
+import { useData, isOwnerDoc } from '../../context/DataContext';
 import { EmploymentStatus, User } from '../../types';
 
 export const EmployeeStatusManagement: React.FC = () => {
   const { currentUser } = useAuth();
-  const { users, updateEmploymentStatus } = useData();
+  const { users, updateEmploymentStatus, changeUserPassword, deleteUser } = useData();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'agent' | 'team_leader'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | EmploymentStatus>('all');
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Password Reset Modal State
+  const [passwordModalUser, setPasswordModalUser] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(true);
+  const [passwordStatusMsg, setPasswordStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [copiedPass, setCopiedPass] = useState(false);
+
+  // Delete User Modal State
+  const [deleteModalUser, setDeleteModalUser] = useState<User | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (currentUser?.role !== 'owner') {
     return (
@@ -23,7 +53,7 @@ export const EmployeeStatusManagement: React.FC = () => {
   }
 
   const filteredUsers = users.filter((u) => {
-    if (u.role === 'owner') return false; // Exclude Owner from status changes
+    if (isOwnerDoc(u)) return false; // Exclude Owner from status changes / password reset
     const matchRole = roleFilter === 'all' || u.role === roleFilter;
     const currentEmpStatus = u.employmentStatus || (u.status === 'blocked' ? 'BLOCKED' : 'ACTIVE');
     const matchStatus = statusFilter === 'all' || currentEmpStatus === statusFilter;
@@ -35,12 +65,71 @@ export const EmployeeStatusManagement: React.FC = () => {
   });
 
   const handleStatusChange = (targetUser: User, newStatus: EmploymentStatus) => {
+    if (isOwnerDoc(targetUser)) return;
     setUpdatingUserId(targetUser.id);
     updateEmploymentStatus(targetUser.id, newStatus);
 
-    setSuccessMsg(`✅ ${targetUser.name} ගේ ගිණුම් තත්ත්වය ${newStatus} ලෙස සාර්ථකව වෙනස් කරන ලදී. (ඓතිහාසික දත්ත සියල්ල සුරක්ෂිතයි)`);
+    setSuccessMsg(`✅ ${targetUser.name} ගේ ගිණුම් තත්ත්වය ${newStatus} ලෙස සාර්ථකව වෙනස් කරන ලදී.`);
     setUpdatingUserId(null);
     setTimeout(() => setSuccessMsg(null), 5000);
+  };
+
+  const openPasswordModal = (targetUser: User) => {
+    if (isOwnerDoc(targetUser)) {
+      setPasswordStatusMsg({
+        type: 'error',
+        text: 'ආයතන ප්‍රධානී (Owner) ගිණුමේ මුරපදය හෝ පිවිසුම් තොරතුරු වෙනස් කිරීම ආරක්ෂිතව අක්‍රිය කර ඇත (Hardcoded Database Lockout).',
+      });
+      return;
+    }
+    setPasswordModalUser(targetUser);
+    setNewPassword(targetUser.password || targetUser.tempPassword || targetUser.pinCode || '');
+    setPasswordStatusMsg(null);
+    setCopiedPass(false);
+  };
+
+  const handleGeneratePin = () => {
+    const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
+    setNewPassword(randomPin);
+  };
+
+  const handleSavePassword = () => {
+    if (!passwordModalUser) return;
+    if (!newPassword.trim() || newPassword.trim().length < 4) {
+      setPasswordStatusMsg({
+        type: 'error',
+        text: 'කරුණාකර අවම වශයෙන් අක්ෂර හෝ ඉලක්කම් 4ක Password / PIN එකක් ඇතුළත් කරන්න.',
+      });
+      return;
+    }
+
+    const res = changeUserPassword(passwordModalUser.id, newPassword.trim());
+    if (res.success) {
+      setPasswordStatusMsg({ type: 'success', text: res.message });
+      setSuccessMsg(`✅ ${passwordModalUser.name} ගේ මුරපදය සාර්ථකව යාවත්කාලීන කරන ලදී.`);
+      setTimeout(() => setSuccessMsg(null), 5000);
+    } else {
+      setPasswordStatusMsg({ type: 'error', text: res.message });
+    }
+  };
+
+  const handleCopyPassword = () => {
+    if (!newPassword) return;
+    navigator.clipboard?.writeText(newPassword);
+    setCopiedPass(true);
+    setTimeout(() => setCopiedPass(false), 3000);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteModalUser) return;
+    setIsDeleting(true);
+    const res = deleteUser(deleteModalUser.id);
+    setIsDeleting(false);
+    setDeleteModalUser(null);
+    if (res.success) {
+      setSuccessMsg(`🗑️ ${res.message}`);
+      setTimeout(() => setSuccessMsg(null), 6000);
+    }
   };
 
   return (
@@ -182,34 +271,60 @@ export const EmployeeStatusManagement: React.FC = () => {
                       </span>
                     </td>
                     <td className="p-3 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                        {/* Status Buttons */}
                         <button
                           disabled={currentEmpStatus === 'ACTIVE'}
                           onClick={() => handleStatusChange(u, 'ACTIVE')}
-                          className="px-2.5 py-1 rounded-xl bg-emerald-600/80 hover:bg-emerald-500 disabled:opacity-30 text-white font-black text-[10px] transition"
+                          className="px-2 py-1 rounded-lg bg-emerald-600/80 hover:bg-emerald-500 disabled:opacity-30 text-white font-black text-[10px] transition"
+                          title="Active Account"
                         >
                           ACTIVE
                         </button>
                         <button
                           disabled={currentEmpStatus === 'SUSPENDED'}
                           onClick={() => handleStatusChange(u, 'SUSPENDED')}
-                          className="px-2.5 py-1 rounded-xl bg-amber-600/80 hover:bg-amber-500 disabled:opacity-30 text-white font-black text-[10px] transition"
+                          className="px-2 py-1 rounded-lg bg-amber-600/80 hover:bg-amber-500 disabled:opacity-30 text-white font-black text-[10px] transition"
+                          title="Suspend Temporarily"
                         >
                           SUSPEND
                         </button>
                         <button
                           disabled={currentEmpStatus === 'EXITED'}
                           onClick={() => handleStatusChange(u, 'EXITED')}
-                          className="px-2.5 py-1 rounded-xl bg-purple-600/80 hover:bg-purple-500 disabled:opacity-30 text-white font-black text-[10px] transition"
+                          className="px-2 py-1 rounded-lg bg-purple-600/80 hover:bg-purple-500 disabled:opacity-30 text-white font-black text-[10px] transition"
+                          title="Mark Exited"
                         >
                           EXITED
                         </button>
                         <button
                           disabled={currentEmpStatus === 'BLOCKED'}
                           onClick={() => handleStatusChange(u, 'BLOCKED')}
-                          className="px-2.5 py-1 rounded-xl bg-rose-600/80 hover:bg-rose-500 disabled:opacity-30 text-white font-black text-[10px] transition"
+                          className="px-2 py-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 disabled:opacity-30 text-white font-black text-[10px] transition"
+                          title="Block User"
                         >
                           BLOCK
+                        </button>
+
+                        <div className="h-4 w-px bg-slate-800 mx-0.5" />
+
+                        {/* Password Reset Action */}
+                        <button
+                          onClick={() => openPasswordModal(u)}
+                          className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-[10px] transition flex items-center gap-1"
+                          title="මුරපදය / PIN වෙනස් කරන්න (Change Password)"
+                        >
+                          <KeyRound className="w-3 h-3 text-amber-400" />
+                          <span>Password</span>
+                        </button>
+
+                        {/* Permanent Delete Action */}
+                        <button
+                          onClick={() => setDeleteModalUser(u)}
+                          className="px-2 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 font-bold text-[10px] transition flex items-center gap-1"
+                          title="සේවකයා පද්ධතියෙන් ඉවත් කරන්න (Delete Employee)"
+                        >
+                          <Trash2 className="w-3 h-3 text-rose-400" />
                         </button>
                       </div>
                     </td>
@@ -220,6 +335,165 @@ export const EmployeeStatusManagement: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* PASSWORD RESET MODAL */}
+      {passwordModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">මුරපදය (Password / PIN) වෙනස් කිරීම</h3>
+                  <p className="text-[11px] text-slate-400">
+                    {passwordModalUser.name} ({passwordModalUser.agentCode || passwordModalUser.employeeId || 'Staff'})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPasswordModalUser(null)}
+                className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Notification alert */}
+            {passwordStatusMsg && (
+              <div
+                className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                  passwordStatusMsg.type === 'success'
+                    ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+                    : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'
+                }`}
+              >
+                {passwordStatusMsg.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                )}
+                <span>{passwordStatusMsg.text}</span>
+              </div>
+            )}
+
+            <div className="space-y-4 text-xs">
+              <div className="space-y-1.5">
+                <label className="text-slate-300 font-bold flex items-center justify-between">
+                  <span>නව මුරපදය හෝ PIN අංකය (New Password / PIN):</span>
+                  <button
+                    type="button"
+                    onClick={handleGeneratePin}
+                    className="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20"
+                  >
+                    <RefreshCw className="w-2.5 h-2.5" /> 4-Digit PIN Generate
+                  </button>
+                </label>
+
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="අවම වශයෙන් අක්ෂර/ඉලක්කම් 4ක්..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono text-sm focus:border-amber-500 outline-none pr-20"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="p-1.5 text-slate-400 hover:text-white"
+                      title={showPassword ? 'Hide' : 'Show'}
+                    >
+                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                    {newPassword && (
+                      <button
+                        type="button"
+                        onClick={handleCopyPassword}
+                        className="p-1.5 text-amber-400 hover:text-amber-300"
+                        title="Copy Password"
+                      >
+                        {copiedPass ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 space-y-1 leading-relaxed">
+                <p>• මෙම මුරපදය යාවත්කාලීන කළ පසු සේවකයාට නැවත ලොග් වීමට මෙම නව Password/PIN අංකය ඇතුළත් කිරීමට සිදුවේ.</p>
+                <p>• දත්ත සමුදාය (Firestore) සහ සජීවීව සියලුම Devices වෙත ක්ෂණිකව Sync වේ.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setPasswordModalUser(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition"
+              >
+                අවලංගු කරන්න
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePassword}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>මුරපදය සුරකින්න (Save Password)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {deleteModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-rose-900/60 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+              <div className="p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-400">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white">සේවකයා පද්ධතියෙන් ඉවත් කිරීම</h3>
+                <p className="text-xs text-rose-400 font-bold">Permanent Employee Removal</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
+              <p>
+                ඔබට <strong>{deleteModalUser.name}</strong> ({deleteModalUser.agentCode || deleteModalUser.employeeId || 'Staff'}) පද්ධතියෙන් ස්ථිරවම ඉවත් කිරීමට අවශ්‍ය බව තහවුරු කරන්න.
+              </p>
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-[11px] text-rose-300 space-y-1">
+                <p className="font-bold">⚠️ සැලකිය යුතුයි:</p>
+                <p>ඔබට සේවකයාගේ ඓතිහාසික Sales හා Attendance දත්ත පද්ධතිය තුළ තබා ගැනීමට අවශ්‍ය නම්, මෙම ඉවත් කිරීම වෙනුවට <strong>BLOCKED</strong> හෝ <strong>EXITED</strong> තත්ත්වයට පත් කිරීම වඩාත් සුදුසු වේ.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeleteModalUser(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition"
+              >
+                අවලංගු කරන්න
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteConfirm}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-black shadow-lg shadow-rose-600/30 transition flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{isDeleting ? 'ඉවත් කරමින්...' : 'ඔව්, ස්ථිරවම ඉවත් කරන්න'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

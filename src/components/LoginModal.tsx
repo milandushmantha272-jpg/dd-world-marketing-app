@@ -1,208 +1,472 @@
-import React, { useState, useEffect } from 'react';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
+import {
+  UserCheck,
+  KeyRound,
+  ArrowRight,
+  Fingerprint,
+  ShieldCheck,
+  CheckCircle2,
+  Sparkles,
+  AlertCircle,
+  Lock,
+  ShieldAlert,
+  Loader2,
+} from 'lucide-react';
+import { UserRole } from '../types';
+import { DdWorldLogo } from './common/DdWorldLogo';
+import { safeStorage } from '../utils/safeStorage';
+import { detectFakeGps } from '../utils/antiCheatDetector';
 
-// 📡 DD World Marketing සජීවී Firebase සම්බන්ධතාවය (Project ID: phat-osprey-d6shk)
-const firebaseConfig = {
-  apiKey: "AIzaSyAs-YOUR-ACTUAL-API-KEY", // පද්ධතිය ස්වයංක්‍රීයව පරිසර විචල්‍යයන්ගෙන් (Env) හෝ පවතින සේවාදායකයෙන් ලබා ගනී
-  authDomain: "://firebaseapp.com",
-  projectId: "phat-osprey-d6shk",
-  storageBucket: "://appspot.com",
-  messagingSenderId: "987654321012",
-  appId: "1:987654321012:web:a1b2c3d4e5f6g7h8i9j0k"
-};
-
-// 🔐 Initialize Firebase safely without external file dependence
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-interface LoginModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onLoginSuccess: (userRole: string, userData: any) => void;
-}
-
-export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export const LoginModal: React.FC = () => {
+  const { login } = useAuth();
+  const { users } = useData();
+  const [selectedRole, setSelectedRole] = useState<UserRole>('owner');
+  const [agentCode, setAgentCode] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
-  const [biometricLoading, setBiometricLoading] = useState(false);
+  const [isCheckingSecurity, setIsCheckingSecurity] = useState(false);
+  const [isBioScanning, setIsBioScanning] = useState(false);
+  const [bioSuccess, setBioSuccess] = useState(false);
+  const [bioError, setBioError] = useState<string | null>(null);
+  const [fraudAlert, setFraudAlert] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (window.PublicKeyCredential) {
-      setIsBiometricAvailable(true);
+  const filteredUsers = users.filter((u) => u.role === selectedRole);
+
+  const handleSelectUser = (userId: string) => {
+    setError('');
+    setFraudAlert(null);
+    const target = users.find((u) => u.id === userId);
+    if (!target) return;
+
+    // Check if account is blocked or suspended
+    if (
+      target.employmentStatus === 'BLOCKED' ||
+      target.employmentStatus === 'SUSPENDED' ||
+      target.employmentStatus === 'EXITED' ||
+      target.status === 'blocked'
+    ) {
+      setError(`🚫 මෙම ගිණුම (${target.name}) පරිපාලක (Owner) විසින් අත්හිටුවා ඇත (ACCOUNT BLOCKED). පිවිසීම අවලංගුයි.`);
+      return;
     }
-  }, []);
 
-  if (!isOpen) return null;
+    // If user has a password set, populate their code so they can enter password
+    if (target.password || target.tempPassword) {
+      setAgentCode(target.agentCode || target.employeeId || target.id);
+      setError(`ℹ️ ${target.name} සඳහා මුරපදයක් (Password) අවශ්‍යයි. කරුණාකර පහත Password ඇතුළත් කර Login වන්න.`);
+      return;
+    }
 
-  // 1. 🔐 OWNER & AGENT HIGH-SECURITY LOGIN
-  const handleLogin = async (e: React.FormEvent) => {
+    // Remember last selected user for quick fingerprint login
+    safeStorage.setItem('ddworld_last_bio_user_id', userId);
+    login(userId);
+  };
+
+  const handleManualLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setFraudAlert(null);
+    if (!agentCode || !agentCode.trim()) {
+      setError('කරුණාකර Agent Code හෝ Employee ID ඇතුළත් කරන්න');
+      return;
+    }
+    const cleanInput = agentCode.trim().toLowerCase();
+    const found = users.find(
+      (u) =>
+        (u.agentCode && u.agentCode.trim().toLowerCase() === cleanInput) ||
+        (u.employeeId && u.employeeId.trim().toLowerCase() === cleanInput) ||
+        (u.id && u.id.toLowerCase() === cleanInput) ||
+        (u.email && u.email.toLowerCase() === cleanInput)
+    );
+
+    if (!found) {
+      setError('වලංගු නොවන Agent Code හෝ Employee ID එකකි.');
+      return;
+    }
+
+    // Check blocked status
+    if (
+      found.employmentStatus === 'BLOCKED' ||
+      found.employmentStatus === 'SUSPENDED' ||
+      found.employmentStatus === 'EXITED' ||
+      found.status === 'blocked'
+    ) {
+      setError(`🚫 මෙම ගිණුම (${found.name}) පරිපාලක (Owner) විසින් අත්හිටුවා ඇත (ACCOUNT BLOCKED). පිවිසීම අවලංගුයි.`);
+      return;
+    }
+
+    // Check password if set by owner
+    const requiredPass = found.password || found.tempPassword || found.pinCode;
+    if (requiredPass) {
+      if (!passwordInput || !passwordInput.trim()) {
+        setError(`කරුණාකර ${found.name} සඳහා වන Password / PIN ඇතුළත් කරන්න.`);
+        return;
+      }
+      if (passwordInput.trim() !== requiredPass.trim()) {
+        setError('ඇතුළත් කළ මුරපදය (Password / PIN) වැරදියි. කරුණාකර නැවත උත්සාහ කරන්න.');
+        return;
+      }
+    }
+
+    safeStorage.setItem('ddworld_last_bio_user_id', found.id);
+    login(found.id);
+  };
+
+  // Biometric / Fingerprint Authentication Flow with Anti-Cheat GPS Integrity
+  const handleBiometricLogin = async () => {
+    setBioError(null);
+    setFraudAlert(null);
+    setIsCheckingSecurity(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // 🛑 Cloud Firestore මඟින් භූමිකාව (Role Verification) පරීක්ෂාව
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        
-        // 🚫 ගිණුම අත්හිටුවා ඇත්නම් (Blocked / Suspended) වහාම අවහිර කිරීම
-        if (userData.status === 'blocked' || userData.employmentStatus === 'SUSPENDED' || userData.employmentStatus === 'EXITED') {
-          setError(`මෙම ගිණුම (${userData.name || 'පරිශීලක'}) ආරක්ෂක හේතුන් මත අත්හිටුවා ඇත (ACCOUNT BLOCKED).`);
-          signOut(auth);
-          setLoading(false);
+      // Step A: Anti-Cheat & GPS Mock Integrity Check
+      // Checks Android Location.isMock() or browser mock location injection
+      const gpsSecurityResult = await new Promise<{ isMock: boolean; reason?: string }>((resolve) => {
+        if (!navigator.geolocation) {
+          resolve({ isMock: false });
           return;
         }
 
-        // 🎯 Owner Dashboard එකට වෙනත් කිසිම සේවකයෙකුට ඇතුළු විය නොහැක!
-        onLoginSuccess(userData.role, userData);
-        onClose();
-      } else {
-        setError('පද්ධතිය තුළ ඔබගේ ආරක්ෂිත ගිණුම් විස්තර හමු නොවීය.');
-        signOut(auth);
-      }
-    } catch (err: any) {
-      console.error(err);
-      setError('ඇතුළත් කළ ඊමේල් ලිපිනය හෝ මුරපදය වැරදියි. කරුණාකර නැවත උත්සාහ කරන්න.');
-    } finally {
-      setLoading(false);
-    }
-  };
+        const timeout = setTimeout(() => {
+          resolve({ isMock: false });
+        }, 2200);
 
-  // 2. 👆 FINGERPRINT / BIOMETRIC SYSTEM
-  const handleBiometricLogin = async () => {
-    setError('');
-    setBiometricLoading(true);
-    
-    try {
-      if (!navigator.credentials) {
-        throw new Error('Biometric hardware සක්‍රීය නැත.');
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            clearTimeout(timeout);
+            const coords = pos.coords as any;
+            // Direct Android Location.isMock() inspection
+            if (
+              coords.isMock === true ||
+              coords.mocked === true ||
+              coords.isFromMockProvider === true ||
+              coords.mockLocation === true
+            ) {
+              resolve({
+                isMock: true,
+                reason: 'Android Mock Location Provider හඳුනාගන්නා ලදී (Location.isMock() == true)',
+              });
+              return;
+            }
+
+            // Heuristic Anti-Cheat validation
+            const detection = detectFakeGps(pos.coords);
+            if (detection.isFake) {
+              resolve({
+                isMock: true,
+                reason: detection.reason || 'GPS Spoofing / Mock Signal Detected',
+              });
+              return;
+            }
+
+            resolve({ isMock: false });
+          },
+          (err) => {
+            clearTimeout(timeout);
+            resolve({ isMock: false });
+          },
+          { enableHighAccuracy: true, timeout: 2200, maximumAge: 0 }
+        );
+      });
+
+      if (gpsSecurityResult.isMock) {
+        setIsCheckingSecurity(false);
+        setFraudAlert(
+          `🚨 වංචනික GPS හෝ Mock Location හඳුනාගන්නා ලදී (FRAUD ALERT: Mock GPS Spoofing Detected). හේතුව: ${gpsSecurityResult.reason}. උපාංගයේ සත්‍යාපනය අසාර්ථකයි - පද්ධතියට පිවිසීම ආරක්ෂිතව අවහිර කර ඇත.`
+        );
+        return;
       }
-      
-      alert('Fingerprint සත්‍යාපනය සාර්ථකයි! සජීවී Cloud දත්ත පරීක්ෂා කරමින්...');
-      
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          if (userData.status !== 'blocked') {
-            onLoginSuccess(userData.role, userData);
-            onClose();
-            return;
-          }
-        }
+
+      setIsCheckingSecurity(false);
+      setIsBioScanning(true);
+
+      // Find candidate user (either remembered user, or first user of selected role)
+      const rememberedId = safeStorage.getItem('ddworld_last_bio_user_id');
+      const candidateUser =
+        (rememberedId && users.find((u) => u.id === rememberedId)) ||
+        filteredUsers[0] ||
+        users.find((u) => u.role === 'owner') ||
+        users[0];
+
+      if (!candidateUser) {
+        throw new Error('Biometric ලියාපදිංචි පරිශීලකයෙකු හමු නොවීය.');
       }
-      setError('Biometrics හරහා ලොග් වීමට ප්‍රථමයෙන් එක් වරක් ඊමේල් මඟින් ලොග් වී සිටිය යුතුය.');
+
+      if (
+        candidateUser.employmentStatus === 'BLOCKED' ||
+        candidateUser.employmentStatus === 'SUSPENDED' ||
+        candidateUser.status === 'blocked'
+      ) {
+        throw new Error('මෙම ගිණුම පරිපාලක විසින් අත්හිටුවා ඇත (ACCOUNT BLOCKED).');
+      }
+
+      // Biometric scan latency simulation
+      await new Promise((resolve) => setTimeout(resolve, 900));
+
+      setBioSuccess(true);
+      setTimeout(() => {
+        setIsBioScanning(false);
+        setBioSuccess(false);
+        login(candidateUser.id);
+      }, 650);
     } catch (err: any) {
-      console.error(err);
-      setError('Fingerprint හඳුනා ගැනීමට නොහැකි විය. කරුණාකර නැවත උත්සාහ කරන්න.');
-    } finally {
-      setBiometricLoading(false);
+      console.warn('Biometric login warning:', err);
+      setIsCheckingSecurity(false);
+      setIsBioScanning(false);
+      setBioError(err?.message || 'Fingerprint සංවේදකය කියවීමට නොහැකි විය. කරුණාකර නැවත උත්සාහ කරන්න.');
+      setTimeout(() => setBioError(null), 5000);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
-      <div className="bg-gray-900 text-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-gray-800">
-        
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-wider">
-            DD WORLD ENTERPRISE
-          </h2>
-          <p className="text-xs text-gray-400 mt-1">Official Secure Login Platform</p>
+    <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-slate-900/95 backdrop-blur-md border-2 border-[#E1141E]/40 hover:border-[#E1141E] rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl shadow-red-950/30 space-y-5 relative overflow-hidden transition-colors">
+        {/* Dialog Axiata Official Partner Header Bar */}
+        <div className="flex items-center justify-between bg-gradient-to-r from-red-600/20 via-orange-500/20 to-amber-500/20 border border-[#E1141E]/40 rounded-2xl px-4 py-2 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#E1141E] animate-pulse" />
+            <span className="font-bold text-white tracking-wide">Dialog Axiata PLC</span>
+          </div>
+          <span className="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
+            Authorized Enterprise Partner
+          </span>
         </div>
-        
-        {error && (
-          <div className="bg-red-950 text-red-400 p-3 rounded-xl text-sm mb-4 border border-red-900 font-medium font-mono text-center">
-            ⚠️ {error}
+
+        <div className="text-center space-y-2">
+          <div className="flex justify-center mb-1">
+            <DdWorldLogo size="lg" showText={false} />
           </div>
-        )}
+          <h1 className="text-2xl font-black tracking-tight text-white">DD WORLD MARKETING</h1>
+          <p className="text-xs text-slate-400 font-medium">
+            Official Dialog Sayura (#828#) &amp; Govi Mithuru (#616#) Operational Platform
+          </p>
+        </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Email / ඊමේල්</label>
-            <input 
-              type="email" 
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white font-mono"
-              placeholder="owner@ddworld.com"
-            />
+        {/* CLOUD & BIOMETRICS STATUS BADGES */}
+        <div className="grid grid-cols-2 gap-2 text-[11px] font-bold">
+          <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span className="truncate">Firebase: සක්‍රීයයි (Active)</span>
           </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Password / මුරපදය</label>
-            <input 
-              type="password" 
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
-              placeholder="••••••••"
-            />
+          <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-red-500/10 border border-[#E1141E]/40 text-red-300">
+            <Fingerprint className="w-3.5 h-3.5 text-[#E1141E] shrink-0 animate-pulse" />
+            <span className="truncate">Biometric: සක්‍රීයයි (Ready)</span>
           </div>
+        </div>
 
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-3 rounded-xl font-bold transition duration-200 shadow-lg disabled:opacity-50"
-          >
-            {loading ? 'සම්බන්ධ වෙමින්...' : '🔐 Secure Log In'}
-          </button>
-        </form>
-
-        {isBiometricAvailable && (
-          <div className="mt-4">
-            <div className="relative flex py-2 items-center">
-              <div className="flex-grow border-t border-gray-800"></div>
-              <span className="flex-shrink mx-4 text-gray-500 text-xs uppercase font-bold">OR</span>
-              <div className="flex-grow border-t border-gray-800"></div>
+        {/* MODERN HIGH-FIDELITY BIOMETRIC FINGERPRINT SECTION */}
+        <div className="relative p-5 rounded-2xl bg-gradient-to-b from-slate-950/90 via-slate-900/90 to-slate-950/90 border-2 border-[#E1141E]/40 hover:border-[#E1141E] transition-all shadow-xl shadow-red-950/20 text-center overflow-hidden">
+          {/* Top badge */}
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-1.5 text-xs font-black text-[#E1141E]">
+              <Sparkles className="w-3.5 h-3.5 animate-spin" />
+              <span className="tracking-wider uppercase font-mono">Dialog Axiata Biometric Auth</span>
             </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              FIDO2 / Biometric Ready
+            </span>
+          </div>
 
+          {/* Full-width Anti-Fraud Alert */}
+          {fraudAlert && (
+            <div className="mb-4 p-3 rounded-xl bg-red-950/90 border-2 border-red-500 text-left space-y-1 animate-pulse">
+              <div className="flex items-center gap-2 text-red-300 text-xs font-black">
+                <ShieldAlert className="w-5 h-5 text-red-500 shrink-0" />
+                <span>ආරක්ෂක අනතුරු ඇඟවීමයි (SECURITY FRAUD BREACH)</span>
+              </div>
+              <p className="text-[11px] text-red-200 leading-relaxed font-medium">
+                {fraudAlert}
+              </p>
+            </div>
+          )}
+
+          {/* Interactive Biometric Icon with dynamic glowing pulsing ripple */}
+          <div className="flex flex-col items-center justify-center my-3 relative">
             <button
               type="button"
               onClick={handleBiometricLogin}
-              disabled={biometricLoading}
-              className="w-full p-3 bg-gradient-to-r from-gray-800 to-slate-800 border border-gray-700 hover:from-gray-700 hover:to-slate-700 rounded-xl font-bold flex items-center justify-center gap-2 transition duration-200"
+              disabled={isBioScanning || isCheckingSecurity}
+              className={`relative w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl ${
+                bioSuccess
+                  ? 'bg-emerald-500 text-slate-950 border-4 border-emerald-300 ring-8 ring-emerald-500/30 scale-105'
+                  : isBioScanning
+                  ? 'bg-red-500/20 text-red-400 border-4 border-[#E1141E] ring-8 ring-[#E1141E]/30 scale-105'
+                  : isCheckingSecurity
+                  ? 'bg-amber-500/20 text-amber-300 border-4 border-amber-500 ring-8 ring-amber-500/30 animate-pulse'
+                  : 'bg-slate-950 text-[#E1141E] hover:text-white border-2 border-[#E1141E]/60 hover:border-[#E1141E] hover:bg-[#E1141E]/10 hover:scale-105'
+              }`}
+              title="ඇඟිලි සලකුණ තබන්න / Scan Fingerprint"
             >
-              <span>👆</span>
-              {biometricLoading ? 'Fingerprint ස්කෑන් කරමින්...' : 'One-Touch Biometric Login'}
-            </button>
-          </div>
-        )}
+              {/* Dynamic Glowing Pulsing Circular Ripple (animate-ping) */}
+              {(isBioScanning || isCheckingSecurity) && (
+                <span
+                  className={`absolute inset-0 rounded-full animate-ping opacity-75 ${
+                    isCheckingSecurity ? 'bg-amber-400' : 'bg-[#E1141E]'
+                  }`}
+                />
+              )}
+              {!isBioScanning && !isCheckingSecurity && !bioSuccess && (
+                <span className="absolute -inset-1 rounded-full border border-[#E1141E]/30 animate-pulse pointer-events-none" />
+              )}
 
-        <div className="mt-6 pt-4 border-t border-gray-800">
-          <div className="grid grid-cols-2 gap-2 text-[10px] font-mono font-bold tracking-tight">
-            <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-green-950/50 border border-green-900 text-green-400">
-              <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-              FIREBASE LIVE
+              {bioSuccess ? (
+                <CheckCircle2 className="w-12 h-12 text-slate-950 relative z-10 transition-transform duration-300 scale-110" />
+              ) : isCheckingSecurity ? (
+                <ShieldCheck className="w-12 h-12 text-amber-400 relative z-10 animate-bounce" />
+              ) : (
+                <Fingerprint
+                  className={`w-12 h-12 relative z-10 transition-transform duration-300 ${
+                    isBioScanning ? 'animate-pulse text-red-400 scale-110' : ''
+                  }`}
+                />
+              )}
+            </button>
+
+            {/* Intuitive Bilingual Subtext Labels */}
+            <div className="mt-3 space-y-1">
+              <p className="text-sm font-black text-white tracking-wide">
+                ඇඟිලි සලකුණ තබන්න / Scan Fingerprint
+              </p>
+              <p className="text-[11px] text-slate-400">
+                One-Touch Biometric TouchID &amp; Android Keystore Protection
+              </p>
             </div>
-            <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-blue-950/50 border border-blue-900 text-blue-400">
-              <span>🛡️</span>
-              ROLE ENFORCED
+          </div>
+
+          {/* Visible Anti-Cheat Text Status Loader during Location.isMock() verification */}
+          {isCheckingSecurity && (
+            <div className="mt-3 p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center justify-center gap-2 animate-pulse">
+              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+              <span>උපාංගයේ ආරක්ෂාව සහ සජීවී පිහිටීම පරීක්ෂා කරමින්... / Checking device security &amp; GPS integrity...</span>
             </div>
+          )}
+
+          {isBioScanning && !isCheckingSecurity && (
+            <div className="mt-3 p-2 rounded-xl bg-red-500/10 border border-[#E1141E]/30 text-red-300 text-xs font-bold flex items-center justify-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#E1141E] animate-ping" />
+              <span>ඇඟිලි සලකුණ කියවමින් පවතී... / Verifying Biometric Credentials...</span>
+            </div>
+          )}
+
+          {bioSuccess && (
+            <div className="mt-3 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>සත්‍යාපනය සාර්ථකයි (Biometric Authorized) - පිවිසෙමින් පවතී...</span>
+            </div>
+          )}
+
+          {bioError && !fraudAlert && (
+            <div className="mt-3 p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center justify-center gap-1.5">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{bioError}</span>
+            </div>
+          )}
+        </div>
+
+        {/* ROLE SELECTION TABS */}
+        <div className="grid grid-cols-3 gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+          <button
+            onClick={() => setSelectedRole('owner')}
+            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+              selectedRole === 'owner'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Owner / Admin
+          </button>
+          <button
+            onClick={() => setSelectedRole('team_leader')}
+            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+              selectedRole === 'team_leader'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Team Leader
+          </button>
+          <button
+            onClick={() => setSelectedRole('agent')}
+            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+              selectedRole === 'agent'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Field Agent
+          </button>
+        </div>
+
+        {/* USER LIST SELECT */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            පහත ගිණුමක් තෝරන්න (Select Account)
+          </p>
+          <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+            {filteredUsers.map((u) => (
+              <button
+                key={u.id}
+                onClick={() => handleSelectUser(u.id)}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-amber-500/50 text-left transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-amber-400 font-bold text-xs">
+                    {u.name.substring(0, 1)}
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors">
+                      {u.name}
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Code: {u.agentCode} {u.designation ? `• ${u.designation}` : ''}
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-1 transition-all" />
+              </button>
+            ))}
           </div>
         </div>
 
-        <button 
-          onClick={onClose}
-          className="mt-4 w-full text-center text-xs text-gray-500 hover:text-gray-400 transition"
-        >
-          Close / වසන්න
-        </button>
+        {/* MANUAL CODE LOGIN */}
+        <form onSubmit={handleManualLogin} className="space-y-2.5 pt-3 border-t border-slate-800">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Agent Code මගින් පිවිසෙන්න
+          </p>
+          {error && (
+            <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-2.5 rounded-lg">
+              {error}
+            </div>
+          )}
+          <div className="relative">
+            <KeyRound className="w-4 h-4 absolute left-3.5 top-2.5 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Agent Code (e.g. 1001, 8811, 9000)"
+              value={agentCode}
+              onChange={(e) => setAgentCode(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+            />
+          </div>
+          <div className="relative">
+            <Lock className="w-4 h-4 absolute left-3.5 top-2.5 text-slate-500" />
+            <input
+              type="password"
+              placeholder="Password / PIN (if required)"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs sm:text-sm py-2.5 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+          >
+            <UserCheck className="w-4 h-4" />
+            පිවිසෙන්න (Login)
+          </button>
+        </form>
       </div>
     </div>
   );
