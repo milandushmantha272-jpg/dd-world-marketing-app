@@ -12,8 +12,9 @@ replace_once('src/types.ts', "  status?: 'COMPLETED' | 'PENDING' | 'CANCELLED' |
 
 dc = Path('src/context/DataContext.tsx')
 s = dc.read_text(encoding='utf-8')
-s = s.replace("    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n  }) => void;\n  addIvrEntry:", "    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n    status?: ProductSale['status'];\n  }) => ProductSale;\n  updateProductSaleVerification: (saleId: string, status: 'COMPLETED' | 'PENDING' | 'CANCELLED', reviewedBy: string, note?: string) => boolean;\n  addIvrEntry:", 1)
-s = s.replace("    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n  }) => {\n    const agentUser = users.find(", "    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n    status?: ProductSale['status'];\n  }): ProductSale => {\n    const agentUser = users.find(", 1)
+s = s.replace("    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n  }) => void;\n  addIvrEntry:", "    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n    id?: string;\n    status?: ProductSale['status'];\n  }) => void;\n  updateProductSaleVerification: (saleId: string, status: 'COMPLETED' | 'PENDING' | 'CANCELLED', reviewedBy: string, note?: string) => boolean;\n  addIvrEntry:", 1)
+s = s.replace("    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n  }) => {\n    const agentUser = users.find(", "    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n    id?: string;\n    status?: ProductSale['status'];\n  }) => {\n    const agentUser = users.find(", 1)
+s = s.replace("      id: `sale-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,", "      id: saleData.id || `sale-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,", 1)
 s = s.replace("      appShareChannel: saleData.appShareChannel,\n      status: 'COMPLETED',\n      notes: saleData.notes,", "      appShareChannel: saleData.appShareChannel,\n      status: saleData.status || 'COMPLETED',\n      verificationStatus: saleData.status === 'PENDING' ? 'PENDING' : 'VERIFIED',\n      verifiedAt: saleData.status === 'PENDING' ? undefined : new Date().toISOString(),\n      verifiedBy: saleData.status === 'PENDING' ? undefined : saleData.agentName,\n      notes: saleData.notes,", 1)
 helper = """  const updateProductSaleVerification = (saleId: string, status: 'COMPLETED' | 'PENDING' | 'CANCELLED', reviewedBy: string, note?: string): boolean => {
     const existing = sales.find((sale) => sale.id === saleId);
@@ -42,10 +43,6 @@ if 'const updateProductSaleVerification = ' not in s:
     marker = "  const addIvrEntry = (entryData: {"
     if marker not in s: raise SystemExit('addIvrEntry marker not found')
     s = s.replace(marker, helper + marker, 1)
-old = "      })\n    );\n  };\n\n  const addIvrEntry = (entryData: {"
-new = "      })\n    );\n    return newSale;\n  };\n\n  const addIvrEntry = (entryData: {"
-if old not in s: raise SystemExit('exact sale alert marker not found')
-s = s.replace(old, new, 1)
 dc.write_text(s, encoding='utf-8')
 
 p = Path('src/components/sales/IvrKeypadAndAppShareModal.tsx')
@@ -61,7 +58,9 @@ new_fn = """  const logAppActivationSale = (shareChannel: 'WHATSAPP' | 'SMS' | '
     const lng = currentUser.location?.longitude || 79.8612;
     const district = currentUser.location?.district || currentUser.assignedDistrict || 'Colombo';
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const pendingSale = addProductSale({
+    const pendingId = `app-pending-${currentUser.id}-${Date.now()}`;
+    addProductSale({
+      id: pendingId,
       agentId: currentUser.id,
       agentName: currentUser.name,
       agentCode: currentUser.agentCode || 'AG-000',
@@ -83,7 +82,7 @@ new_fn = """  const logAppActivationSale = (shareChannel: 'WHATSAPP' | 'SMS' | '
       appShareChannel: shareChannel,
       status: 'PENDING',
     });
-    setPendingAppSaleId(pendingSale.id);
+    setPendingAppSaleId(pendingId);
     setAppCustomerPhone('');
     setAppCustomerName('');
     setAppShareSuccess(`⏳ ${getAppName()} Link යවා ඇත. Sale එක තවම Count නොවේ. Customer App එක Install/Activate කළ පසු Confirm කරන්න.`);
