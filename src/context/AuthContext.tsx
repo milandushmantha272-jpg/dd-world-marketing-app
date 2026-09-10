@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
 import { useData } from './DataContext';
 import { safeStorage } from '../utils/safeStorage';
+import { ensureFirebaseSession } from '../services/firebase';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -17,14 +18,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     try {
       const saved = safeStorage.getItem('ddworld_current_user_v2');
-      if (saved) {
-        return JSON.parse(saved);
-      }
+      if (saved) return JSON.parse(saved);
     } catch (e) {
       console.error('Error loading current user from safeStorage:', e);
     }
     return null;
   });
+
+  // Establish the Firebase session as soon as the app starts so Firestore calls
+  // do not race ahead of authentication and produce unauthenticated 403 errors.
+  useEffect(() => {
+    ensureFirebaseSession().catch((error) => {
+      console.error('Firebase authentication session could not be established:', error);
+      window.dispatchEvent(
+        new CustomEvent('ddworld_auth_alert', {
+          detail: { message: 'Cloud authentication is temporarily unavailable. Please check your connection and try again.' },
+        })
+      );
+    });
+  }, []);
 
   useEffect(() => {
     if (currentUser && users && users.length > 0) {
@@ -72,6 +84,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [currentUser]);
 
   const login = (userOrId: User | string) => {
+    // The Firebase identity is separate from the DD World role identity, but
+    // it must exist before any role session begins.
+    ensureFirebaseSession().catch((error) => {
+      console.error('Unable to establish Firebase session before login:', error);
+    });
+
     let targetUser: User | undefined;
     if (typeof userOrId === 'string') {
       targetUser = users.find((u) => u.id === userOrId || u.agentCode === userOrId || u.email === userOrId);
@@ -108,9 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginAsUser = (userOrId: User | string) => {
-    login(userOrId);
-  };
+  const loginAsUser = (userOrId: User | string) => login(userOrId);
 
   const logout = () => {
     setCurrentUser(null);
@@ -126,8 +142,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
