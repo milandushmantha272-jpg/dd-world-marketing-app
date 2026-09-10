@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 def replace_once(path: str, old: str, new: str):
@@ -59,26 +60,17 @@ if 'const updateProductSaleVerification = ' not in s:
     if marker not in s:
         raise SystemExit('addIvrEntry marker not found')
     s = s.replace(marker, helper + marker, 1)
-old_return = "    );\n  };\n\n  const addIvrEntry = (entryData: {"
-new_return = "    );\n    return newSale;\n  };\n\n  const addIvrEntry = (entryData: {"
-if old_return in s:
-    s = s.replace(old_return, new_return, 1)
-else:
-    raise SystemExit('addProductSale return marker not found')
+pattern = r"(    window\.dispatchEvent\(\n      new CustomEvent\('ddworld_sale_alert', \{[\s\S]*?\n    \);)\n  \};\n\n  const addIvrEntry = \(entryData: \{"
+replacement = r"\1\n    return newSale;\n  };\n\n  const addIvrEntry = (entryData: {"
+s, n = re.subn(pattern, replacement, s, count=1)
+if n != 1:
+    raise SystemExit(f'addProductSale alert return marker not found; matches={n}')
 dc.write_text(s, encoding='utf-8')
 
 p = Path('src/components/sales/IvrKeypadAndAppShareModal.tsx')
 s = p.read_text(encoding='utf-8')
-s = s.replace(
-    "  const { addProductSale, updateUserGps } = useData();",
-    "  const { addProductSale, updateProductSaleVerification, updateUserGps } = useData();",
-    1,
-)
-s = s.replace(
-    "  const [appShareSuccess, setAppShareSuccess] = useState<string | null>(null);",
-    "  const [appShareSuccess, setAppShareSuccess] = useState<string | null>(null);\n  const [pendingAppSaleId, setPendingAppSaleId] = useState<string | null>(null);",
-    1,
-)
+s = s.replace("  const { addProductSale, updateUserGps } = useData();", "  const { addProductSale, updateProductSaleVerification, updateUserGps } = useData();", 1)
+s = s.replace("  const [appShareSuccess, setAppShareSuccess] = useState<string | null>(null);", "  const [appShareSuccess, setAppShareSuccess] = useState<string | null>(null);\n  const [pendingAppSaleId, setPendingAppSaleId] = useState<string | null>(null);", 1)
 start = s.index("  const logAppActivationSale = ")
 end = s.index("  const handleShareWhatsApp = ", start)
 new_fn = """  const logAppActivationSale = (shareChannel: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT') => {
@@ -88,7 +80,6 @@ new_fn = """  const logAppActivationSale = (shareChannel: 'WHATSAPP' | 'SMS' | '
     const lng = currentUser.location?.longitude || 79.8612;
     const district = currentUser.location?.district || currentUser.assignedDistrict || 'Colombo';
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
     const pendingSale = addProductSale({
       agentId: currentUser.id,
       agentName: currentUser.name,
@@ -98,7 +89,6 @@ new_fn = """  const logAppActivationSale = (shareChannel: 'WHATSAPP' | 'SMS' | '
       productName,
       channel: 'APP',
       quantity: 1,
-      // Customer PII is never persisted in the sale record.
       customerName: undefined,
       customerMobile: undefined,
       amount: 0,
@@ -112,7 +102,6 @@ new_fn = """  const logAppActivationSale = (shareChannel: 'WHATSAPP' | 'SMS' | '
       appShareChannel: shareChannel,
       status: 'PENDING',
     });
-
     setPendingAppSaleId(pendingSale.id);
     setAppCustomerPhone('');
     setAppCustomerName('');
@@ -125,12 +114,7 @@ new_fn = """  const logAppActivationSale = (shareChannel: 'WHATSAPP' | 'SMS' | '
       alert('පළමුව Customer App Link එක Share කරන්න.');
       return;
     }
-    const ok = updateProductSaleVerification(
-      pendingAppSaleId,
-      'COMPLETED',
-      currentUser.name,
-      `Customer confirmed ${getAppName()} installed/activated.`,
-    );
+    const ok = updateProductSaleVerification(pendingAppSaleId, 'COMPLETED', currentUser.name, `Customer confirmed ${getAppName()} installed/activated.`);
     if (ok) {
       setPendingAppSaleId(null);
       setAppShareSuccess('✅ Customer App activation තහවුරු විය. Sale එක දැන් Count වේ.');
@@ -162,5 +146,4 @@ if old_btn not in s:
     raise SystemExit('manual app count button not found')
 s = s.replace(old_btn, new_btn, 1)
 p.write_text(s, encoding='utf-8')
-
 print('FIELD_ACTIVATION_MIGRATION_OK')
