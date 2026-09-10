@@ -25,6 +25,12 @@ export interface User {
   workLocation?: string;
   district?: string;
   address?: string;
+  emergencyContact?: string;
+  emergencyContactName?: string;
+  drivingLicenceNumber?: string;
+  drivingLicenceExpiry?: string;
+  annualVerificationDate?: string;
+  annualVerificationExpiry?: string;
   isAppDownloaded?: boolean;
   isLoggedIn?: boolean;
   lastLoginAt?: string;
@@ -46,6 +52,9 @@ export interface User {
     policeReport?: string;
     nicFront?: string;
     nicBack?: string;
+    drivingLicenceFront?: string;
+    drivingLicenceBack?: string;
+    employeePhoto?: string;
   };
   gramaNiladhariReportUrl?: string;
   policeReportUrl?: string;
@@ -62,6 +71,17 @@ export interface Team {
   leaderName: string;
   description?: string;
   createdAt?: string;
+}
+
+export interface SalesPolicy {
+  workingDaysTarget: number;
+  dailyProductTarget: number;
+  sayuruDailyTarget: number;
+  govimithuruDailyTarget: number;
+  effectiveFrom?: string;
+  version?: string;
+  updatedBy?: string;
+  updatedAt?: string;
 }
 
 export interface AttendanceRecord {
@@ -216,326 +236,4 @@ export interface SecurityAlert {
   coordinates?: { latitude: number; longitude: number };
   timestamp: string;
   resolved?: boolean;
-}
-
-export interface ColdStorageArchive {
-  id: string;
-  fiscalMonth: string;
-  archivedAt: string;
-  archivedBy: string;
-  totalSalesRecords: number;
-  totalAttendanceRecords: number;
-  totalLocationRecords: number;
-  dataSnapshot?: string;
-}
-
-export interface KnowledgeArticle {
-  id: string;
-  title: string;
-  category: string;
-  productCode?: string;
-  shortDescription?: string;
-  fullContent?: string;
-  keyBenefits?: string[];
-  pricing?: string;
-  activationCode?: string;
-  salesGuidance?: string | string[];
-  faqs?: Array<{ question: string; answer: string }> | any;
-  content?: string;
-  updatedAt?: string;
-  author?: string;
-}
-
-export interface EmployeeVerification {
-  id: string;
-  userId: string;
-  agentCode?: string;
-  idNumber?: string;
-  userRole?: UserRole;
-  userName: string;
-  nic?: string;
-  address?: string;
-  contactNumber?: string;
-  nicFrontUrl?: string;
-  nicBackUrl?: string;
-  idPhotoUrl?: string;
-  gramaNiladhariReportUrl?: string;
-  policeReportUrl?: string;
-  gramaReportName?: string;
-  policeReportName?: string;
-  approvedBy?: string;
-  selfieUrl?: string;
-  status: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'verified' | 'pending';
-  submittedAt: string;
-  verifiedAt?: string;
-}
-
-export interface MonthlyProductTargets {
-  id?: string;
-  month?: string;
-  totalGovimithuruTarget?: number;
-  totalSayuruTarget?: number;
-  govimithuruIvr?: number;
-  govimithuruApp?: number;
-  sayuruIvr?: number;
-  sayuruApp?: number;
-}
-
-export interface TeamProductTargets {
-  id?: string;
-  teamId: string;
-  teamName?: string;
-  month?: string;
-  govimithuruTarget?: number;
-  sayuruTarget?: number;
-  govimithuruIvr?: number;
-  govimithuruApp?: number;
-  sayuruIvr?: number;
-  sayuruApp?: number;
-}
-
-export interface AgentProductTarget {
-  id?: string;
-  agentId: string;
-  agentCode?: string;
-  agentName?: string;
-  month?: string;
-  govimithuruTarget?: number;
-  sayuruTarget?: number;
-  govimithuruIvr?: number;
-  govimithuruApp?: number;
-  sayuruIvr?: number;
-  sayuruApp?: number;
-}
-
-export interface CompanyWeeklyReport {
-  id: string;
-  title?: string;
-  reportType?: string;
-  weekStartDate?: string;
-  weekEndDate?: string;
-  totalSales?: number;
-  summary?: string;
-  createdById?: string;
-  attachedAt?: string;
-  entries?: any[];
-}
-
-export interface VaultFile {
-  id: string;
-  name?: string;
-  fileName?: string;
-  title?: string;
-  fileSizeMB?: number;
-  notes?: string;
-  category: string;
-  url?: string;
-  fileUrl?: string;
-  uploadedBy: string;
-  uploadedAt: string;
-  size?: number;
-}
-
-export interface MarketingPost {
-  id: string;
-  title: string;
-  content?: string;
-  description?: string;
-  mediaUrl?: string;
-  platform?: string;
-  contentType?: string;
-  scheduledTime?: string;
-  publishedAt?: string;
-  views?: number;
-  likes?: number;
-  targetAudience?: string;
-  status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'published' | 'draft' | 'scheduled';
-  createdAt?: string;
-}
-
-export interface WebAiChatMessage {
-  id: string;
-  sender: 'user' | 'ai' | 'owner' | string;
-  senderName?: string;
-  message?: string;
-  text?: string;
-  timestamp: string;
-}
-
-export interface SystemDoctorLog {
-  id: string;
-  timestamp: string;
-  level?: 'INFO' | 'WARNING' | 'ERROR';
-  module?: string;
-  issueType?: string;
-  status?: string;
-  message: string;
-}
-
-export interface DailyJobRoleReport {
-  id: string;
-  date: string;
-  agentId: string;
-  reportText: string;
-  attendanceStatus?: string;
-}
-
-export interface CallSession {
-  id: string;
-  callerId: string;
-  callerName: string;
-  callerRole: UserRole;
-  receiverId: string;
-  receiverName: string;
-  receiverRole?: string;
-  type: 'audio' | 'video' | 'voice' | string;
-  status: 'ringing' | 'connected' | 'ended' | 'rejected';
-  startTime: string;
-  endTime?: string;
-}
-
-export interface SmsLogRecord {
-  id: string;
-  senderId?: string;
-  senderName?: string;
-  senderRole?: string;
-  recipient?: string;
-  recipientName?: string;
-  recipientMobile?: string;
-  message: string;
-  type?: string;
-  status: 'SENT' | 'FAILED' | 'PENDING' | 'delivered' | string;
-  timestamp?: string;
-  sentAt?: string;
-  cost?: number;
-}
-
-export interface LocationRecord {
-  id: string;
-  employee_id: string;
-  agent_code: string;
-  employee_name: string;
-  team_id?: string;
-  team_name?: string;
-  role: string;
-  latitude: number;
-  longitude: number;
-  accuracy: number;
-  batteryLevel?: number;
-  timestamp: string;
-  time_display?: string;
-  date?: string;
-  hour?: number;
-  status?: string;
-  detected_village?: string;
-  district_si?: string;
-  created_at?: string;
-  source?: string;
-  sessionId?: string;
-  deviceId?: string;
-  gpsPermissionStatus?: string;
-  gpsState?: string;
-  appState?: string;
-  networkState?: string;
-}
-
-export interface LocationTrackingConfig {
-  intervalMinutes?: number;
-  highAccuracy?: boolean;
-  trackingEnabled?: boolean;
-  workingHoursStart?: string;
-  workingHoursEnd?: string;
-  startHour?: number | string;
-  endHour?: number | string;
-  liveThresholdMinutes?: number;
-  recentThresholdMinutes?: number;
-  staleThresholdMinutes?: number;
-  updateIntervalSeconds?: number;
-  stationaryRadiusMeters?: number;
-  stationaryDurationMinutes?: number;
-  enableOutsideWorkingHours?: boolean;
-}
-
-export interface MotivationBannerMessage {
-  id: string;
-  text: string;
-  category: string;
-  isActive: boolean;
-  createdBy: string;
-}
-
-export interface CompanyMessage {
-  id: string;
-  title: string;
-  content: string;
-  category: string;
-  mediaType: string;
-  targetAudience: string;
-  senderId: string;
-  senderName: string;
-  sentAt: string;
-  status: string;
-  readBy: string[];
-}
-
-export interface DialogPerformanceRecord {
-  id: string;
-  agentId: string;
-  agentCode: string;
-  agentName: string;
-  teamId?: string;
-  reportDate: string;
-  productCode: string;
-  dialogSales: number;
-  customerUsage: string;
-  qualityResult: string;
-  revenueLkr: number;
-  pointsScore: number;
-  updatedAt: string;
-}
-
-export interface TrainingProgressRecord {
-  id: string;
-  agentId: string;
-  moduleName: string;
-  progressPercent: number;
-  completed: boolean;
-}
-
-export interface QuizResultRecord {
-  id: string;
-  agentId: string;
-  quizTitle: string;
-  score: number;
-  totalQuestions: number;
-  passed: boolean;
-  takenAt: string;
-  completedAt?: string;
-}
-
-export interface WorkAreaRecord {
-  id: string;
-  agentId: string;
-  agentName: string;
-  district: string;
-  areaName: string;
-  assignedDate: string;
-  timestamp?: string;
-}
-
-export interface EmployeeIdAuditLog {
-  id: string;
-  userId?: string;
-  employeeId?: string;
-  agentCode?: string;
-  employeeName?: string;
-  action: string;
-  performedBy?: string;
-  timestamp: string;
-  details?: string;
-  previousValue?: string;
-  newValue?: string;
-  approvedBy?: string;
-  approvedAt?: string;
-  rejectedReason?: string;
 }
