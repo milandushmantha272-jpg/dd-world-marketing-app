@@ -314,7 +314,10 @@ interface DataContextType {
     activationMethod?: 'KEYPAD_DIAL' | 'APP_LINK_SHARE' | 'MANUAL';
     dialCode?: string;
     appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';
+    id?: string;
+    status?: ProductSale['status'];
   }) => void;
+  updateProductSaleVerification: (saleId: string, status: 'COMPLETED' | 'PENDING' | 'CANCELLED', reviewedBy: string, note?: string) => boolean;
   addIvrEntry: (entry: {
     agentId: string;
     agentName: string;
@@ -2495,6 +2498,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     activationMethod?: 'KEYPAD_DIAL' | 'APP_LINK_SHARE' | 'MANUAL';
     dialCode?: string;
     appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';
+    id?: string;
+    status?: ProductSale['status'];
   }) => {
     const agentUser = users.find(
       (u) => u.id === saleData.agentId || (saleData.agentCode && u.agentCode === saleData.agentCode)
@@ -2508,7 +2513,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const resolvedDistrict = saleData.district || agentUser?.location?.district || agentUser?.assignedDistrict || 'Colombo';
 
     const newSale: ProductSale = {
-      id: `sale-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      id: saleData.id || `sale-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       agentId: saleData.agentId,
       agentName: saleData.agentName,
       agentCode: saleData.agentCode,
@@ -2529,7 +2534,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       activationMethod: saleData.activationMethod || 'MANUAL',
       dialCode: saleData.dialCode,
       appShareChannel: saleData.appShareChannel,
-      status: 'COMPLETED',
+      status: saleData.status || 'COMPLETED',
+      verificationStatus: saleData.status === 'PENDING' ? 'PENDING' : 'VERIFIED',
+      verifiedAt: saleData.status === 'PENDING' ? undefined : new Date().toISOString(),
+      verifiedBy: saleData.status === 'PENDING' ? undefined : saleData.agentName,
       notes: saleData.notes,
     };
     setSales((prev) => {
@@ -2549,6 +2557,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       })
     );
+  };
+
+  const updateProductSaleVerification = (saleId: string, status: 'COMPLETED' | 'PENDING' | 'CANCELLED', reviewedBy: string, note?: string): boolean => {
+    const existing = sales.find((sale) => sale.id === saleId);
+    if (!existing) return false;
+    const now = new Date().toISOString();
+    const updatedSale: ProductSale = {
+      ...existing,
+      status,
+      verificationStatus: status === 'COMPLETED' ? 'VERIFIED' : status === 'CANCELLED' ? 'REJECTED' : 'PENDING',
+      verifiedAt: status === 'COMPLETED' || status === 'CANCELLED' ? now : undefined,
+      verifiedBy: status === 'COMPLETED' || status === 'CANCELLED' ? reviewedBy : undefined,
+      verificationNote: note,
+    };
+    setSales((prev) => {
+      const updated = prev.map((sale) => sale.id === saleId ? updatedSale : sale);
+      safeStorage.setItem(STORAGE_KEY_SALES, JSON.stringify(updated));
+      return updated;
+    });
+    if (db) safeSetDoc(doc(db, 'sales', saleId), updatedSale, { merge: true }).catch(console.error);
+    broadcastRealtimeEvent('UPDATE_SALE_VERIFICATION', updatedSale);
+    return true;
   };
 
   const addIvrEntry = (entryData: {

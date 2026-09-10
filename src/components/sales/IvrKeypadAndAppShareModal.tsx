@@ -38,7 +38,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
   onClose,
   isOpen = true,
 }) => {
-  const { addProductSale, updateUserGps } = useData();
+  const { addProductSale, updateProductSaleVerification, updateUserGps } = useData();
 
   const [activeMode, setActiveMode] = useState<'keypad' | 'app_share'>('keypad');
 
@@ -56,6 +56,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
   const [showQrCode, setShowQrCode] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [appShareSuccess, setAppShareSuccess] = useState<string | null>(null);
+  const [pendingAppSaleId, setPendingAppSaleId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -201,8 +202,9 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
     const lng = currentUser.location?.longitude || 79.8612;
     const district = currentUser.location?.district || currentUser.assignedDistrict || 'Colombo';
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
+    const pendingId = `app-pending-${currentUser.id}-${Date.now()}`;
     addProductSale({
+      id: pendingId,
       agentId: currentUser.id,
       agentName: currentUser.name,
       agentCode: currentUser.agentCode || 'AG-000',
@@ -211,10 +213,10 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
       productName,
       channel: 'APP',
       quantity: 1,
-      customerName: appCustomerName.trim() || undefined,
-      customerMobile: appCustomerPhone.trim() || undefined,
+      customerName: undefined,
+      customerMobile: undefined,
       amount: 0,
-      notes: `Play Store App Share (${shareChannel}): ${getAppName()} to ${appCustomerPhone || 'Walk-in Customer'}`,
+      notes: `Play Store App Share (${shareChannel}) - Pending customer installation/activation confirmation.`,
       location: `${district} (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
       latitude: lat,
       longitude: lng,
@@ -222,14 +224,26 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
       time: timeStr,
       activationMethod: 'APP_LINK_SHARE',
       appShareChannel: shareChannel,
+      status: 'PENDING',
     });
+    setPendingAppSaleId(pendingId);
+    setAppCustomerPhone('');
+    setAppCustomerName('');
+    setAppShareSuccess(`⏳ ${getAppName()} Link යවා ඇත. Sale එක තවම Count නොවේ. Customer App එක Install/Activate කළ පසු Confirm කරන්න.`);
+    setTimeout(() => setAppShareSuccess(null), 6000);
+  };
 
-    setAppShareSuccess(
-      `✅ ${getAppName()} Link එක සාර්ථකව පාරිභෝගිකයාට යවන ලදී!\nSale එක සටහන් විය | නියෝජිත: ${currentUser.name} | දිස්ත්‍රික්කය: ${district}`
-    );
-    setTimeout(() => {
-      setAppShareSuccess(null);
-    }, 6000);
+  const confirmAppActivation = () => {
+    if (!pendingAppSaleId) {
+      alert('පළමුව Customer App Link එක Share කරන්න.');
+      return;
+    }
+    const ok = updateProductSaleVerification(pendingAppSaleId, 'COMPLETED', currentUser.name, `Customer confirmed ${getAppName()} installed/activated.`);
+    if (ok) {
+      setPendingAppSaleId(null);
+      setAppShareSuccess('✅ Customer App activation තහවුරු විය. Sale එක දැන් Count වේ.');
+      setTimeout(() => setAppShareSuccess(null), 5000);
+    }
   };
 
   const handleShareWhatsApp = () => {
@@ -267,7 +281,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
     navigator.clipboard.writeText(getAppPlayStoreUrl());
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
-    logAppActivationSale('DIRECT');
+    // Copying a link is not a sale and does not create a pending record.
   };
 
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
@@ -633,11 +647,12 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
             {/* DIRECT MANUAL LOG BUTTON */}
             <button
               type="button"
-              onClick={() => logAppActivationSale('DIRECT')}
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition flex items-center justify-center gap-2 border border-slate-700"
+              onClick={confirmAppActivation}
+              disabled={!pendingAppSaleId}
+              className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 font-bold text-xs transition flex items-center justify-center gap-2 border border-slate-700"
             >
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>පාරිභෝගික දුරකථනයට Download කළ පසු Sale එක Count කරන්න</span>
+              <span>{pendingAppSaleId ? 'Customer App Install / Activation OK — Sale Count කරන්න' : 'පළමුව App Link Share කරන්න'}</span>
             </button>
           </div>
         )}

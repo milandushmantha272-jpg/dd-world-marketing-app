@@ -108,6 +108,10 @@ export interface ProductSale {
   date?: string;
   time?: string;
   status?: 'COMPLETED' | 'PENDING' | 'CANCELLED' | string;
+  verificationStatus?: 'PENDING' | 'VERIFIED' | 'REJECTED' | string;
+  verifiedAt?: string;
+  verifiedBy?: string;
+  verificationNote?: string;
   amount?: number;
   notes?: string;
   activationMethod?: 'KEYPAD_DIAL' | 'APP_LINK_SHARE' | 'MANUAL';
