@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 
 
 def replace_once(path: str, old: str, new: str):
@@ -9,29 +8,13 @@ def replace_once(path: str, old: str, new: str):
         raise SystemExit(f'Pattern not found in {path}: {old[:120]!r}')
     p.write_text(s.replace(old, new, 1), encoding='utf-8')
 
-replace_once(
-    'src/types.ts',
-    "  status?: 'COMPLETED' | 'PENDING' | 'CANCELLED' | string;\n  amount?: number;",
-    "  status?: 'COMPLETED' | 'PENDING' | 'CANCELLED' | string;\n  verificationStatus?: 'PENDING' | 'VERIFIED' | 'REJECTED' | string;\n  verifiedAt?: string;\n  verifiedBy?: string;\n  verificationNote?: string;\n  amount?: number;",
-)
+replace_once('src/types.ts', "  status?: 'COMPLETED' | 'PENDING' | 'CANCELLED' | string;\n  amount?: number;", "  status?: 'COMPLETED' | 'PENDING' | 'CANCELLED' | string;\n  verificationStatus?: 'PENDING' | 'VERIFIED' | 'REJECTED' | string;\n  verifiedAt?: string;\n  verifiedBy?: string;\n  verificationNote?: string;\n  amount?: number;")
 
 dc = Path('src/context/DataContext.tsx')
 s = dc.read_text(encoding='utf-8')
-s = s.replace(
-    "    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n  }) => void;\n  addIvrEntry:",
-    "    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n    status?: ProductSale['status'];\n  }) => ProductSale;\n  updateProductSaleVerification: (saleId: string, status: 'COMPLETED' | 'PENDING' | 'CANCELLED', reviewedBy: string, note?: string) => boolean;\n  addIvrEntry:",
-    1,
-)
-s = s.replace(
-    "    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n  }) => {\n    const agentUser = users.find(",
-    "    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n    status?: ProductSale['status'];\n  }): ProductSale => {\n    const agentUser = users.find(",
-    1,
-)
-s = s.replace(
-    "      appShareChannel: saleData.appShareChannel,\n      status: 'COMPLETED',\n      notes: saleData.notes,",
-    "      appShareChannel: saleData.appShareChannel,\n      status: saleData.status || 'COMPLETED',\n      verificationStatus: saleData.status === 'PENDING' ? 'PENDING' : 'VERIFIED',\n      verifiedAt: saleData.status === 'PENDING' ? undefined : new Date().toISOString(),\n      verifiedBy: saleData.status === 'PENDING' ? undefined : saleData.agentName,\n      notes: saleData.notes,",
-    1,
-)
+s = s.replace("    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n  }) => void;\n  addIvrEntry:", "    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n    status?: ProductSale['status'];\n  }) => ProductSale;\n  updateProductSaleVerification: (saleId: string, status: 'COMPLETED' | 'PENDING' | 'CANCELLED', reviewedBy: string, note?: string) => boolean;\n  addIvrEntry:", 1)
+s = s.replace("    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n  }) => {\n    const agentUser = users.find(", "    appShareChannel?: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT';\n    status?: ProductSale['status'];\n  }): ProductSale => {\n    const agentUser = users.find(", 1)
+s = s.replace("      appShareChannel: saleData.appShareChannel,\n      status: 'COMPLETED',\n      notes: saleData.notes,", "      appShareChannel: saleData.appShareChannel,\n      status: saleData.status || 'COMPLETED',\n      verificationStatus: saleData.status === 'PENDING' ? 'PENDING' : 'VERIFIED',\n      verifiedAt: saleData.status === 'PENDING' ? undefined : new Date().toISOString(),\n      verifiedBy: saleData.status === 'PENDING' ? undefined : saleData.agentName,\n      notes: saleData.notes,", 1)
 helper = """  const updateProductSaleVerification = (saleId: string, status: 'COMPLETED' | 'PENDING' | 'CANCELLED', reviewedBy: string, note?: string): boolean => {
     const existing = sales.find((sale) => sale.id === saleId);
     if (!existing) return false;
@@ -57,14 +40,12 @@ helper = """  const updateProductSaleVerification = (saleId: string, status: 'CO
 """
 if 'const updateProductSaleVerification = ' not in s:
     marker = "  const addIvrEntry = (entryData: {"
-    if marker not in s:
-        raise SystemExit('addIvrEntry marker not found')
+    if marker not in s: raise SystemExit('addIvrEntry marker not found')
     s = s.replace(marker, helper + marker, 1)
-pattern = r"(    window\.dispatchEvent\(\n      new CustomEvent\('ddworld_sale_alert', \{[\s\S]*?\n    \);)\n  \};\n\n  const addIvrEntry = \(entryData: \{"
-replacement = r"\1\n    return newSale;\n  };\n\n  const addIvrEntry = (entryData: {"
-s, n = re.subn(pattern, replacement, s, count=1)
-if n != 1:
-    raise SystemExit(f'addProductSale alert return marker not found; matches={n}')
+old = "      })\n    );\n  };\n\n  const addIvrEntry = (entryData: {"
+new = "      })\n    );\n    return newSale;\n  };\n\n  const addIvrEntry = (entryData: {"
+if old not in s: raise SystemExit('exact sale alert marker not found')
+s = s.replace(old, new, 1)
 dc.write_text(s, encoding='utf-8')
 
 p = Path('src/components/sales/IvrKeypadAndAppShareModal.tsx')
@@ -142,8 +123,7 @@ new_btn = """            <button
               <CheckCircle2 className=\"w-4 h-4 text-emerald-400\" />
               <span>{pendingAppSaleId ? 'Customer App Install / Activation OK — Sale Count කරන්න' : 'පළමුව App Link Share කරන්න'}</span>
             </button>"""
-if old_btn not in s:
-    raise SystemExit('manual app count button not found')
+if old_btn not in s: raise SystemExit('manual app count button not found')
 s = s.replace(old_btn, new_btn, 1)
 p.write_text(s, encoding='utf-8')
 print('FIELD_ACTIVATION_MIGRATION_OK')
