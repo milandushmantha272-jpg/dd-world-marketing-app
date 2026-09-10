@@ -1,4 +1,4 @@
-export type UserRole = 'owner' | 'team_leader' | 'agent';
+export type UserRole = 'owner' | 'team_leader' | 'agent' | 'dialog_officer';
 
 export type EmploymentStatus = 'ACTIVE' | 'TEMPORARY_SUSPENDED' | 'RESIGNED' | 'TERMINATED' | 'PROBATION' | 'BLOCKED' | 'SUSPENDED' | 'EXITED';
 
