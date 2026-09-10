@@ -15,6 +15,7 @@ import { CallNotificationModal } from './components/common/CallNotificationModal
 import { ActiveCallOverlay } from './components/common/ActiveCallOverlay';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
 import { DialogLiaisonHub } from './components/common/DialogLiaisonHub';
+import { DialogOfficerPortal } from './components/common/DialogOfficerPortal';
 import { safeStorage } from './utils/safeStorage';
 
 const GlobalCallContainer: React.FC = () => {
@@ -58,9 +59,7 @@ const GlobalCallContainer: React.FC = () => {
 
   if (activeCall.status === 'connected') {
     const isParticipant = activeCall.callerId === currentUser.id || activeCall.receiverId === currentUser.id;
-    if (isParticipant) {
-      return <ActiveCallOverlay />;
-    }
+    if (isParticipant) return <ActiveCallOverlay />;
   }
 
   return null;
@@ -104,8 +103,15 @@ const AppContent: React.FC = () => {
     }
   }, [currentUser]);
 
-  if (!currentUser) {
-    return <LoginModal />;
+  if (!currentUser) return <LoginModal />;
+
+  if (currentUser.role === 'dialog_officer') {
+    return (
+      <>
+        <DialogOfficerPortal />
+        <OfflineIndicator />
+      </>
+    );
   }
 
   return (
