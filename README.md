@@ -15,6 +15,7 @@ DD WORLD MARKETING is designed to provide digital marketing tools and services t
 - 📍 Location services
 - 🔐 Google authentication support
 - 🎨 Responsive user interface
+- ✅ Customer App Activation uses Pending → Confirmed sale verification and does not persist customer phone numbers in the activation sale record.
 
 🛠️ Technology
 
