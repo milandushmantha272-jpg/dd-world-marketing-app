@@ -1,0 +1,137 @@
+name: Fix Native USSD Activation Flow
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch IVR flow
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('src/components/sales/IvrKeypadAndAppShareModal.tsx')
+          s = path.read_text(encoding='utf-8')
+
+          if "from '../../services/nativeUssdBridge'" not in s:
+              s = s.replace("import { useData } from '../../context/DataContext';", "import { useData } from '../../context/DataContext';\nimport { dialNativeUssd } from '../../services/nativeUssdBridge';")
+
+          if 'pendingIvrSaleId' not in s:
+              s = s.replace("const [dialSuccess, setDialSuccess] = useState<string | null>(null);", "const [dialSuccess, setDialSuccess] = useState<string | null>(null);\n  const [pendingIvrSaleId, setPendingIvrSaleId] = useState<string | null>(null);")
+
+          # Only allow the two approved product USSD codes.
+          s = re.sub(
+              r"    // Determine product\n[\s\S]*?    // Capture location with high accuracy",
+              """    // Determine product: only the approved Dialog USSD codes are allowed.\n    const normalizedCode = dialDisplay.trim();\n    if (normalizedCode !== '#616#' && normalizedCode !== '#828#') {\n      setIsDialing(false);\n      alert('මෙම IVR code එක DD World විසින් අවසර දී නොමැත. #616# (ගොවිමිතුරු) හෝ #828# (සයුරු) පමණක් භාවිතා කරන්න.');\n      return;\n    }\n    const is616 = normalizedCode === '#616#';\n    const productType: 'ගොවිමිතුරු' | 'සයුරු' = is616 ? 'ගොවිමිතුරු' : 'සයුරු';\n    const productName = is616 ? 'ගොවිමිතුරු (#616#) [IVR]' : 'සයුරු (#828#) [IVR]';\n\n    // Capture fresh GPS. GPS failure must never create a sale record.\n""",
+              s,
+              count=1,
+          )
+
+          # Replace the GPS error/unsupported branches with a hard stop.
+          s = s.replace("""        (err) => {\n          console.warn('GPS prompt error, fallback to profile location:', err);\n          const lat = currentUser.location?.latitude || 6.9271;\n          const lng = currentUser.location?.longitude || 79.8612;\n          const district = currentUser.location?.district || currentUser.assignedDistrict || 'Colombo';\n\n          finalizeIvrDial(productType, productName, lat, lng, district);\n        },""", """        (err) => {\n          console.warn('GPS error during IVR activation:', err);\n          setIsDialing(false);\n          alert('⚠️ Valid GPS ලබාගත නොහැක. IVR sale එක සටහන් නොකරන ලදී. GPS ON කර නැවත උත්සාහ කරන්න.');\n        },""")
+
+          s = s.replace("""    } else {\n      const lat = currentUser.location?.latitude || 6.9271;\n      const lng = currentUser.location?.longitude || 79.8612;\n      const district = currentUser.location?.district || currentUser.assignedDistrict || 'Colombo';\n      finalizeIvrDial(productType, productName, lat, lng, district);\n    }\n  };""", """    } else {\n      setIsDialing(false);\n      alert('⚠️ මෙම device එකේ GPS support නොමැත. IVR sale එක සටහන් නොකරන ලදී.');\n    }\n  };""", 1)
+
+          start = s.index('  const finalizeIvrDial = (')
+          end = s.index('  // App Link sharing actions', start)
+          new_fn = r'''  const finalizeIvrDial = (
+    productType: 'ගොවිමිතුරු' | 'සයුරු',
+    productName: string,
+    lat: number,
+    lng: number,
+    district: string
+  ) => {
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const pendingId = `ivr-pending-${currentUser.id}-${Date.now()}`;
+
+    // A dial attempt is NOT a confirmed sale. Keep it PENDING until activation
+    // evidence/verification is received. Pending records must not count toward sales.
+    addProductSale({
+      id: pendingId,
+      agentId: currentUser.id,
+      agentName: currentUser.name,
+      agentCode: currentUser.agentCode || 'AG-000',
+      teamId: currentUser.teamId || 'team-1',
+      productType,
+      productName,
+      channel: 'IVR',
+      quantity: 1,
+      customerName: customerName.trim() || undefined,
+      customerMobile: customerPhone.trim() || undefined,
+      amount: 0,
+      notes: `IVR activation initiated. Awaiting verified activation evidence. Code: ${dialDisplay}`,
+      location: `${district} (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+      latitude: lat,
+      longitude: lng,
+      district,
+      time: timeStr,
+      activationMethod: 'KEYPAD_DIAL',
+      dialCode: dialDisplay,
+      status: 'PENDING',
+    });
+
+    setPendingIvrSaleId(pendingId);
+
+    // Use the Android native telephony bridge so the registered Dialog SIM
+    // performs the USSD request. Web builds use the normal dialer fallback.
+    dialNativeUssd(dialDisplay as '#616#' | '#828#')
+      .then((result) => {
+        setIsDialing(false);
+        setDialSuccess(
+          `📞 ${productName} USSD request ආරම්භ කරන ලදී. ${result?.status || ''}\n⚠️ Activation successful බව තහවුරු වන තුරු Sale එක COUNT නොවේ.`
+        );
+        setTimeout(() => setDialSuccess(null), 7000);
+      })
+      .catch((error) => {
+        console.error('Native USSD failed:', error);
+        setIsDialing(false);
+        setDialSuccess('⚠️ USSD ආරම්භ කළ නොහැකි විය. Sale එක PENDING ලෙස පමණක් තබා ඇත.');
+        setTimeout(() => setDialSuccess(null), 7000);
+      });
+  };
+
+'''
+          s = s[:start] + new_fn + s[end:]
+
+          path.write_text(s, encoding='utf-8')
+          print('Native USSD activation flow patched.')
+          PY
+
+      - name: Validate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s = Path('src/components/sales/IvrKeypadAndAppShareModal.tsx').read_text(encoding='utf-8')
+          checks = {
+            'native bridge import': "dialNativeUssd" in s,
+            'only approved codes': "normalizedCode !== '#616#' && normalizedCode !== '#828#'" in s,
+            'pending IVR status': "status: 'PENDING'" in s,
+            'no Colombo GPS fallback in IVR handler': 'fallback to profile location' not in s,
+          }
+          failed = [k for k,v in checks.items() if not v]
+          if failed:
+              raise SystemExit('Validation failed: ' + ', '.join(failed))
+          print('Native USSD validation passed.')
+          PY
+
+      - name: Commit source patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/sales/IvrKeypadAndAppShareModal.tsx
+          if git diff --cached --quiet; then
+            echo "No source changes needed"
+          else
+            git commit -m "fix: use native USSD and keep IVR sales pending until verified"
+            git push origin HEAD:main
+          fi
