@@ -16,6 +16,7 @@ import { ActiveCallOverlay } from './components/common/ActiveCallOverlay';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
 import { DialogLiaisonHub } from './components/common/DialogLiaisonHub';
 import { DialogOfficerPortal } from './components/common/DialogOfficerPortal';
+import { OwnerDialogOfficerMessenger } from './components/common/OwnerDialogOfficerMessenger';
 import { safeStorage } from './utils/safeStorage';
 
 const GlobalCallContainer: React.FC = () => {
@@ -129,6 +130,7 @@ const AppContent: React.FC = () => {
         {currentUser.role === 'agent' && <AgentDashboard />}
       </main>
       <DialogLiaisonHub />
+      <OwnerDialogOfficerMessenger />
       <GlobalCallContainer />
       <OfflineIndicator />
     </div>
