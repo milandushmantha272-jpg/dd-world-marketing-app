@@ -17,6 +17,7 @@ import { OfflineIndicator } from './components/common/OfflineIndicator';
 import { DialogLiaisonHub } from './components/common/DialogLiaisonHub';
 import { DialogOfficerPortal } from './components/common/DialogOfficerPortal';
 import { OwnerDialogOfficerMessenger } from './components/common/OwnerDialogOfficerMessenger';
+import { WeeklySalesSheetWorkflow } from './components/common/WeeklySalesSheetWorkflow';
 import { safeStorage } from './utils/safeStorage';
 
 const GlobalCallContainer: React.FC = () => {
@@ -24,45 +25,16 @@ const GlobalCallContainer: React.FC = () => {
   const { activeCall, acceptCall, rejectCall, endCall } = useData();
 
   if (!activeCall || !currentUser) return null;
-
   if (activeCall.status === 'ringing') {
     const isReceiver = activeCall.receiverId === currentUser.id;
     const isCaller = activeCall.callerId === currentUser.id;
-
-    if (isReceiver) {
-      return (
-        <CallNotificationModal
-          isCaller={false}
-          callerName={activeCall.callerName}
-          callerRole={activeCall.callerRole}
-          receiverName={activeCall.receiverName}
-          callType={activeCall.type}
-          onAccept={acceptCall}
-          onReject={rejectCall}
-        />
-      );
-    }
-
-    if (isCaller) {
-      return (
-        <CallNotificationModal
-          isCaller={true}
-          callerName={activeCall.callerName}
-          callerRole={activeCall.callerRole}
-          receiverName={activeCall.receiverName}
-          callType={activeCall.type}
-          onAccept={acceptCall}
-          onReject={endCall}
-        />
-      );
-    }
+    if (isReceiver) return <CallNotificationModal isCaller={false} callerName={activeCall.callerName} callerRole={activeCall.callerRole} receiverName={activeCall.receiverName} callType={activeCall.type} onAccept={acceptCall} onReject={rejectCall} />;
+    if (isCaller) return <CallNotificationModal isCaller={true} callerName={activeCall.callerName} callerRole={activeCall.callerRole} receiverName={activeCall.receiverName} callType={activeCall.type} onAccept={acceptCall} onReject={endCall} />;
   }
-
   if (activeCall.status === 'connected') {
     const isParticipant = activeCall.callerId === currentUser.id || activeCall.receiverId === currentUser.id;
     if (isParticipant) return <ActiveCallOverlay />;
   }
-
   return null;
 };
 
@@ -72,7 +44,7 @@ const AppContent: React.FC = () => {
 
   React.useEffect(() => {
     try {
-      const APP_VERSION = '2026.8.07-v5.3';
+      const APP_VERSION = '2026.8.07-v5.4';
       const storedVersion = safeStorage.getItem('ddworld_platform_app_version');
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.has('ref') || urlParams.has('v') || urlParams.has('chat') || urlParams.has('open') || urlParams.has('old_link')) {
@@ -81,53 +53,31 @@ const AppContent: React.FC = () => {
         setTimeout(() => setUpdateNotice(null), 6000);
       } else if (storedVersion !== APP_VERSION) {
         safeStorage.setItem('ddworld_platform_app_version', APP_VERSION);
-        setUpdateNotice('DD WORLD පද්ධතිය නවතම Mobile App (v5.3) එක සමඟ Synchronize විය!');
+        setUpdateNotice('DD WORLD පද්ධතිය නවතම Mobile App (v5.4) එක සමඟ Synchronize විය!');
         setTimeout(() => setUpdateNotice(null), 5000);
       }
-    } catch (e) {
-      console.warn('App version check sync error:', e);
-    }
+    } catch (e) { console.warn('App version check sync error:', e); }
   }, []);
 
   React.useEffect(() => {
     if (currentUser) {
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => console.log('GPS Location permission auto-acquired:', pos.coords.latitude, pos.coords.longitude),
-          (err) => console.warn('GPS Permission pending or denied:', err.message),
-          { enableHighAccuracy: true, timeout: 5000 }
-        );
-      }
-      if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission().catch(() => {});
-      }
+      if ('geolocation' in navigator) navigator.geolocation.getCurrentPosition((pos) => console.log('GPS Location permission auto-acquired:', pos.coords.latitude, pos.coords.longitude), (err) => console.warn('GPS Permission pending or denied:', err.message), { enableHighAccuracy: true, timeout: 5000 });
+      if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
     }
   }, [currentUser]);
 
   if (!currentUser) return <LoginModal />;
-
-  if (currentUser.role === 'dialog_officer') {
-    return (
-      <>
-        <DialogOfficerPortal />
-        <OfflineIndicator />
-      </>
-    );
-  }
+  if (currentUser.role === 'dialog_officer') return <><DialogOfficerPortal /><WeeklySalesSheetWorkflow /><OfflineIndicator /></>;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans relative">
       <Navbar />
-      {updateNotice && (
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 text-white text-xs font-bold py-2 px-4 text-center shadow-lg flex items-center justify-center gap-2 animate-pulse border-b border-white/20 z-50">
-          <span>{updateNotice}</span>
-          <button onClick={() => setUpdateNotice(null)} className="ml-2 text-white/80 hover:text-white text-sm font-extrabold">✕</button>
-        </div>
-      )}
+      {updateNotice && <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 text-white text-xs font-bold py-2 px-4 text-center shadow-lg flex items-center justify-center gap-2 animate-pulse border-b border-white/20 z-50"><span>{updateNotice}</span><button onClick={() => setUpdateNotice(null)} className="ml-2 text-white/80 hover:text-white text-sm font-extrabold">✕</button></div>}
       <main className="flex-1 pb-16">
         {currentUser.role === 'owner' && <OwnerDashboard />}
         {currentUser.role === 'team_leader' && <TeamLeaderDashboard />}
         {currentUser.role === 'agent' && <AgentDashboard />}
+        <WeeklySalesSheetWorkflow />
       </main>
       <DialogLiaisonHub />
       <OwnerDialogOfficerMessenger />
@@ -138,11 +88,5 @@ const AppContent: React.FC = () => {
 };
 
 export default function App() {
-  return (
-    <DataProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </DataProvider>
-  );
+  return <DataProvider><AuthProvider><AppContent /></AuthProvider></DataProvider>;
 }
