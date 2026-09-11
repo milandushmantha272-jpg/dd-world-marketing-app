@@ -9,8 +9,12 @@ import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
+import com.getcapacitor.annotation.Permission
 
-@CapacitorPlugin(name = "NativeUssdBridge")
+@CapacitorPlugin(
+    name = "NativeUssdBridge",
+    permissions = [Permission(alias = "phone", strings = [Manifest.permission.CALL_PHONE])]
+)
 class NativeUssdBridge : Plugin() {
     @PluginMethod
     fun dialUssd(call: PluginCall) {
@@ -27,21 +31,19 @@ class NativeUssdBridge : Plugin() {
                 requestPermissionForAlias("phone", call, "permissionCallback")
                 return
             }
-            val intent = Intent(Intent.ACTION_CALL, uri)
-            activity.startActivity(intent)
+            activity.startActivity(Intent(Intent.ACTION_CALL, uri))
             call.resolve(JSObject().apply {
                 put("status", "STARTED")
-                put("message", "USSD request handed to the Android telephony service.")
+                put("message", "USSD request handed to Android telephony.")
             })
         } catch (e: SecurityException) {
             call.reject("CALL_PHONE permission is required", e)
         } catch (e: Exception) {
             try {
-                val fallback = Intent(Intent.ACTION_DIAL, uri)
-                activity.startActivity(fallback)
+                activity.startActivity(Intent(Intent.ACTION_DIAL, uri))
                 call.resolve(JSObject().apply {
                     put("status", "DIALER_FALLBACK")
-                    put("message", "Device opened the native dialer for the USSD code.")
+                    put("message", "Native dialer opened for the USSD code.")
                 })
             } catch (fallbackError: Exception) {
                 call.reject("Unable to open the phone dialer", fallbackError)
