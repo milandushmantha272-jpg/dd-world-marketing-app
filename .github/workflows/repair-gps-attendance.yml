@@ -1,0 +1,129 @@
+name: Repair GPS Attendance Security
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch Agent and Team Leader attendance
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          files = [
+              Path('src/components/agent/AgentDashboard.tsx'),
+              Path('src/components/leader/TeamLeaderDashboard.tsx'),
+          ]
+
+          for path in files:
+              s = path.read_text(encoding='utf-8')
+
+              # Never save attendance when GPS is unavailable.
+              s = re.sub(
+                  r"\n        \(err\) => \{\n          console\.warn\('GPS error during check-in:', err\);\n          addAttendanceRecord\([\s\S]*?\n          setTimeout\(\(\) => setAttMessage\(null\), 4000\);\n        \},",
+                  "\n        (err) => {\n          console.warn('GPS error during check-in:', err);\n          setAttMessage('⚠️ GPS ලබාගත නොහැක. GPS ON කරලා නැවත උත්සාහ කරන්න. Attendance සුරැකුණේ නැත.');\n          setTimeout(() => setAttMessage(null), 5000);\n        },",
+                  s,
+                  count=1,
+              )
+
+              # Remove the non-geolocation attendance fallback.
+              s = re.sub(
+                  r"\n    \} else \{\n      addAttendanceRecord\([\s\S]*?\n      setTimeout\(\(\) => setAttMessage\(null\), 4000\);\n    \}",
+                  "\n    } else {\n      setAttMessage('⚠️ මෙම device එකේ GPS support නොමැත. Attendance සුරැකුණේ නැත.');\n      setTimeout(() => setAttMessage(null), 5000);\n    }",
+                  s,
+                  count=1,
+              )
+
+              # Check-out must require an existing check-in and a fresh, valid GPS fix.
+              s = re.sub(
+                  r"  const handle(?:TlCheckOut|CheckOut) = \(\) => \{[\s\S]*?\n  \};",
+                  lambda m: ("""  const handle""" + ("TlCheckOut" if "handleTlCheckOut" in m.group(0) else "CheckOut") + " = () => {
+    if (today""" + ("TlAttRecord" if "todayTlAttRecord" in s else "AttRecord") + "?.checkOutTime) {
+      setAttMessage('⚠️ අද දින පිටවීම (Check-Out) දැනටමත් සටහන් කර ඇත.');
+      setTimeout(() => setAttMessage(null), 4000);
+      return;
+    }
+    if (!(today""" + ("TlAttRecord" if "todayTlAttRecord" in s else "AttRecord") + "?.checkInTime)) {
+      setAttMessage('⚠️ මුලින් Check-In සාර්ථකව සටහන් කර තිබිය යුතුය.');
+      setTimeout(() => setAttMessage(null), 5000);
+      return;
+    }
+    if (!('geolocation' in navigator)) {
+      setAttMessage('⚠️ GPS support නොමැත. Check-Out සුරැකුණේ නැත.');
+      setTimeout(() => setAttMessage(null), 5000);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const fakeCheck = detectFakeGps(pos.coords);
+        if (fakeCheck.isFake) {
+          addSecurityAlert({
+            userId: currentUser.id,
+            userName: currentUser.name,
+            agentCode: currentUser.agentCode || '""" + ("TL-000" if "handleTlCheckOut" in m.group(0) else "AG-000") + "',
+            type: 'GPS_SPOOFING',
+            reason: `Mock Location / Fake GPS Detected during Check-Out: ${fakeCheck.reason}`,
+            severity: 'critical',
+            coordinates: { latitude: pos.coords.latitude, longitude: pos.coords.longitude },
+          });
+          setAttMessage('⚠️ Fake GPS හඳුනාගන්නා ලදී. Check-Out අවහිර කරන ලදී.');
+          setTimeout(() => setAttMessage(null), 5000);
+          return;
+        }
+        updateUserGps(currentUser.id, {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+        addAttendanceRecord({
+          agentId: currentUser.id,
+          agentName: currentUser.name,
+          agentCode: currentUser.agentCode || '""" + ("TL-000" if "handleTlCheckOut" in m.group(0) else "AG-000") + "',
+          teamId: currentUser.teamId || 'team-1',
+          teamName: currentUser.teamName || 'Team Alpha',
+          checkOutTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          status: 'completed',
+        });
+        setAttMessage('✅ GPS verify කර Check-Out සාර්ථකව සටහන් කරන ලදී.');
+        setTimeout(() => setAttMessage(null), 4000);
+      },
+      (err) => {
+        console.warn('GPS error during check-out:', err);
+        setAttMessage('⚠️ GPS verify කළ නොහැක. Check-Out සුරැකුණේ නැත.');
+        setTimeout(() => setAttMessage(null), 5000);
+      },
+      { enableHighAccuracy: true }
+    );
+  };"""),
+                  s,
+                  count=1,
+              )
+
+              path.write_text(s, encoding='utf-8')
+
+          # Fail the repair if the unsafe attendance fallbacks remain.
+          for path in files:
+              s = path.read_text(encoding='utf-8')
+              if re.search(r"GPS error during check-in:[\\s\\S]{0,1200}addAttendanceRecord", s):
+                  raise SystemExit(f'Unsafe check-in GPS fallback remains in {path}')
+              if re.search(r"const handle(?:TlCheckOut|CheckOut)[\\s\\S]{0,1800}addAttendanceRecord", s) and "getCurrentPosition" not in re.search(r"const handle(?:TlCheckOut|CheckOut)[\\s\\S]*?\n  };", s).group(0):
+                  raise SystemExit(f'Unsafe check-out path remains in {path}')
+
+      - name: Commit repaired code
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/agent/AgentDashboard.tsx src/components/leader/TeamLeaderDashboard.tsx
+          git diff --cached --quiet && { echo "No changes needed"; exit 0; }
+          git commit -m "fix: require verified GPS for attendance check-in and check-out"
+          git push origin HEAD:main
