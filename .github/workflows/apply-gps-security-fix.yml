@@ -1,118 +1,13 @@
 name: Apply GPS Attendance Security Fix
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  fix:
-    if: github.actor != 'github-actions[bot]'
+  disabled:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Apply security patch
-        shell: python
-        run: |
-          from pathlib import Path
-          import re
-
-          specs = [
-            ('src/components/agent/AgentDashboard.tsx', 'AG-000', 'handleCheckOut', 'todayAttRecord'),
-            ('src/components/leader/TeamLeaderDashboard.tsx', 'TL-000', 'handleTlCheckOut', 'todayTlAttRecord'),
-          ]
-
-          for filename, code, checkout_name, today_name in specs:
-            p = Path(filename)
-            s = p.read_text(encoding='utf-8')
-
-            # Remove unsafe check-in fallback that saved attendance when GPS failed.
-            s, n = re.subn(
-              r"\n        \(err\) => \{\n          console\.warn\('[^']*GPS error during check-in:', err\);\n          addAttendanceRecord\([\s\S]*?\n          setTimeout\(\(\) => setAttMessage\(null\), 4000\);\n        \},",
-              "\n        (err) => {\n          console.warn('GPS error during check-in:', err);\n          setAttMessage('⚠️ GPS ලබාගත නොහැක. GPS ON කරලා නැවත උත්සාහ කරන්න. Attendance සුරැකුණේ නැත.');\n          setTimeout(() => setAttMessage(null), 5000);\n        },",
-              s, count=1)
-
-            # Remove unsafe no-geolocation fallback that saved attendance.
-            s, n2 = re.subn(
-              r"\n    \} else \{\n      addAttendanceRecord\([\s\S]*?\n      setAttMessage\('✅[^\n]*Check-In[^\n]*'\);\n      setTimeout\(\(\) => setAttMessage\(null\), 4000\);\n    \}",
-              "\n    } else {\n      setAttMessage('⚠️ මෙම device එකේ GPS support නොමැත. Attendance සුරැකුණේ නැත.');\n      setTimeout(() => setAttMessage(null), 5000);\n    }",
-              s, count=1)
-
-            # Replace checkout with GPS + fake-location verification and mandatory prior check-in.
-            pattern = rf"  const {checkout_name} = \(\) => \{{[\s\S]*?\n  \}};"
-            replacement = f'''  const {checkout_name} = () => {{
-    if ({today_name}?.checkOutTime) {{
-      setAttMessage('⚠️ අද දින පිටවීම (Check-Out) දැනටමත් සටහන් කර ඇත.');
-      setTimeout(() => setAttMessage(null), 4000);
-      return;
-    }}
-    if (!({today_name}?.checkInTime)) {{
-      setAttMessage('⚠️ මුලින් Check-In සාර්ථකව සටහන් කර තිබිය යුතුය.');
-      setTimeout(() => setAttMessage(null), 5000);
-      return;
-    }}
-    if (!('geolocation' in navigator)) {{
-      setAttMessage('⚠️ GPS support නොමැත. Check-Out සුරැකුණේ නැත.');
-      setTimeout(() => setAttMessage(null), 5000);
-      return;
-    }}
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {{
-        const fakeCheck = detectFakeGps(pos.coords);
-        if (fakeCheck.isFake) {{
-          addSecurityAlert({{
-            userId: currentUser.id,
-            userName: currentUser.name,
-            agentCode: currentUser.agentCode || '{code}',
-            type: 'GPS_SPOOFING',
-            reason: `Mock Location / Fake GPS Detected during Check-Out: ${{fakeCheck.reason}}`,
-            severity: 'critical',
-            coordinates: {{ latitude: pos.coords.latitude, longitude: pos.coords.longitude }},
-          }});
-          setAttMessage('⚠️ Fake GPS හඳුනාගන්නා ලදී. Check-Out අවහිර කරන ලදී.');
-          setTimeout(() => setAttMessage(null), 5000);
-          return;
-        }}
-        updateUserGps(currentUser.id, {{ latitude: pos.coords.latitude, longitude: pos.coords.longitude }});
-        addAttendanceRecord({{
-          agentId: currentUser.id,
-          agentName: currentUser.name,
-          agentCode: currentUser.agentCode || '{code}',
-          teamId: currentUser.teamId || 'team-1',
-          teamName: currentUser.teamName || 'Team Alpha',
-          checkOutTime: new Date().toLocaleTimeString([], {{ hour: '2-digit', minute: '2-digit', second: '2-digit' }}),
-          status: 'completed',
-        }});
-        setAttMessage('✅ GPS verify කර Check-Out සාර්ථකව සටහන් කරන ලදී.');
-        setTimeout(() => setAttMessage(null), 4000);
-      }},
-      (err) => {{
-        console.warn('GPS error during check-out:', err);
-        setAttMessage('⚠️ GPS verify කළ නොහැක. Check-Out සුරැකුණේ නැත.');
-        setTimeout(() => setAttMessage(null), 5000);
-      }},
-      {{ enableHighAccuracy: true }}
-    );
-  }};'''
-            s, n3 = re.subn(pattern, replacement, s, count=1)
-            if n3 != 1:
-              raise SystemExit(f'Checkout function not found in {filename}')
-            p.write_text(s, encoding='utf-8')
-
-          print('GPS attendance security patch applied')
-
-      - name: Commit and push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/components/agent/AgentDashboard.tsx src/components/leader/TeamLeaderDashboard.tsx
-          if git diff --cached --quiet; then
-            echo "No changes required"
-          else
-            git commit -m "fix: require verified GPS for attendance check-in and check-out"
-            git push origin HEAD:main
-          fi
+      - run: echo "Manual-only workflow retained for audit history; use Repair GPS Attendance Security for the automated repair."
