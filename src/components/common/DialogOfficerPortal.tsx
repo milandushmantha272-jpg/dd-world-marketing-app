@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { canSendInternalMessage } from '../../utils/messagePermissions';
 
 /**
  * Restricted Dialog Officer portal.
@@ -29,10 +30,8 @@ export const DialogOfficerPortal: React.FC = () => {
   const sendToOwner = () => {
     const content = text.trim();
     if (!content || !owner) return;
+    if (!canSendInternalMessage('dialog_officer', 'owner')) return;
 
-    // DataContext's legacy public signature is still narrower than UserRole.
-    // The runtime message model already stores UserRole values, so this keeps
-    // the officer route compatible until the central messaging signature is widened.
     (sendMessage as any)({
       senderId: currentUser.id,
       senderName: currentUser.name,
