@@ -1,13 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { canSendInternalMessage } from '../../utils/messagePermissions';
 
 /**
  * Owner-only Dialog Officer communication surface.
  * Direct Agent/TL -> Dialog Officer communication is never exposed here.
- * Once an Owner-created dialog_officer account exists, messages use the same
- * central messaging pipeline used by the Officer portal, so the existing
- * notification/realtime hooks are triggered for both directions.
+ * The channel is strictly Owner <-> Dialog Officer.
  */
 export const OwnerDialogOfficerMessenger: React.FC = () => {
   const { currentUser } = useAuth();
@@ -39,6 +38,7 @@ export const OwnerDialogOfficerMessenger: React.FC = () => {
   const sendToOfficer = () => {
     const content = text.trim();
     if (!content || !owner || !officer) return;
+    if (!canSendInternalMessage('owner', 'dialog_officer')) return;
 
     (sendMessage as any)({
       senderId: owner.id,
@@ -98,7 +98,7 @@ export const OwnerDialogOfficerMessenger: React.FC = () => {
                     {conversation.length === 0 ? (
                       <div className="flex min-h-[250px] items-center justify-center text-center text-sm text-slate-500">
                         No messages with this officer yet.
-                        <br />Owner messages will trigger the central notification/realtime pipeline.
+                        <br />Owner messages use the central notification/realtime pipeline.
                       </div>
                     ) : (
                       conversation.map((message) => {
