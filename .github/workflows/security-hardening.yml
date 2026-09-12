@@ -39,12 +39,6 @@ jobs:
               end = s.index('    }', start) + len('    }')
               s = s[:start] + helper + s[end:]
 
-          s = s.replace("return isSignedIn() && getUserRole() == 'MASTER_LEADER';",
-                        "return isSignedIn() && (getUserRole() == 'MASTER_LEADER' || getUserRole() == 'owner' || request.auth.uid == 'owner-1');")
-          s = s.replace("(getUserRole() == 'MASTER_LEADER' || getUserRole() == 'TEAM_SUPERVISOR')",
-                        "(getUserRole() == 'MASTER_LEADER' || getUserRole() == 'owner' || getUserRole() == 'TEAM_SUPERVISOR' || getUserRole() == 'team_leader')")
-          s = s.replace("(getUserRole() in ['MASTER_LEADER', 'TEAM_SUPERVISOR', 'ELITE_AGENT'])",
-                        "(getUserRole() in ['MASTER_LEADER', 'owner', 'TEAM_SUPERVISOR', 'team_leader', 'ELITE_AGENT', 'agent'])")
           replacements = [
               ("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user",
                "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user"),
@@ -60,6 +54,7 @@ jobs:
                   s = s.replace(old, new, 1)
           rules.write_text(s)
 
+          # Never ship synthetic attendance identities.
           for path, replacements in {
               'src/components/agent/AgentDashboard.tsx': [
                   ("currentUser.agentCode || 'AG-000'", "currentUser.agentCode || ''"),
@@ -109,14 +104,21 @@ jobs:
                       raise SystemExit(f'demo attendance value remains in {name}: {value}')
           PY
 
-      - name: Commit production hardening
+      - name: Commit production hardening safely
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add firestore.rules src/components/agent/AgentDashboard.tsx src/components/leader/TeamLeaderDashboard.tsx
           if git diff --cached --quiet; then
             echo 'Production hardening already applied'
-          else
-            git commit -m 'security: enforce production attendance data integrity'
-            git push origin HEAD:main
+            exit 0
           fi
+          git commit -m 'security: enforce production attendance data integrity'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main && git push origin HEAD:main && exit 0
+            git rebase --abort || true
+            sleep 2
+          done
+          echo 'Unable to publish hardening after concurrent push retries'
+          exit 1
