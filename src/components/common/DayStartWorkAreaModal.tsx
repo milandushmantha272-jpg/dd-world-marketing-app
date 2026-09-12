@@ -57,7 +57,7 @@ export const DayStartWorkAreaModal: React.FC<{ isOpen: boolean; onClose: () => v
       updateUserGps(currentUser.id, { latitude, longitude, accuracy, district: currentUser.district });
       addLocationRecord({
         employee_id: currentUser.id,
-        agent_code: currentUser.agentCode || 'AG-000',
+        agent_code: currentUser.agentCode || '',
         employee_name: currentUser.name,
         team_id: currentUser.teamId,
         team_name: currentUser.teamName,
@@ -90,6 +90,10 @@ export const DayStartWorkAreaModal: React.FC<{ isOpen: boolean; onClose: () => v
       setMessage('⚠️ අද දින Field Work session එක දැනටමත් Active.');
       return;
     }
+    if (!('geolocation' in navigator)) {
+      setMessage('⚠️ මෙම device එකේ GPS support නොමැත. Field Work ආරම්භ කළ නොහැක.');
+      return;
+    }
 
     const start = new Date().toISOString();
     const newSession: StoredSession = {
@@ -97,24 +101,25 @@ export const DayStartWorkAreaModal: React.FC<{ isOpen: boolean; onClose: () => v
       startedAt: start,
     };
 
-    const finishStart = (position?: GeolocationPosition) => {
-      const next = position
-        ? { ...newSession, latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy }
-        : newSession;
+    const finishStart = (position: GeolocationPosition) => {
+      const next: StoredSession = {
+        ...newSession,
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+      };
+      setGps({ latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy });
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
       setSession(next);
       setNow(Date.now());
-      setMessage('✅ Field Work ආරම්භ විය. Active Time + GPS tracking සක්‍රියයි.');
+      setMessage('✅ GPS verify කර Field Work ආරම්භ විය. Active Time + GPS tracking සක්‍රියයි.');
     };
 
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(finishStart, () => finishStart(), {
-        enableHighAccuracy: true,
-        timeout: 10000,
-      });
-    } else {
-      finishStart();
-    }
+    navigator.geolocation.getCurrentPosition(
+      finishStart,
+      () => setMessage('⚠️ GPS ලබාගත නොහැක. GPS ON කරලා නැවත උත්සාහ කරන්න. Field Work ආරම්භ කළේ නැත.'),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   const endFieldWork = () => {
@@ -132,10 +137,10 @@ export const DayStartWorkAreaModal: React.FC<{ isOpen: boolean; onClose: () => v
       assignedDate: date,
     });
 
-    if (gps.latitude && gps.longitude) {
+    if (gps.latitude !== undefined && gps.longitude !== undefined) {
       addLocationRecord({
         employee_id: currentUser.id,
-        agent_code: currentUser.agentCode || 'AG-000',
+        agent_code: currentUser.agentCode || '',
         employee_name: currentUser.name,
         team_id: currentUser.teamId,
         team_name: currentUser.teamName,
@@ -181,13 +186,13 @@ export const DayStartWorkAreaModal: React.FC<{ isOpen: boolean; onClose: () => v
           </div>
           <div className="rounded-2xl bg-slate-950 border border-slate-800 p-4">
             <div className="flex items-center gap-2 text-xs text-slate-400"><MapPin className="w-4 h-4 text-rose-400" /> Location</div>
-            <div className="mt-2 text-xs font-bold text-white">{gps.latitude ? `${gps.latitude.toFixed(5)}, ${gps.longitude?.toFixed(5)}` : 'Waiting for GPS…'}</div>
+            <div className="mt-2 text-xs font-bold text-white">{gps.latitude !== undefined ? `${gps.latitude.toFixed(5)}, ${gps.longitude?.toFixed(5)}` : 'Waiting for GPS…'}</div>
           </div>
         </div>
 
         <div className={`rounded-2xl border p-3 text-xs ${session ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-amber-500/10 border-amber-500/30 text-amber-300'}`}>
           <div className="flex items-center gap-2 font-bold"><ShieldCheck className="w-4 h-4" />
-            {session ? 'FIELD ACTIVE — GPS tracking is running while this control is open.' : 'FIELD NOT STARTED — Start Field Work before sales activity.'}
+            {session ? 'FIELD ACTIVE — GPS tracking is running while this control is open.' : 'FIELD NOT STARTED — GPS verification is required before Field Work.'}
           </div>
         </div>
 
@@ -203,7 +208,7 @@ export const DayStartWorkAreaModal: React.FC<{ isOpen: boolean; onClose: () => v
         </div>
 
         <p className="text-[10px] text-slate-500 leading-relaxed">
-          Customer phone numbers are not collected or stored by this Field Work control. Location tracking is tied to the Field Work session.
+          Customer phone numbers are not collected or stored by this Field Work control. Location tracking is tied to the verified Field Work session.
         </p>
       </div>
     </div>
