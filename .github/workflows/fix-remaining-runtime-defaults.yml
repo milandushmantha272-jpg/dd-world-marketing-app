@@ -46,6 +46,12 @@ jobs:
               "|| 'Dushmantha Fernando (Owner)'": "|| ''",
               "currentUser.location?.latitude || 6.9271": "currentUser.location?.latitude",
               "currentUser.location?.longitude || 79.8612": "currentUser.location?.longitude",
+              "placeholder=\"උදා: 199518294021 / 951829402V\"": "placeholder=\"ඔබගේ NIC අංකය ඇතුළත් කරන්න\"",
+              "placeholder=\"0771234567\"": "placeholder=\"ඔබගේ ජංගම අංකය\"",
+              "placeholder=\"e.g. 0771234567\"": "placeholder=\"පාරිභෝගික ජංගම අංකය\"",
+              "activeUser.agentCode || 'DD-001'": "activeUser.agentCode || 'Not Assigned'",
+              "u.agentCode || 'ID-00'": "u.agentCode || 'Not Assigned'",
+              "activeUser.districtSi || 'Colombo'": "activeUser.districtSi || 'Not Assigned'",
           }
 
           for path in Path('src').rglob('*'):
@@ -61,6 +67,15 @@ jobs:
                   path.write_text(updated, encoding='utf-8')
           PY
 
+      - name: Validate runtime fake identity fallbacks
+        shell: bash
+        run: |
+          if grep -RInE "199518294021|951829402V|0771234567|\|\|[[:space:]]*['\"]AG-000['\"]|\|\|[[:space:]]*['\"]TL-000['\"]|\|\|[[:space:]]*['\"]team-1['\"]|\|\|[[:space:]]*['\"]Team Alpha['\"]|\|\|[[:space:]]*['\"]Alpha Team['\"]|\|\|[[:space:]]*['\"]DD World Agent['\"]|\|\|[[:space:]]*['\"]DD World Team['\"]|\|\|[[:space:]]*['\"]No\. 124, Kandy Road, Kadawatha, Sri Lanka['\"]|\|\|[[:space:]]*['\"]Colombo, Sri Lanka['\"]|\|\|[[:space:]]*['\"]Dushmantha Fernando \(Owner\)['\"]|6\.9271|79\.8612|placeholder=\"උදා: 199518294021 / 951829402V\"|placeholder=\"0771234567\"|placeholder=\"e\.g\. 0771234567\"|\|\|[[:space:]]*['\"]DD-001['\"]|\|\|[[:space:]]*['\"]ID-00['\"]" src --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' --exclude='initialData.ts' --exclude-dir='data'; then
+            echo "Runtime fake/default identity or fake location remains."
+            exit 1
+          fi
+          echo "Runtime fallback audit PASS."
+
       - name: Commit cleanup
         shell: bash
         run: |
@@ -71,5 +86,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src
-          git commit -m "fix: remove remaining runtime default identities"
+          git commit -m "fix: finish runtime identity and location cleanup"
           git push
