@@ -4,18 +4,30 @@ Welcome to DD WORLD MARKETING — a modern digital marketing application built w
 
 🚀 About
 
-DD WORLD MARKETING is designed to provide digital marketing tools and services through a modern Android application.
+DD WORLD MARKETING is the official digital marketing platform for DD WORLD field operations, including Dialog Sayura and Govi Mithuru workflows.
 
-✨ Features
+✨ Core Features
 
 - 📱 Android application
-- 🌐 Modern web-based interface
-- ⚡ React + Vite
+- 🌐 Modern web/PWA interface
+- ⚡ React + Vite + TypeScript
 - 🔌 Capacitor Android integration
-- 📍 Location services
-- 🔐 Google authentication support
-- 🎨 Responsive user interface
+- 📍 Verified GPS attendance and location tracking
+- 🔐 Firebase email/password authentication
+- 🛡️ Owner-controlled employee approval and access status
+- 👥 Owner / Team Leader / Agent role-based dashboards
+- 💰 Sales capture and Pending → Confirmed verification workflow
+- 📊 Sales, attendance and performance summaries
+- 🎨 Responsive professional user interface
+- 📴 Offline/PWA support
+- 🔒 Firestore authorization and anti-tampering validation
 - ✅ Customer App Activation uses Pending → Confirmed sale verification and does not persist customer phone numbers in the activation sale record.
+
+🛡️ Security Model
+
+Employee access requires Firebase credential authentication plus an ACTIVE employee record and OWNER-APPROVED employee ID status. Blocked, suspended, exited, rejected or otherwise inactive accounts are denied application access.
+
+The Owner is the ultimate application authority and can manage employee activation/deactivation, access status, role administration, security/activity visibility and other administrative controls provided by the platform. The Owner account itself is protected from normal employee-document modification/deletion rules.
 
 🛠️ Technology
 
@@ -26,6 +38,7 @@ DD WORLD MARKETING is designed to provide digital marketing tools and services t
 - Android
 - Gradle
 - Kotlin / Java
+- Firebase Authentication / Firestore
 
 📦 Android App
 
@@ -58,9 +71,11 @@ cd android
 
 📱 Project Status
 
-🚧 Development / Testing
+✅ Android build pipeline is passing.
 
-The project is currently being prepared and tested for Android deployment.
+✅ Security hardening and GPS attendance verification have been applied.
+
+🔎 Final QA / real-device validation remains the final release gate. The production APK should be tested on a physical Android device for login, permissions, GPS, attendance, sales, role access, offline recovery and end-to-end data synchronization before public distribution.
 
 👨‍💻 Developer
 
@@ -69,5 +84,3 @@ DD WORLD
 ---
 
 © 2026 DD WORLD. All rights reserved.
-
-<!-- Final Android verification build trigger -->
