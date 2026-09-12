@@ -1,0 +1,79 @@
+name: Apply Production Auth Fix
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, 'security: enforce Firebase authentication') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Harden login and active-account enforcement
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('src/components/LoginModal.tsx'); s=p.read_text()
+          s=s.replace("""    // If user has a password set, populate their code so they can enter password
+    if (target.password || target.tempPassword) {
+      setAgentCode(target.agentCode || target.employeeId || target.id);
+      setError(`ℹ️ ${target.name} සඳහා මුරපදයක් (Password) අවශ්‍යයි. කරුණාකර පහත Password ඇතුළත් කර Login වන්න.`);
+      return;
+    }
+
+    // Remember last selected user for quick fingerprint login
+    safeStorage.setItem('ddworld_last_bio_user_id', userId);
+    login(userId);""", """    // Selecting a profile never authenticates the user. Firebase Auth verifies credentials.
+    setAgentCode(target.agentCode || target.employeeId || target.email || target.id);
+    setPasswordInput('');
+    safeStorage.setItem('ddworld_last_bio_user_id', userId);
+    setError(`🔐 ${target.name}: Firebase Password එක ඇතුළත් කර Login කරන්න.`);""")
+          start=s.find('    // Check password if set by owner\n    const requiredPass =')
+          end=s.find("    safeStorage.setItem('ddworld_last_bio_user_id', found.id);", start)
+          if start>=0 and end>=0:
+            s=s[:start]+"""    if (!passwordInput || !passwordInput.trim()) {
+      setError(`කරුණාකර ${found.name} සඳහා Firebase Password එක ඇතුළත් කරන්න.`);
+      return;
+    }
+    try {
+      safeStorage.setItem('ddworld_last_bio_user_id', found.id);
+      await login(found.id, passwordInput);
+    } catch (err: any) {
+      setError(err?.message || 'Login අසාර්ථකයි.');
+    }
+"""+s[end:]
+          s=s.replace("  const handleManualLogin = (e: React.FormEvent) => {","  const handleManualLogin = async (e: React.FormEvent) => {")
+          # Replace simulated biometric authentication with a truthful secure-login message.
+          b=s.find('      // Find candidate user (either remembered user, or first user of selected role)')
+          e=s.find('    } catch (err: any) {', b)
+          if b>=0 and e>=0:
+            s=s[:b]+"""      setIsCheckingSecurity(false);
+      setIsBioScanning(false);
+      throw new Error('Biometric/FIDO2 login enrollment is not configured on this device. Use Firebase Password Login.');
+"""+s[e:]
+          s=s.replace('Biometric: සක්‍රීයයි (Ready)','Secure Auth: සක්‍රීයයි')
+          p.write_text(s)
+          r=Path('firestore.rules'); rs=r.read_text()
+          helper="""    function isActiveEmployee() {
+      let userData = getUserData();
+      return userData.status == 'active' &&
+             userData.employmentStatus == 'ACTIVE' &&
+             userData.idApprovalStatus != 'REJECTED';
+    }
+
+"""
+          if 'function isActiveEmployee()' not in rs:
+            needle='    /**\n     * Check if user is system owner/admin\n     */\n'
+            rs=rs.replace(needle,helper+needle,1)
+          rs=rs.replace("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user", "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user",1)
+          rs=rs.replace("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid", "allow create: if isAuthorized() &&\n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid",1)
+          r.write_text(rs)
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/components/LoginModal.tsx firestore.rules .github/workflows/apply-production-auth-fix.yml
+          git diff --cached --quiet && exit 0
+          git commit -m 'security: enforce Firebase authentication and active-user access'
+          git push
