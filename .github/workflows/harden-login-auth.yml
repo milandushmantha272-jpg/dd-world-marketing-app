@@ -1,0 +1,123 @@
+name: Harden Login Authentication
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  harden-login:
+    if: contains(github.event.head_commit.message, 'security: bind DD World login to Firebase Auth')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Remove client-side password verification and simulated biometric login
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path('src/components/LoginModal.tsx')
+          s = p.read_text(encoding='utf-8')
+
+          s = s.replace(
+              "const handleSelectUser = (userId: string) => {",
+              "const handleSelectUser = (userId: string) => {",
+          )
+          old = '''    // If user has a password set, populate their code so they can enter password
+    if (target.password || target.tempPassword) {
+      setAgentCode(target.agentCode || target.employeeId || target.id);
+      setError(`ℹ️ ${target.name} සඳහා මුරපදයක් (Password) අවශ්‍යයි. කරුණාකර පහත Password ඇතුළත් කර Login වන්න.`);
+      return;
+    }
+
+    // Remember last selected user for quick fingerprint login
+    safeStorage.setItem('ddworld_last_bio_user_id', userId);
+    login(userId);'''
+          new = '''    // Never inspect or compare password fields from the DD World profile.
+    // Firebase Auth is the only credential verifier.
+    setAgentCode(target.agentCode || target.employeeId || target.email || target.id);
+    safeStorage.setItem('ddworld_last_bio_user_id', userId);
+    setError(`ℹ️ ${target.name} සඳහා Firebase Password එක ඇතුළත් කර Login වන්න.`);'''
+          if old not in s:
+              raise SystemExit('expected user-selection block not found')
+          s = s.replace(old, new, 1)
+
+          s = s.replace(
+              "  const handleManualLogin = (e: React.FormEvent) => {",
+              "  const handleManualLogin = async (e: React.FormEvent) => {",
+          )
+          old = '''    // Check password if set by owner
+    const requiredPass = found.password || found.tempPassword || found.pinCode;
+    if (requiredPass) {
+      if (!passwordInput || !passwordInput.trim()) {
+        setError(`කරුණාකර ${found.name} සඳහා වන Password / PIN ඇතුළත් කරන්න.`);
+        return;
+      }
+      if (passwordInput.trim() !== requiredPass.trim()) {
+        setError('ඇතුළත් කළ මුරපදය (Password / PIN) වැරදියි. කරුණාකර නැවත උත්සාහ කරන්න.');
+        return;
+      }
+    }
+
+    safeStorage.setItem('ddworld_last_bio_user_id', found.id);
+    login(found.id);'''
+          new = '''    if (!passwordInput || !passwordInput.trim()) {
+      setError(`කරුණාකර ${found.name} සඳහා Firebase Password එක ඇතුළත් කරන්න.`);
+      return;
+    }
+
+    safeStorage.setItem('ddworld_last_bio_user_id', found.id);
+    try {
+      await login(found.id, passwordInput.trim());
+    } catch (authError: any) {
+      console.warn('Firebase employee authentication failed:', authError);
+      setError(
+        authError?.code === 'auth/invalid-credential' || authError?.code === 'auth/wrong-password'
+          ? 'Password එක වැරදියි. Firebase Auth හරහා නැවත උත්සාහ කරන්න.'
+          : authError?.code === 'auth/user-not-found'
+            ? 'මෙම employee account එක Firebase Auth තුළ provision කර නැත.'
+            : authError?.message || 'Firebase authentication අසාර්ථකයි.'
+      );
+    }'''
+          if old not in s:
+              raise SystemExit('expected manual-password block not found')
+          s = s.replace(old, new, 1)
+
+          old = '''      // Biometric scan latency simulation
+      await new Promise((resolve) => setTimeout(resolve, 900));
+
+      setBioSuccess(true);
+      setTimeout(() => {
+        setIsBioScanning(false);
+        setBioSuccess(false);
+        login(candidateUser.id);
+      }, 650);'''
+          new = '''      // Do not simulate biometric success. A biometric prompt must be backed by
+      // a real platform credential and then a Firebase-authenticated session.
+      setIsBioScanning(false);
+      setBioSuccess(false);
+      setBioError('Biometric authentication is not linked to Firebase Auth yet. Use the Firebase Password login.');'''
+          if old not in s:
+              raise SystemExit('expected biometric simulation block not found')
+          s = s.replace(old, new, 1)
+
+          p.write_text(s, encoding='utf-8')
+
+      - name: Commit hardened login
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/LoginModal.tsx
+          git diff --cached --quiet || git commit -m "security: remove client-side password checks and biometric simulation"
+          git push
+
+      - name: Remove one-time hardening workflow
+        if: success()
+        run: |
+          git rm .github/workflows/harden-login-auth.yml
+          git commit -m "chore: remove one-time login hardening workflow [skip ci]"
+          git push
