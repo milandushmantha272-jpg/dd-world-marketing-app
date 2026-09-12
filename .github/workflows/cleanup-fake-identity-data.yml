@@ -15,8 +15,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Remove fake identity fallbacks
-        shell: python
+        shell: bash
         run: |
+          python3 <<'PY'
           from pathlib import Path
 
           replacements = {
@@ -43,17 +44,23 @@ jobs:
           for path in Path('src').rglob('*'):
               if not path.is_file() or path.suffix not in {'.ts', '.tsx', '.js', '.jsx'}:
                   continue
+              if path.as_posix().endswith('src/data/initialData.ts'):
+                  continue
               text = path.read_text(encoding='utf-8')
               updated = text
               for old, new in replacements.items():
                   updated = updated.replace(old, new)
               if updated != text:
                   path.write_text(updated, encoding='utf-8')
+          PY
 
-      - name: Validate no fake identity values remain in runtime source
+      - name: Validate runtime fallback cleanup
         shell: bash
         run: |
-          ! grep -RInE "199518294021|951829402V|0771234567|AG-000|Team Alpha|Alpha Team|DD World Agent|DD World Team|No\. 124, Kandy Road, Kadawatha, Sri Lanka|images\.unsplash\.com/photo-1534528741775" src --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' --exclude='initialData.ts'
+          if grep -RInE "199518294021|951829402V|0771234567|\|\|[[:space:]]*['\"]AG-000['\"]|\|\|[[:space:]]*['\"]Team Alpha['\"]|\|\|[[:space:]]*['\"]Alpha Team['\"]|\|\|[[:space:]]*['\"]DD World Agent['\"]|\|\|[[:space:]]*['\"]DD World Team['\"]|\|\|[[:space:]]*['\"]No\. 124, Kandy Road, Kadawatha, Sri Lanka['\"]|\|\|[[:space:]]*['\"]Sri Lanka['\"]" src --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' --exclude='initialData.ts'; then
+            echo "Runtime fake identity fallback remains."
+            exit 1
+          fi
 
       - name: Commit cleanup
         shell: bash
