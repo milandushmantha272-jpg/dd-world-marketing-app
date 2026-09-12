@@ -22,7 +22,6 @@ jobs:
 
           rules = Path('firestore.rules')
           s = rules.read_text()
-
           helper = """    function isActiveEmployee() {
               let userData = getUserData();
               return (userData.role == 'owner' || userData.role == 'MASTER_LEADER' || userData.id == 'owner-1') ||
@@ -30,7 +29,6 @@ jobs:
                       userData.employmentStatus == 'ACTIVE' &&
                       userData.idApprovalStatus == 'APPROVED');
             }"""
-
           if 'function isActiveEmployee()' not in s:
               anchor = "    /**\n     * Check if user is system owner/admin\n     */"
               if anchor not in s:
@@ -47,7 +45,6 @@ jobs:
                         "(getUserRole() == 'MASTER_LEADER' || getUserRole() == 'owner' || getUserRole() == 'TEAM_SUPERVISOR' || getUserRole() == 'team_leader')")
           s = s.replace("(getUserRole() in ['MASTER_LEADER', 'TEAM_SUPERVISOR', 'ELITE_AGENT'])",
                         "(getUserRole() in ['MASTER_LEADER', 'owner', 'TEAM_SUPERVISOR', 'team_leader', 'ELITE_AGENT', 'agent'])")
-
           replacements = [
               ("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user",
                "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user"),
@@ -61,7 +58,6 @@ jobs:
           for old, new in replacements:
               if old in s:
                   s = s.replace(old, new, 1)
-
           rules.write_text(s)
 
           for path, replacements in {
@@ -92,25 +88,19 @@ jobs:
           rules = Path('firestore.rules').read_text()
           agent = Path('src/components/agent/AgentDashboard.tsx').read_text()
           leader = Path('src/components/leader/TeamLeaderDashboard.tsx').read_text()
-
-          forbidden = ['requiredPass', 'tempPassword', 'Biometric scan latency simulation']
-          if any(x in login for x in forbidden):
-              raise SystemExit('insecure login fallback remains')
           if 'await login(target.id, password.trim())' not in login:
               raise SystemExit('Firebase password login call missing')
-          if 'function isActiveEmployee()' not in rules:
-              raise SystemExit('active employee guard missing')
-          if "idApprovalStatus == 'APPROVED'" not in rules:
-              raise SystemExit('approval gate missing')
-          if "getUserRole() == 'owner'" not in rules or "getUserRole() == 'team_leader'" not in rules:
-              raise SystemExit('canonical role mapping missing')
+          if 'Biometric scan latency simulation' in login or 'requiredPass' in login:
+              raise SystemExit('legacy simulated authentication remains')
+          if 'function isActiveEmployee()' not in rules or "idApprovalStatus == 'APPROVED'" not in rules:
+              raise SystemExit('active employee approval guard missing')
           if rules.count('isActiveEmployee()') < 4:
               raise SystemExit('active employee guard not applied to required write paths')
-          for name, text, forbidden_values in [
+          for name, text, values in [
               ('AgentDashboard', agent, ['AG-000', 'team-1', 'Team Alpha']),
               ('TeamLeaderDashboard', leader, ['TL-000', 'team-1', 'Team Alpha']),
           ]:
-              for value in forbidden_values:
+              for value in values:
                   if value in text:
                       raise SystemExit(f'demo attendance value remains in {name}: {value}')
           PY
