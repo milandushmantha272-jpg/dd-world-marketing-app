@@ -1263,7 +1263,7 @@ export const SriLankaGpsMapView: React.FC<{ users: User[]; currentUser?: User; h
 
                       <div className="flex justify-between items-center py-1.5 border-b border-slate-800">
                         <span className="text-slate-400 font-bold">කණ්ඩායම (Team):</span>
-                        <span className="text-slate-200 font-bold">{selectedUser.teamName || 'DD World Team'}</span>
+                        <span className="text-slate-200 font-bold">{selectedUser.teamName || 'Not Assigned'}</span>
                       </div>
 
                       <div className="flex justify-between items-center py-1.5 border-b border-slate-800">

@@ -101,8 +101,8 @@ export const OwnerAttendanceControlHub: React.FC = () => {
       agentId: staffMember.id,
       agentName: staffMember.name,
       agentCode: staffMember.agentCode || 'STAFF',
-      teamId: staffMember.teamId || 'team-1',
-      teamName: staffMember.teamName || 'Team Alpha',
+      teamId: staffMember.teamId || '',
+      teamName: staffMember.teamName || 'Not Assigned',
       role: staffMember.role,
       date: selectedDate,
       checkInTime: nowTimeStr,
@@ -406,7 +406,7 @@ export const OwnerAttendanceControlHub: React.FC = () => {
                       {/* Team */}
                       <td className="py-3.5 text-slate-300">
                         <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 font-semibold text-[11px]">
-                          {staff.teamName || 'Team Alpha'}
+                          {staff.teamName || 'Not Assigned'}
                         </span>
                       </td>
 

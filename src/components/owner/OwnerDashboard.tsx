@@ -336,7 +336,7 @@ export const OwnerDashboard: React.FC = () => {
       stationaryDuration: '18 මිනිත්තු (Active Moving)',
       isStationaryOverHour: false,
       teamLeaderName: 'D. M. T. R. Dissanayaka',
-      phone: '0771234567',
+      phone: '',
     },
     {
       id: 'ag-9190',

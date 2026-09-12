@@ -272,7 +272,7 @@ export const PerformanceOverviewPage: React.FC = () => {
     return filteredStaff.slice(0, 5).map((ag, idx) => {
       const agentCalls = Math.round((summaryAggregates.totalCalls / totalFilteredStaffCount) * (1.15 - idx * 0.05));
       const attendanceScore = Math.min(100, 96 - idx * 2);
-      const teamName = teams.find((t) => t.id === ag.teamId)?.name || 'DD World Team';
+      const teamName = teams.find((t) => t.id === ag.teamId)?.name || 'Not Assigned';
 
       return {
         id: ag.id,

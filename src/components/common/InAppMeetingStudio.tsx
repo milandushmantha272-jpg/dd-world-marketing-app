@@ -109,7 +109,7 @@ export const InAppMeetingStudio: React.FC = () => {
   const [description, setDescription] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [targetAudience, setTargetAudience] = useState<'all' | 'tls_only' | 'my_team' | 'specific_team'>('all');
-  const [selectedTeamId, setSelectedTeamId] = useState<string>(teams[0]?.id || 'team-1');
+  const [selectedTeamId, setSelectedTeamId] = useState<string>(teams[0]?.id || '');
 
   // Internet Monitor
   useEffect(() => {

@@ -114,8 +114,8 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
         },
         (err) => {
           console.warn('GPS prompt error, fallback to profile location:', err);
-          const lat = currentUser.location?.latitude || 6.9271;
-          const lng = currentUser.location?.longitude || 79.8612;
+          const lat = currentUser.location?.latitude;
+          const lng = currentUser.location?.longitude;
           const district = currentUser.location?.district || currentUser.assignedDistrict || 'Colombo';
 
           finalizeIvrDial(productType, productName, lat, lng, district);
@@ -123,8 +123,8 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
         { enableHighAccuracy: true, timeout: 5000 }
       );
     } else {
-      const lat = currentUser.location?.latitude || 6.9271;
-      const lng = currentUser.location?.longitude || 79.8612;
+      const lat = currentUser.location?.latitude;
+      const lng = currentUser.location?.longitude;
       const district = currentUser.location?.district || currentUser.assignedDistrict || 'Colombo';
       finalizeIvrDial(productType, productName, lat, lng, district);
     }
@@ -143,8 +143,8 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
     addProductSale({
       agentId: currentUser.id,
       agentName: currentUser.name,
-      agentCode: currentUser.agentCode || 'AG-000',
-      teamId: currentUser.teamId || 'team-1',
+      agentCode: currentUser.agentCode || '',
+      teamId: currentUser.teamId || '',
       productType,
       productName,
       channel: 'IVR',
@@ -198,8 +198,8 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
   const logAppActivationSale = (shareChannel: 'WHATSAPP' | 'SMS' | 'QR' | 'DIRECT') => {
     const productType = selectedApp === 'govimithuru' ? 'ගොවිමිතුරු' : 'සයුරු';
     const productName = `${getAppName()} [Play Store Share]`;
-    const lat = currentUser.location?.latitude || 6.9271;
-    const lng = currentUser.location?.longitude || 79.8612;
+    const lat = currentUser.location?.latitude;
+    const lng = currentUser.location?.longitude;
     const district = currentUser.location?.district || currentUser.assignedDistrict || 'Colombo';
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const pendingId = `app-pending-${currentUser.id}-${Date.now()}`;
@@ -207,8 +207,8 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
       id: pendingId,
       agentId: currentUser.id,
       agentName: currentUser.name,
-      agentCode: currentUser.agentCode || 'AG-000',
-      teamId: currentUser.teamId || 'team-1',
+      agentCode: currentUser.agentCode || '',
+      teamId: currentUser.teamId || '',
       productType,
       productName,
       channel: 'APP',

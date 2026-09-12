@@ -19,13 +19,13 @@ export const EmployeeIdCreatorPage: React.FC = () => {
   );
 
   const [nicNumber, setNicNumber] = useState<string>(
-    userVerification?.idNumber || activeUser?.nic || '199518294021'
+    userVerification?.idNumber || activeUser?.nic || ''
   );
   const [address, setAddress] = useState<string>(
-    userVerification?.address || 'No. 124, Kandy Road, Kadawatha, Sri Lanka'
+    userVerification?.address || ''
   );
   const [phone, setPhone] = useState<string>(
-    userVerification?.contactNumber || activeUser?.mobile || '0771234567'
+    userVerification?.contactNumber || activeUser?.mobile || ''
   );
   const [designation, setDesignation] = useState<string>(
     activeUser?.role === 'owner'
@@ -44,9 +44,9 @@ export const EmployeeIdCreatorPage: React.FC = () => {
     if (target) {
       const v = verifications.find((ver) => ver.userId === target.id);
       setIdPhoto(v?.idPhotoUrl || target.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80');
-      setNicNumber(v?.idNumber || target.nic || '199518294021');
-      setAddress(v?.address || 'Colombo, Sri Lanka');
-      setPhone(v?.contactNumber || target.mobile || '0771234567');
+      setNicNumber(v?.idNumber || target.nic || '');
+      setAddress(v?.address || '');
+      setPhone(v?.contactNumber || target.mobile || '');
       setDesignation(
         target.role === 'owner'
           ? 'Managing Director & Owner'

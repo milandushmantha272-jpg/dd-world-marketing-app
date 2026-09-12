@@ -277,7 +277,7 @@ export const EmployeeVerificationModal: React.FC<EmployeeVerificationModalProps>
                 type="tel"
                 value={contactNumber}
                 onChange={(e) => setContactNumber(e.target.value)}
-                placeholder="0771234567"
+                placeholder=""
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 text-xs focus:ring-2 focus:ring-blue-500 outline-none font-mono"
                 required
               />

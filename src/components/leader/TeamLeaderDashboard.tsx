@@ -143,7 +143,7 @@ export const TeamLeaderDashboard: React.FC = () => {
           addSecurityAlert({
             userId: currentUser.id,
             userName: currentUser.name,
-            agentCode: currentUser.agentCode || 'TL-000',
+            agentCode: currentUser.agentCode || '',
             type: 'GPS_SPOOFING',
             reason: `Mock Location / Fake GPS Detected during Check-In: ${fakeCheck.reason}`,
             severity: 'critical',
@@ -157,9 +157,9 @@ export const TeamLeaderDashboard: React.FC = () => {
         addAttendanceRecord({
           agentId: currentUser.id,
           agentName: currentUser.name,
-          agentCode: currentUser.agentCode || 'TL-000',
-          teamId: currentUser.teamId || 'team-1',
-          teamName: currentUser.teamName || 'Team Alpha',
+          agentCode: currentUser.agentCode || '',
+          teamId: currentUser.teamId || '',
+          teamName: currentUser.teamName || 'Not Assigned',
           checkInTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           status: attStatus,
         });
@@ -198,7 +198,7 @@ export const TeamLeaderDashboard: React.FC = () => {
           addSecurityAlert({
             userId: currentUser.id,
             userName: currentUser.name,
-            agentCode: currentUser.agentCode || 'TL-000',
+            agentCode: currentUser.agentCode || '',
             type: 'GPS_SPOOFING',
             reason: `Mock Location / Fake GPS Detected during Check-Out: ${fakeCheck.reason}`,
             severity: 'critical',
@@ -212,9 +212,9 @@ export const TeamLeaderDashboard: React.FC = () => {
         addAttendanceRecord({
           agentId: currentUser.id,
           agentName: currentUser.name,
-          agentCode: currentUser.agentCode || 'TL-000',
-          teamId: currentUser.teamId || 'team-1',
-          teamName: currentUser.teamName || 'Team Alpha',
+          agentCode: currentUser.agentCode || '',
+          teamId: currentUser.teamId || '',
+          teamName: currentUser.teamName || 'Not Assigned',
           checkOutTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           status: 'completed',
         });
@@ -238,14 +238,14 @@ export const TeamLeaderDashboard: React.FC = () => {
 
     let sellerId = currentUser.id;
     let sellerName = currentUser.name;
-    let sellerCode = currentUser.agentCode || 'TL-000';
+    let sellerCode = currentUser.agentCode || '';
 
     if (targetUser !== 'ME') {
       const foundAg = myTeamAgents.find((a) => a.id === targetUser);
       if (foundAg) {
         sellerId = foundAg.id;
         sellerName = foundAg.name;
-        sellerCode = foundAg.agentCode || 'AG-000';
+        sellerCode = foundAg.agentCode || '';
       }
     }
 
@@ -253,7 +253,7 @@ export const TeamLeaderDashboard: React.FC = () => {
       agentId: sellerId,
       agentName: sellerName,
       agentCode: sellerCode,
-      teamId: currentUser.teamId || 'team-1',
+      teamId: currentUser.teamId || '',
       productType,
       channel,
       quantity: finalQty,
@@ -307,7 +307,7 @@ export const TeamLeaderDashboard: React.FC = () => {
                   Team Leader Platform
                 </span>
                 <span className="font-mono text-xs text-amber-400 font-bold">
-                  {currentUser.teamName || 'Team Alpha'}
+                  {currentUser.teamName || 'Not Assigned'}
                 </span>
               </div>
               <h1 className="text-xl font-black text-white mt-1">{currentUser.name}</h1>
@@ -912,7 +912,7 @@ export const TeamLeaderDashboard: React.FC = () => {
                         <div>
                           <span className="font-bold text-white text-sm block">{ag.name}</span>
                           <span className="font-mono text-[11px] text-amber-400 font-bold">
-                            {ag.agentCode || 'AG-000'} • {ag.mobile || 'No Mobile'}
+                            {ag.agentCode || ''} • {ag.mobile || 'No Mobile'}
                           </span>
                         </div>
                       </div>

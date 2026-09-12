@@ -49,13 +49,13 @@ export const OfficialCorporateIdCardModal: React.FC<OfficialCorporateIdCardModal
   );
 
   const [idNumber, setIdNumber] = useState(
-    verification?.idNumber || activeUser?.nic || '199518294021'
+    verification?.idNumber || activeUser?.nic || ''
   );
   const [address, setAddress] = useState(
-    verification?.address || 'No. 124, Kandy Road, Kadawatha, Sri Lanka'
+    verification?.address || ''
   );
   const [phone, setPhone] = useState(
-    verification?.contactNumber || activeUser?.mobile || '0771234567'
+    verification?.contactNumber || activeUser?.mobile || ''
   );
 
   const isOwner = currentUser?.role === 'owner';

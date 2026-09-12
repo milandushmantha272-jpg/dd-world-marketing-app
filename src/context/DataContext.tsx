@@ -857,7 +857,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const callerIdStr = resolvedCaller?.id || 'owner-1';
-    const callerNameStr = resolvedCaller?.name || 'Dushmantha Fernando (Owner)';
+    const callerNameStr = resolvedCaller?.name || '';
     const callerRoleStr = resolvedCaller?.role || 'owner';
 
     const session: CallSession = {
@@ -1808,7 +1808,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       name: (agentData.name || '').trim(),
       email: (agentData.email || '').trim(),
       mobile: (agentData.mobile || '').trim(),
-      nic: agentData.nic?.trim() || '199518294021',
+      nic: agentData.nic?.trim() || '',
       role: 'agent',
       agentCode: (agentData.agentCode || '').trim(),
       avatar: agentData.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
@@ -2257,9 +2257,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addLocationRecord({
         employee_id: userId,
         agent_code: targetUser?.agentCode || (targetUser?.role === 'owner' ? '9000' : userId.substring(0, 4)),
-        employee_name: targetUser?.name || 'DD World Agent',
-        team_id: targetUser?.teamId || 'team-1',
-        team_name: targetUser?.teamName || 'DD World Team',
+        employee_name: targetUser?.name || 'Not Available',
+        team_id: targetUser?.teamId || '',
+        team_name: targetUser?.teamName || 'Not Assigned',
         role: targetUser?.role || 'agent',
         latitude: gpsData.latitude,
         longitude: gpsData.longitude,
@@ -2377,8 +2377,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const agentUser = users.find(
       (u) => u.id === record.agentId || (record.agentCode && u.agentCode === record.agentCode)
     );
-    const resolvedTeamId = agentUser?.teamId || record.teamId || 'team-1';
-    const resolvedTeamName = agentUser?.teamName || record.teamName || 'Team Alpha';
+    const resolvedTeamId = agentUser?.teamId || record.teamId || '';
+    const resolvedTeamName = agentUser?.teamName || record.teamName || 'Not Assigned';
     const dateToday = new Date().toISOString().split('T')[0];
     const targetDate = record.date || dateToday;
     const nowTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
@@ -2504,7 +2504,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const agentUser = users.find(
       (u) => u.id === saleData.agentId || (saleData.agentCode && u.agentCode === saleData.agentCode)
     );
-    const resolvedTeamId = agentUser?.teamId || saleData.teamId || 'team-1';
+    const resolvedTeamId = agentUser?.teamId || saleData.teamId || '';
     const nowTime =
       saleData.time ||
       new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -2593,7 +2593,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     remarks?: string;
   }) => {
     const agentUser = users.find((u) => u.id === entryData.agentId);
-    const resolvedTeamId = agentUser?.teamId || entryData.teamId || 'team-1';
+    const resolvedTeamId = agentUser?.teamId || entryData.teamId || '';
     const newEntry: IvrEntry = {
       id: `ivr-${Date.now()}`,
       agentId: entryData.agentId,
@@ -3140,8 +3140,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           userId,
           userName: targetUser?.name || 'Staff Member',
           userRole: targetUser?.role || 'agent',
-          agentCode: targetUser?.agentCode || 'AG-000',
-          idNumber: targetUser?.nic || '199518294021',
+          agentCode: targetUser?.agentCode || '',
+          idNumber: targetUser?.nic || '',
           address: 'Sri Lanka',
           contactNumber: targetUser?.mobile || '',
           status: 'verified',
