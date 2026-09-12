@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { collection, doc, onSnapshot, orderBy, query, setDoc } from 'firebase/firestore';
 import { AlertTriangle, Check, Download, FileSpreadsheet, Upload, XCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { db, ensureFirebaseSession } from '../../services/firebase';
+import { db } from '../../services/firebase';
 
 type ReportStatus = 'RECEIVED' | 'OWNER_OK' | 'TL_OK' | 'CORRECTION_REQUIRED';
 type Row = { agentCode: string; agentName: string; teamId?: string; teamName?: string; date: string; product: string; app: number; ivr: number; total: number };
@@ -23,11 +23,9 @@ export const WeeklySalesSheetWorkflow: React.FC = () => {
   const [issueText, setIssueText] = useState('');
 
   useEffect(() => {
-    let unsubscribe = () => {};
-    ensureFirebaseSession().then(() => {
-      const q = query(collection(db, 'weeklySalesReports'), orderBy('uploadedAt', 'desc'));
-      unsubscribe = onSnapshot(q, (snap) => setReports(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Report, 'id'>) }))));
-    }).catch(() => setMessage('Weekly Sales Sheet cloud connection failed.'));
+    if (!db) return;
+    const q = query(collection(db, 'weeklySalesReports'), orderBy('uploadedAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snap) => setReports(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Report, 'id'>) }))));
     return () => unsubscribe();
   }, []);
 
@@ -42,7 +40,7 @@ export const WeeklySalesSheetWorkflow: React.FC = () => {
   if (!currentUser) return null;
 
   const saveReport = async (report: Report) => {
-    await ensureFirebaseSession();
+    if (!db) throw new Error('Firestore unavailable');
     await setDoc(doc(db, 'weeklySalesReports', report.id), report);
   };
 
@@ -97,10 +95,8 @@ export const WeeklySalesSheetWorkflow: React.FC = () => {
         <div><div className="flex items-center gap-2"><FileSpreadsheet className="h-5 w-5 text-emerald-400" /><h2 className="text-lg font-black">WEEKLY SALES SHEET</h2></div><p className="mt-1 text-xs text-slate-400">Sales information only • No payment / money data</p></div>
         {currentUser.role === 'dialog_officer' && <label className="cursor-pointer rounded-xl bg-emerald-500 px-4 py-2 text-xs font-black text-slate-950"><Upload className="mr-1 inline h-4 w-4" /> SEND SHEET TO OWNER<input className="hidden" type="file" accept=".csv,.tsv,.txt" disabled={uploading} onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])} /></label>}
       </div>
-
       {currentUser.role === 'dialog_officer' && <div className="mt-4 grid gap-3 sm:grid-cols-3"><label className="text-xs text-slate-400">Week Start<input type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 p-2 text-white" /></label><label className="text-xs text-slate-400">Week End<input type="date" value={weekEnd} onChange={(e) => setWeekEnd(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 p-2 text-white" /></label><div className="rounded-xl border border-slate-800 bg-slate-900 p-3 text-xs text-slate-400">{fileName ? `Attached: ${fileName}` : 'CSV / TSV sheet only'}</div></div>}
       {message && <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs font-bold text-emerald-300">{message}</div>}
-
       <div className="mt-5 space-y-4">
         {visibleReports.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-800 p-8 text-center text-sm text-slate-500">No Weekly Sales Sheets available for this role.</div> : visibleReports.map((report) => {
           const rows = currentUser.role === 'team_leader' ? report.rows.filter((r) => r.teamId === currentUser.teamId) : currentUser.role === 'agent' ? report.rows.filter((r) => r.agentCode === currentUser.agentCode) : report.rows;
@@ -115,7 +111,6 @@ export const WeeklySalesSheetWorkflow: React.FC = () => {
           </div>;
         })}
       </div>
-
       {issueReportId && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4"><div className="w-full max-w-lg rounded-3xl border border-slate-700 bg-slate-900 p-5"><h3 className="font-black">Inform Incorrect Sales Information</h3><textarea value={issueText} onChange={(e) => setIssueText(e.target.value)} placeholder="Agent / date / product / sales count / reason..." className="mt-3 h-32 w-full rounded-2xl border border-slate-700 bg-slate-950 p-3 text-sm text-white" /><div className="mt-3 flex justify-end gap-2"><button onClick={() => setIssueReportId(null)} className="rounded-xl bg-slate-800 px-4 py-2 text-xs font-bold">Cancel</button><button onClick={submitIssue} className="rounded-xl bg-rose-500 px-4 py-2 text-xs font-black text-white">Inform Owner</button></div></div></div>}
     </section>
   );
