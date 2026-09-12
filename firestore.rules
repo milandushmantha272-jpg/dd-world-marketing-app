@@ -54,13 +54,6 @@ service cloud.firestore {
   }
 
     /**
-     * Check if user is system owner/admin
-     */
-    function isOwner() {
-      return isSignedIn() && getUserRole() == 'MASTER_LEADER';
-    }
-
-    /**
      * Check if user is team supervisor/manager
      */
     function isTeamSupervisor() {
@@ -343,6 +336,7 @@ service cloud.firestore {
       // Create: Only authenticated users can start tracking sessions
       allow create: if isAuthorized() && 
                        isSignedIn() &&
+                       isActiveEmployee() &&
                        // Prevent impersonation
                        request.resource.data.userId == request.auth.uid &&
                        // Session must have start time
