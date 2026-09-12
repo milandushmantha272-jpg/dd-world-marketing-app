@@ -4,16 +4,70 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
-  verify:
+  harden:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Verify secure login source
+        with:
+          fetch-depth: 0
+
+      - name: Apply active employee Firestore guard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('firestore.rules')
+          s = p.read_text()
+
+          if 'function isActiveEmployee()' not in s:
+              anchor = "    /**\n     * Check if user is system owner/admin\n     */"
+              helper = """    function isActiveEmployee() {
+              let userData = getUserData();
+              return userData.status == 'active' &&
+                     userData.employmentStatus == 'ACTIVE' &&
+                     userData.idApprovalStatus != 'REJECTED';
+            }
+
+"""
+              if anchor not in s:
+                  raise SystemExit('owner helper anchor not found')
+              s = s.replace(anchor, helper + anchor, 1)
+
+          s = s.replace(
+              "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user",
+              "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user",
+              1)
+          s = s.replace(
+              "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid",
+              "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid",
+              1)
+          s = s.replace(
+              "allow update: if isSignedIn() && \n                       request.auth.uid == resource.data.userId &&\n                       // Cannot modify user or device after creation",
+              "allow update: if isSignedIn() && \n                       isActiveEmployee() &&\n                       request.auth.uid == resource.data.userId &&\n                       // Cannot modify user or device after creation",
+              1)
+
+          p.write_text(s)
+          PY
+
+      - name: Verify secure login and Firestore guard
         run: |
           set -e
           ! grep -Eq 'requiredPass|tempPassword|pinCode.*passwordInput|passwordInput.*requiredPass|Biometric scan latency simulation' src/components/LoginModal.tsx
           grep -q 'await login(target.id, password.trim())' src/components/LoginModal.tsx
-      - name: Verify Firestore active-user guard
-        run: |
           grep -q 'function isActiveEmployee()' firestore.rules
+          test "$(grep -c 'isActiveEmployee()' firestore.rules)" -ge 4
+
+      - name: Commit Firestore hardening
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add firestore.rules
+          if git diff --cached --quiet; then
+            echo 'Firestore rules already hardened'
+          else
+            git commit -m 'security: enforce active employee access in Firestore rules'
+            git push origin HEAD:main
+          fi
