@@ -1,0 +1,75 @@
+name: Fix Remaining Runtime Defaults
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Remove runtime fake/default identity fallbacks
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              "'199518294021'": "''",
+              '"199518294021"': '""',
+              "'951829402V'": "''",
+              '"951829402V"': '""',
+              "'0771234567'": "''",
+              '"0771234567"': '""',
+              "|| 'AG-000'": "|| ''",
+              '|| "AG-000"': '|| ""',
+              "|| 'TL-000'": "|| ''",
+              '|| "TL-000"': '|| ""',
+              "|| 'team-1'": "|| ''",
+              '|| "team-1"': '|| ""',
+              "|| 'Team Alpha'": "|| 'Not Assigned'",
+              '|| "Team Alpha"': '|| "Not Assigned"',
+              "|| 'Alpha Team'": "|| 'Not Assigned'",
+              '|| "Alpha Team"': '|| "Not Assigned"',
+              "|| 'DD World Agent'": "|| 'Not Available'",
+              '|| "DD World Agent"': '|| "Not Available"',
+              "|| 'DD World Team'": "|| 'Not Assigned'",
+              '|| "DD World Team"': '|| "Not Assigned"',
+              "|| 'No. 124, Kandy Road, Kadawatha, Sri Lanka'": "|| ''",
+              "|| 'Colombo, Sri Lanka'": "|| ''",
+              "|| 'Dushmantha Fernando (Owner)'": "|| ''",
+              "currentUser.location?.latitude || 6.9271": "currentUser.location?.latitude",
+              "currentUser.location?.longitude || 79.8612": "currentUser.location?.longitude",
+          }
+
+          for path in Path('src').rglob('*'):
+              if not path.is_file() or path.suffix not in {'.ts', '.tsx', '.js', '.jsx'}:
+                  continue
+              if path.as_posix().endswith('src/data/initialData.ts'):
+                  continue
+              text = path.read_text(encoding='utf-8')
+              updated = text
+              for old, new in replacements.items():
+                  updated = updated.replace(old, new)
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+          PY
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No runtime defaults changed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src
+          git commit -m "fix: remove remaining runtime default identities"
+          git push
