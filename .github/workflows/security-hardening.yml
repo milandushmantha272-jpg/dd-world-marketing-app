@@ -15,40 +15,32 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply active, approved and app-role Firestore guard
+      - name: Apply production security hardening
         run: |
           python - <<'PY'
           from pathlib import Path
-          p = Path('firestore.rules')
-          s = p.read_text()
 
-          if 'function isActiveEmployee()' not in s:
-              anchor = "    /**\n     * Check if user is system owner/admin\n     */"
-              helper = """    function isActiveEmployee() {
-              let userData = getUserData();
-              return (userData.role == 'owner' || userData.role == 'MASTER_LEADER' || userData.id == 'owner-1') ||
-                     (userData.status == 'active' &&
-                      userData.employmentStatus == 'ACTIVE' &&
-                      userData.idApprovalStatus == 'APPROVED');
-            }
+          rules = Path('firestore.rules')
+          s = rules.read_text()
 
-"""
-              if anchor not in s:
-                  raise SystemExit('owner helper anchor not found')
-              s = s.replace(anchor, helper + anchor, 1)
-          else:
-              start = s.index('    function isActiveEmployee() {')
-              end = s.index('    }', start) + len('    }')
-              helper = """    function isActiveEmployee() {
+          helper = """    function isActiveEmployee() {
               let userData = getUserData();
               return (userData.role == 'owner' || userData.role == 'MASTER_LEADER' || userData.id == 'owner-1') ||
                      (userData.status == 'active' &&
                       userData.employmentStatus == 'ACTIVE' &&
                       userData.idApprovalStatus == 'APPROVED');
             }"""
+
+          if 'function isActiveEmployee()' not in s:
+              anchor = "    /**\n     * Check if user is system owner/admin\n     */"
+              if anchor not in s:
+                  raise SystemExit('owner helper anchor not found')
+              s = s.replace(anchor, helper + "\n\n" + anchor, 1)
+          else:
+              start = s.index('    function isActiveEmployee() {')
+              end = s.index('    }', start) + len('    }')
               s = s[:start] + helper + s[end:]
 
-          # Keep Firestore authorization consistent with the app's canonical roles.
           s = s.replace("return isSignedIn() && getUserRole() == 'MASTER_LEADER';",
                         "return isSignedIn() && (getUserRole() == 'MASTER_LEADER' || getUserRole() == 'owner' || request.auth.uid == 'owner-1');")
           s = s.replace("(getUserRole() == 'MASTER_LEADER' || getUserRole() == 'TEAM_SUPERVISOR')",
@@ -56,24 +48,43 @@ jobs:
           s = s.replace("(getUserRole() in ['MASTER_LEADER', 'TEAM_SUPERVISOR', 'ELITE_AGENT'])",
                         "(getUserRole() in ['MASTER_LEADER', 'owner', 'TEAM_SUPERVISOR', 'team_leader', 'ELITE_AGENT', 'agent'])")
 
-          # Enforce the same active/approved gate on employee-generated writes.
-          s = s.replace(
-              "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user",
-              "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user",
-              1)
-          s = s.replace(
-              "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid",
-              "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid",
-              1)
-          s = s.replace(
-              "allow update: if isSignedIn() && \n                       request.auth.uid == resource.data.userId &&\n                       // Cannot modify user or device after creation",
-              "allow update: if isSignedIn() && \n                       isActiveEmployee() &&\n                       request.auth.uid == resource.data.userId &&\n                       // Cannot modify user or device after creation",
-              1)
+          replacements = [
+              ("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user",
+               "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user"),
+              ("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid",
+               "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid"),
+              ("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Session must have start time",
+               "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Session must have start time"),
+              ("allow update: if isSignedIn() && \n                       request.auth.uid == resource.data.userId &&\n                       // Cannot modify user or device after creation",
+               "allow update: if isSignedIn() && \n                       isActiveEmployee() &&\n                       request.auth.uid == resource.data.userId &&\n                       // Cannot modify user or device after creation"),
+          ]
+          for old, new in replacements:
+              if old in s:
+                  s = s.replace(old, new, 1)
 
-          p.write_text(s)
+          rules.write_text(s)
+
+          # Remove all demo/fallback identity values from production attendance writes.
+          for path, replacements in {
+              'src/components/agent/AgentDashboard.tsx': [
+                  ("currentUser.agentCode || 'AG-000'", "currentUser.agentCode || ''"),
+                  ("currentUser.teamId || 'team-1'", "currentUser.teamId || ''"),
+                  ("currentUser.teamName || 'Team Alpha'", "currentUser.teamName || 'Not Assigned'"),
+              ],
+              'src/components/leader/TeamLeaderDashboard.tsx': [
+                  ("currentUser.agentCode || 'TL-000'", "currentUser.agentCode || ''"),
+                  ("currentUser.teamId || 'team-1'", "currentUser.teamId || ''"),
+                  ("currentUser.teamName || 'Team Alpha'", "currentUser.teamName || 'Not Assigned'"),
+              ],
+          }.items():
+              p = Path(path)
+              text = p.read_text()
+              for old, new in replacements:
+                  text = text.replace(old, new)
+              p.write_text(text)
           PY
 
-      - name: Verify secure login and Firestore guard
+      - name: Verify production security invariants
         run: |
           set -e
           ! grep -Eq 'requiredPass|tempPassword|pinCode.*passwordInput|passwordInput.*requiredPass|Biometric scan latency simulation' src/components/LoginModal.tsx
@@ -82,16 +93,18 @@ jobs:
           grep -q "idApprovalStatus == 'APPROVED'" firestore.rules
           grep -q "getUserRole() == 'owner'" firestore.rules
           grep -q "getUserRole() == 'team_leader'" firestore.rules
-          test "$(grep -c 'isActiveEmployee()' firestore.rules)" -ge 4
+          test "$(grep -c 'isActiveEmployee()' firestore.rules)" -ge 5
+          ! grep -R -n -E "AG-000|TL-000|team-1|Team Alpha" src/components/agent/AgentDashboard.tsx src/components/leader/TeamLeaderDashboard.tsx
+          ! grep -R -n -E "fallback.*(latitude|longitude)|latitude.*fallback|longitude.*fallback" src/components/agent/AgentDashboard.tsx src/components/leader/TeamLeaderDashboard.tsx
 
-      - name: Commit Firestore hardening
+      - name: Commit production hardening
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add firestore.rules
+          git add firestore.rules src/components/agent/AgentDashboard.tsx src/components/leader/TeamLeaderDashboard.tsx
           if git diff --cached --quiet; then
-            echo 'Firestore rules already hardened'
+            echo 'Production hardening already applied'
           else
-            git commit -m 'security: align Firestore authorization with app roles'
+            git commit -m 'security: enforce production attendance data integrity'
             git push origin HEAD:main
           fi
