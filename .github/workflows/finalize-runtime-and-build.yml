@@ -1,0 +1,168 @@
+name: Finalize Runtime Cleanup and Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch runtime demo data safely
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          # 1) Never invent GPS coordinates. Attendance/location evidence must stop when
+          # a real GPS fix is unavailable.
+          p = Path('src/context/DataContext.tsx')
+          s = p.read_text(encoding='utf-8')
+          old = """      const nowIso = new Date().toISOString();\n      const userLat = agentUser?.latitude || 6.9271;\n      const userLng = agentUser?.longitude || 79.8612;\n      const userAcc = agentUser?.accuracy || 12;"""
+          new = """      const nowIso = new Date().toISOString();\n      const userLat = agentUser?.latitude;\n      const userLng = agentUser?.longitude;\n      const userAcc = agentUser?.accuracy;\n      if (userLat === undefined || userLng === undefined || userAcc === undefined) {\n        console.warn('Location record blocked: verified GPS coordinates/accuracy are unavailable.');\n        return;\n      }"""
+          if old in s:
+              s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+
+          # 2) Replace simulated Owner GPS rows with verified user GPS records only.
+          p = Path('src/components/owner/OwnerDashboard.tsx')
+          s = p.read_text(encoding='utf-8')
+          pattern = r"\n  // Simulated Live GPS Agents with Stationary Alert \(>1 Hour\)\n  const gpsAgents = \[.*?\n  \];"
+          replacement = """\n  // Owner GPS view uses only verified runtime user coordinates; no simulated agents.\n  const gpsAgents = users\n    .filter((u) => u.role === 'agent' && u.latitude !== undefined && u.longitude !== undefined)\n    .map((u) => ({\n      id: u.id,\n      name: u.name,\n      district: u.district || u.assignedDistrict || 'Not Assigned',\n      lat: `${u.latitude?.toFixed(4)}°`,\n      lng: `${u.longitude?.toFixed(4)}°`,\n      stationaryDuration: 'Live GPS',\n      isStationaryOverHour: false,\n      teamLeaderName: users.find((tl) => tl.id === u.teamLeaderId)?.name || 'Not Assigned',\n      phone: u.mobile || '',\n    }));"""
+          s, count = re.subn(pattern, replacement, s, count=1, flags=re.S)
+          if count == 0:
+              # Keep the file safe if an earlier cleanup already removed the block.
+              s = s.replace("const gpsAgents = [];", replacement.strip(), 1)
+
+          # 3) Remove fake runtime form defaults while preserving real initialData.
+          replacements = {
+            "useState<OwnerTab>('app_download_status')": "useState<OwnerTab>('overview')",
+            "useState<string>('team-1')": "useState<string>('')",
+            "useState<string>('team-9')": "useState<string>('')",
+            "useState('150')": "useState('')",
+            "useState('AG-004')": "useState('')",
+            "useState('ddworld@2026')": "useState('')",
+            "useState('https://meet.google.com/ddw-owner-meeting')": "useState('')",
+          }
+          for a,b in replacements.items():
+              s = s.replace(a,b)
+          p.write_text(s, encoding='utf-8')
+
+          # 4) Remove remaining exact fake/default runtime values from application source,
+          # excluding authoritative demo seed data in initialData.ts.
+          replacements = {
+            "'199518294021'": "''",
+            '"199518294021"': '""',
+            "'951829402V'": "''",
+            '"951829402V"': '""',
+            "'0771234567'": "''",
+            '"0771234567"': '""',
+            "|| 'AG-000'": "|| ''",
+            '|| "AG-000"': '|| ""',
+            "|| 'TL-000'": "|| ''",
+            '|| "TL-000"': '|| ""',
+            "|| 'Team Alpha'": "|| 'Not Assigned'",
+            '|| "Team Alpha"': '|| "Not Assigned"',
+            "|| 'Alpha Team'": "|| 'Not Assigned'",
+            '|| "Alpha Team"': '|| "Not Assigned"',
+            "|| 'DD World Agent'": "|| 'Not Available'",
+            '|| "DD World Agent"': '|| "Not Available"',
+            "|| 'DD World Team'": "|| 'Not Assigned'",
+            '|| "DD World Team"': '|| "Not Assigned"',
+            "|| 'No. 124, Kandy Road, Kadawatha, Sri Lanka'": "|| ''",
+            "|| 'Colombo, Sri Lanka'": "|| ''",
+            "|| 'Dushmantha Fernando (Owner)'": "|| ''",
+            "|| 'DD-001'": "|| 'Not Assigned'",
+            "|| 'ID-00'": "|| 'Not Assigned'",
+            "placeholder=\"උදා: 199518294021 / 951829402V\"": "placeholder=\"ඔබගේ NIC අංකය ඇතුළත් කරන්න\"",
+            "placeholder=\"0771234567\"": "placeholder=\"ඔබගේ ජංගම අංකය\"",
+            "placeholder=\"0771234567 හෝ rohan@audit.lk\"": "placeholder=\"Email හෝ mobile number\"",
+            "(e.g. 0771234567)": "(enter the customer mobile number)",
+          }
+          for p in Path('src').rglob('*'):
+              if not p.is_file() or p.suffix not in {'.ts','.tsx','.js','.jsx'} or 'src/data/initialData.ts' in p.as_posix():
+                  continue
+              t = p.read_text(encoding='utf-8')
+              u = t
+              for a,b in replacements.items():
+                  u = u.replace(a,b)
+              if u != t:
+                  p.write_text(u, encoding='utf-8')
+          PY
+
+      - name: Runtime fake-data audit
+        shell: bash
+        run: |
+          if grep -RInE "199518294021|951829402V|0771234567|\|\|[[:space:]]*['\"]AG-000['\"]|\|\|[[:space:]]*['\"]TL-000['\"]|\|\|[[:space:]]*['\"]team-1['\"]|\|\|[[:space:]]*['\"]Team Alpha['\"]|\|\|[[:space:]]*['\"]Alpha Team['\"]|\|\|[[:space:]]*['\"]DD World Agent['\"]|\|\|[[:space:]]*['\"]DD World Team['\"]|\|\|[[:space:]]*['\"]No\. 124, Kandy Road, Kadawatha, Sri Lanka['\"]|\|\|[[:space:]]*['\"]Colombo, Sri Lanka['\"]|agentUser\?\.latitude[[:space:]]*\|\|[[:space:]]*6\.9271|agentUser\?\.longitude[[:space:]]*\|\|[[:space:]]*79\.8612" src --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' --exclude='initialData.ts' --exclude-dir='data'; then
+            echo 'Runtime fake/default data remains.'
+            exit 1
+          fi
+          echo 'Runtime fake-data audit PASS.'
+
+      - name: Commit source cleanup
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src
+          if git diff --cached --quiet; then
+            echo 'No source cleanup changes required.'
+          else
+            git commit -m 'fix: remove runtime demo identities and fake GPS fallbacks'
+            git push origin HEAD:main
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: TypeScript check
+        run: npm run lint
+
+      - name: Build web application
+        run: npm run build
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Build Android Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum android/app/build/outputs/apk/debug/app-debug.apk | tee apk-sha256.txt
+
+      - name: Upload finalized APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DD-World-Final-APK
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            apk-sha256.txt
+          if-no-files-found: error
