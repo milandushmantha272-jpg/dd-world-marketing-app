@@ -1,16 +1,21 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInAnonymously,
+  signInWithEmailAndPassword,
+  signOut,
+  type User as FirebaseUser,
+} from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-// Firebase is used as the authenticated persistence layer for the existing DD World
-// application identity system. The app's Owner/Team Leader/Agent profile remains
-// separate from Firebase Auth; Firebase Auth supplies the session required by Firestore.
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-const databaseId = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
-  ? firebaseConfig.firestoreDatabaseId
-  : undefined;
+const databaseId =
+  firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
+    ? firebaseConfig.firestoreDatabaseId
+    : undefined;
 
 export const auth = getAuth(app);
 export const db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
@@ -18,10 +23,9 @@ export const db = databaseId ? getFirestore(app, databaseId) : getFirestore(app)
 let authReadyPromise: Promise<FirebaseUser> | null = null;
 
 /**
- * Ensure every app session has a Firebase Auth identity before Firestore is used.
- * Anonymous Auth is intentional here because DD World has its own role/password
- * system and migrating those credentials to Firebase Auth requires server-side
- * account provisioning. This removes the unauthenticated Firestore 403 path.
+ * Establishes a Firebase session for application bootstrapping only.
+ * This must not be treated as employee authentication. Employee login is
+ * performed by signInWithEmployeeCredentials below.
  */
 export const ensureFirebaseSession = (): Promise<FirebaseUser> => {
   if (auth.currentUser) return Promise.resolve(auth.currentUser);
@@ -49,4 +53,27 @@ export const ensureFirebaseSession = (): Promise<FirebaseUser> => {
   }
 
   return authReadyPromise;
+};
+
+/**
+ * Production employee authentication. Passwords are verified by Firebase Auth;
+ * DD World never compares or stores plaintext passwords in the browser.
+ */
+export const signInWithEmployeeCredentials = async (
+  email: string,
+  password: string,
+): Promise<FirebaseUser> => {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail || !password) {
+    throw new Error('Firebase Auth requires a valid email and password.');
+  }
+
+  const credential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+  authReadyPromise = Promise.resolve(credential.user);
+  return credential.user;
+};
+
+export const signOutFirebase = async (): Promise<void> => {
+  authReadyPromise = null;
+  await signOut(auth);
 };
