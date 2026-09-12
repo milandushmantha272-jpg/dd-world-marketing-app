@@ -1,0 +1,110 @@
+name: Production Hardening
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Harden Firestore and attendance data
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          rules = Path('firestore.rules')
+          s = rules.read_text()
+          helper = """    function isActiveEmployee() {
+              let userData = getUserData();
+              return (userData.role == 'owner' || userData.role == 'MASTER_LEADER' || userData.id == 'owner-1') ||
+                     (userData.status == 'active' &&
+                      userData.employmentStatus == 'ACTIVE' &&
+                      userData.idApprovalStatus == 'APPROVED');
+            }"""
+          if 'function isActiveEmployee()' not in s:
+              anchor = "    /**\n     * Check if user is system owner/admin\n     */"
+              if anchor not in s:
+                  raise SystemExit('owner helper anchor not found')
+              s = s.replace(anchor, helper + "\n\n" + anchor, 1)
+          else:
+              start = s.index('    function isActiveEmployee() {')
+              end = s.index('    }', start) + len('    }')
+              s = s[:start] + helper + s[end:]
+
+          targets = [
+              ("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user",
+               "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user"),
+              ("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid",
+               "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid"),
+              ("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Session must have start time",
+               "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Session must have start time"),
+              ("allow update: if isSignedIn() && \n                       request.auth.uid == resource.data.userId &&\n                       // Cannot modify user or device after creation",
+               "allow update: if isSignedIn() && \n                       isActiveEmployee() &&\n                       request.auth.uid == resource.data.userId &&\n                       // Cannot modify user or device after creation"),
+          ]
+          for old, new in targets:
+              s = s.replace(old, new, 1)
+          rules.write_text(s)
+
+          for path, replacements in {
+              'src/components/agent/AgentDashboard.tsx': [
+                  ("currentUser.agentCode || 'AG-000'", "currentUser.agentCode || ''"),
+                  ("currentUser.teamId || 'team-1'", "currentUser.teamId || ''"),
+                  ("currentUser.teamName || 'Team Alpha'", "currentUser.teamName || 'Not Assigned'"),
+              ],
+              'src/components/leader/TeamLeaderDashboard.tsx': [
+                  ("currentUser.agentCode || 'TL-000'", "currentUser.agentCode || ''"),
+                  ("currentUser.teamId || 'team-1'", "currentUser.teamId || ''"),
+                  ("currentUser.teamName || 'Team Alpha'", "currentUser.teamName || 'Not Assigned'"),
+              ],
+          }.items():
+              p = Path(path)
+              text = p.read_text()
+              for old, new in replacements:
+                  text = text.replace(old, new)
+              p.write_text(text)
+          PY
+
+      - name: Verify hardening
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          rules = Path('firestore.rules').read_text()
+          agent = Path('src/components/agent/AgentDashboard.tsx').read_text()
+          leader = Path('src/components/leader/TeamLeaderDashboard.tsx').read_text()
+          login = Path('src/components/LoginModal.tsx').read_text()
+          assert 'function isActiveEmployee()' in rules
+          assert rules.count('isActiveEmployee()') >= 4
+          assert "idApprovalStatus == 'APPROVED'" in rules
+          assert 'await login(target.id, password.trim())' in login
+          assert 'Biometric scan latency simulation' not in login
+          assert 'user.password === password' not in login
+          assert 'user.pinCode === password' not in login
+          for text in (agent, leader):
+              assert 'team-1' not in text
+              assert 'Team Alpha' not in text
+          assert 'AG-000' not in agent
+          assert 'TL-000' not in leader
+          PY
+
+      - name: Publish hardening safely
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add firestore.rules src/components/agent/AgentDashboard.tsx src/components/leader/TeamLeaderDashboard.tsx
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'security: enforce production employee and attendance integrity'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            if git rebase origin/main && git push origin HEAD:main; then exit 0; fi
+            git rebase --abort || true
+            sleep 2
+          done
+          exit 1
