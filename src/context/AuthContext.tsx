@@ -13,11 +13,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const isOwnerUser = (user: User) =>
+  user.role === 'owner' ||
+  user.id === 'owner-1' ||
+  user.email?.trim().toLowerCase() === 'd.d.worldmarketing1234@gmail.com';
+
 const isBlockedUser = (user: User) =>
   user.employmentStatus === 'BLOCKED' ||
   user.employmentStatus === 'SUSPENDED' ||
   user.employmentStatus === 'EXITED' ||
   user.status === 'blocked';
+
+const isApprovedActiveEmployee = (user: User) => {
+  if (isOwnerUser(user)) return true;
+  const employmentStatus = user.employmentStatus || (user.status === 'blocked' ? 'BLOCKED' : 'ACTIVE');
+  const approvalStatus = user.idApprovalStatus || 'PENDING';
+  return employmentStatus === 'ACTIVE' && approvalStatus === 'APPROVED' && user.status !== 'blocked';
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { users, updateUserAppStatus } = useData();
@@ -43,11 +55,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = users.find((u) => u.id === currentUser.id);
     if (!updated) return;
 
-    if (isBlockedUser(updated)) {
+    if (isBlockedUser(updated) || !isApprovedActiveEmployee(updated)) {
       void logout();
       window.dispatchEvent(
         new CustomEvent('ddworld_auth_alert', {
-          detail: { message: 'ඔබගේ ගිණුම පරිපාලක (Owner) විසින් අත්හිටුවා ඇත (ACCOUNT SUSPENDED / BLOCKED).' },
+          detail: { message: 'ඔබගේ DD WORLD employee account එක ACTIVE සහ OWNER-APPROVED තත්ත්වයේ නොමැති නිසා access අවහිර කරන ලදී.' },
         }),
       );
       return;
@@ -95,12 +107,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (!targetUser) throw new Error('DD World employee account was not found.');
     if (isBlockedUser(targetUser)) throw new Error('මෙම ගිණුම Owner විසින් BLOCK / SUSPEND කර ඇත.');
+    if (!isApprovedActiveEmployee(targetUser)) {
+      throw new Error('Login access සඳහා Owner approval සහ ACTIVE employee status දෙකම අවශ්‍යයි.');
+    }
     if (!targetUser.email?.trim()) throw new Error('මෙම employee account එකට verified email එකක් සකසා නැත.');
     if (!password) throw new Error('Password එක අවශ්‍යයි.');
 
     // Firebase Auth is authoritative for credential verification. The role shown
     // by the app comes only from the matched employee profile after auth succeeds.
-    await signInWithEmployeeCredentials(targetUser.email, password);
+    const firebaseUser = await signInWithEmployeeCredentials(targetUser.email, password);
+    if (!firebaseUser.emailVerified && !isOwnerUser(targetUser)) {
+      await signOutFirebase();
+      throw new Error('Firebase email verification සම්පූර්ණ කළ පසු පමණක් login විය හැක.');
+    }
 
     setCurrentUser(targetUser);
     safeStorage.setItem('ddworld_current_user_v2', JSON.stringify(targetUser));
@@ -114,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ' (' +
           new Date().toLocaleDateString('en-GB') +
           ')',
-        appVersion: 'v5.3',
+        appVersion: 'v5.4',
       });
     }
   };
