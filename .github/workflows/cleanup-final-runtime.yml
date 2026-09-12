@@ -1,0 +1,55 @@
+name: Cleanup Final Runtime Data
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove remaining demo identity and fake GPS runtime data
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+          replacements = {
+            "agentUser?.latitude || 6.9271": "agentUser?.latitude",
+            "agentUser?.longitude || 79.8612": "agentUser?.longitude",
+            "placeholder=\"0771234567 හෝ rohan@audit.lk\"": "placeholder=\"Email හෝ mobile number\"",
+            "(e.g. 0771234567)": "(enter the customer mobile number)",
+            "currentUser?.agentCode || 'DD-001'": "currentUser?.agentCode || 'Not Assigned'",
+          }
+          for p in Path('src').rglob('*'):
+            if not p.is_file() or p.suffix not in {'.ts','.tsx','.js','.jsx'} or 'src/data/initialData.ts' in p.as_posix():
+              continue
+            t=p.read_text(encoding='utf-8')
+            u=t
+            for a,b in replacements.items(): u=u.replace(a,b)
+            if p.name == 'OwnerDashboard.tsx':
+              u=re.sub(r"\n  // Simulated Live GPS Agents with Stationary Alert \(>1 Hour\)\n  const gpsAgents = \[.*?\n  \];", "\n  // Live GPS data must come from verified runtime records; no simulated agents.\n  const gpsAgents = [];", u, flags=re.S)
+              u=u.replace("lat: '6.9271° N'", "lat: ''").replace("lng: '79.8612° E'", "lng: ''")
+            if u != t: p.write_text(u,encoding='utf-8')
+          PY
+      - name: Validate remaining fake runtime values
+        shell: bash
+        run: |
+          if grep -RInE "199518294021|951829402V|0771234567|\|\|[[:space:]]*['\"]AG-000['\"]|\|\|[[:space:]]*['\"]TL-000['\"]|\|\|[[:space:]]*['\"]team-1['\"]|\|\|[[:space:]]*['\"]Team Alpha['\"]|\|\|[[:space:]]*['\"]Alpha Team['\"]|\|\|[[:space:]]*['\"]DD World Agent['\"]|\|\|[[:space:]]*['\"]DD World Team['\"]|\|\|[[:space:]]*['\"]No\. 124, Kandy Road, Kadawatha, Sri Lanka['\"]|\|\|[[:space:]]*['\"]Colombo, Sri Lanka['\"]|\|\|[[:space:]]*['\"]Dushmantha Fernando \(Owner\)['\"]|\|\|[[:space:]]*['\"]DD-001['\"]|\|\|[[:space:]]*['\"]ID-00['\"]|agentUser\?\.latitude[[:space:]]*\|\|[[:space:]]*6\.9271|agentUser\?\.longitude[[:space:]]*\|\|[[:space:]]*79\.8612" src --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' --exclude='initialData.ts' --exclude-dir='data'; then
+            echo 'Remaining fake/default runtime value found.'; exit 1
+          fi
+          echo 'FINAL RUNTIME IDENTITY/GPS AUDIT PASS.'
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src
+          git commit -m 'fix: remove final demo identity and simulated GPS data'
+          git push
