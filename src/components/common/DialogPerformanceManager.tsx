@@ -11,13 +11,13 @@ export const DialogPerformanceManager: React.FC = () => {
 
   // Entry Form State for Owner
   const [selectedAgentId, setSelectedAgentId] = useState('');
-  const [reportMonth, setReportMonth] = useState('2026-08');
+  const [reportMonth, setReportMonth] = useState(new Date().toISOString().slice(0, 7));
   const [productCode, setProductCode] = useState<'govimithuru' | 'sayuru'>('govimithuru');
-  const [dialogSales, setDialogSales] = useState('150');
-  const [customerUsage, setCustomerUsage] = useState('88% Active Usage');
-  const [qualityResult, setQualityResult] = useState('94.5% Grade A');
-  const [revenueLkr, setRevenueLkr] = useState('45000');
-  const [pointsScore, setPointsScore] = useState('950');
+  const [dialogSales, setDialogSales] = useState('');
+  const [customerUsage, setCustomerUsage] = useState('');
+  const [qualityResult, setQualityResult] = useState('');
+  const [revenueLkr, setRevenueLkr] = useState('');
+  const [pointsScore, setPointsScore] = useState('');
 
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
@@ -39,9 +39,9 @@ export const DialogPerformanceManager: React.FC = () => {
 
     updateDialogPerformanceRecord({
       agentId: targetUser.id,
-      agentCode: targetUser.agentCode || 'AG-000',
+      agentCode: targetUser.agentCode || '',
       agentName: targetUser.name,
-      teamId: targetUser.teamId || 'team-1',
+      teamId: targetUser.teamId || '',
       reportDate: reportMonth,
       productCode,
       dialogSales: parseInt(dialogSales, 10) || 0,
@@ -128,6 +128,7 @@ export const DialogPerformanceManager: React.FC = () => {
               <label className="font-bold text-slate-300">Dialog Sales (Qty)</label>
               <input
                 type="number"
+                min="0"
                 value={dialogSales}
                 onChange={(e) => setDialogSales(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white font-bold focus:border-blue-500 outline-none"
@@ -160,6 +161,7 @@ export const DialogPerformanceManager: React.FC = () => {
               <label className="font-bold text-slate-300">Revenue (LKR)</label>
               <input
                 type="number"
+                min="0"
                 value={revenueLkr}
                 onChange={(e) => setRevenueLkr(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white font-bold focus:border-blue-500 outline-none"
@@ -170,6 +172,8 @@ export const DialogPerformanceManager: React.FC = () => {
               <label className="font-bold text-slate-300">Performance Points (0 - 1000)</label>
               <input
                 type="number"
+                min="0"
+                max="1000"
                 value={pointsScore}
                 onChange={(e) => setPointsScore(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white font-bold focus:border-blue-500 outline-none"
@@ -222,7 +226,7 @@ export const DialogPerformanceManager: React.FC = () => {
                   <td className="p-3 text-slate-300">{r.customerUsage}</td>
                   <td className="p-3 text-cyan-300 font-bold">{r.qualityResult}</td>
                   <td className="p-3 font-bold text-white">Rs. {r.revenueLkr.toLocaleString()}</td>
-                  <td className="p-3 font-bold text-emerald-300">{r.pointsScore || 950} Pts</td>
+                  <td className="p-3 font-bold text-emerald-300">{r.pointsScore || 0} Pts</td>
                 </tr>
               ))}
             </tbody>
