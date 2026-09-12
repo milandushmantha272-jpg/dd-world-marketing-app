@@ -1,0 +1,57 @@
+name: Cleanup Fake Identity Data
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Remove fake identity fallbacks
+        shell: python
+        run: |
+          from pathlib import Path
+
+          replacements = {
+              "'199518294021'": "''",
+              '"199518294021"': '""',
+              "'951829402V'": "''",
+              '"951829402V"': '""',
+              "'0771234567'": "''",
+              '"0771234567"': '""',
+          }
+
+          for path in Path('src').rglob('*'):
+              if not path.is_file() or path.suffix not in {'.ts', '.tsx', '.js', '.jsx'}:
+                  continue
+              text = path.read_text(encoding='utf-8')
+              updated = text
+              for old, new in replacements.items():
+                  updated = updated.replace(old, new)
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+
+      - name: Validate no fake identity values remain in runtime source
+        shell: bash
+        run: |
+          ! grep -RInE "199518294021|951829402V|0771234567" src --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx'
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No fake identity fallbacks found."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src
+          git commit -m "fix: remove fake identity data fallbacks"
+          git push
