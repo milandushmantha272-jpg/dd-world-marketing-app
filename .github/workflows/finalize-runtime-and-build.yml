@@ -22,8 +22,6 @@ jobs:
           from pathlib import Path
           import re
 
-          # 1) Never invent GPS coordinates. Attendance/location evidence must stop when
-          # a real GPS fix is unavailable.
           p = Path('src/context/DataContext.tsx')
           s = p.read_text(encoding='utf-8')
           old = """      const nowIso = new Date().toISOString();\n      const userLat = agentUser?.latitude || 6.9271;\n      const userLng = agentUser?.longitude || 79.8612;\n      const userAcc = agentUser?.accuracy || 12;"""
@@ -32,17 +30,14 @@ jobs:
               s = s.replace(old, new, 1)
           p.write_text(s, encoding='utf-8')
 
-          # 2) Replace simulated Owner GPS rows with verified user GPS records only.
           p = Path('src/components/owner/OwnerDashboard.tsx')
           s = p.read_text(encoding='utf-8')
           pattern = r"\n  // Simulated Live GPS Agents with Stationary Alert \(>1 Hour\)\n  const gpsAgents = \[.*?\n  \];"
           replacement = """\n  // Owner GPS view uses only verified runtime user coordinates; no simulated agents.\n  const gpsAgents = users\n    .filter((u) => u.role === 'agent' && u.latitude !== undefined && u.longitude !== undefined)\n    .map((u) => ({\n      id: u.id,\n      name: u.name,\n      district: u.district || u.assignedDistrict || 'Not Assigned',\n      lat: `${u.latitude?.toFixed(4)}°`,\n      lng: `${u.longitude?.toFixed(4)}°`,\n      stationaryDuration: 'Live GPS',\n      isStationaryOverHour: false,\n      teamLeaderName: users.find((tl) => tl.id === u.teamLeaderId)?.name || 'Not Assigned',\n      phone: u.mobile || '',\n    }));"""
           s, count = re.subn(pattern, replacement, s, count=1, flags=re.S)
           if count == 0:
-              # Keep the file safe if an earlier cleanup already removed the block.
               s = s.replace("const gpsAgents = [];", replacement.strip(), 1)
 
-          # 3) Remove fake runtime form defaults while preserving real initialData.
           replacements = {
             "useState<OwnerTab>('app_download_status')": "useState<OwnerTab>('overview')",
             "useState<string>('team-1')": "useState<string>('')",
@@ -56,8 +51,6 @@ jobs:
               s = s.replace(a,b)
           p.write_text(s, encoding='utf-8')
 
-          # 4) Remove remaining exact fake/default runtime values from application source,
-          # excluding authoritative demo seed data in initialData.ts.
           replacements = {
             "'199518294021'": "''",
             '"199518294021"': '""',
@@ -69,6 +62,8 @@ jobs:
             '|| "AG-000"': '|| ""',
             "|| 'TL-000'": "|| ''",
             '|| "TL-000"': '|| ""',
+            "|| 'team-1'": "|| ''",
+            '|| "team-1"': '|| ""',
             "|| 'Team Alpha'": "|| 'Not Assigned'",
             '|| "Team Alpha"': '|| "Not Assigned"',
             "|| 'Alpha Team'": "|| 'Not Assigned'",
@@ -85,6 +80,7 @@ jobs:
             "placeholder=\"උදා: 199518294021 / 951829402V\"": "placeholder=\"ඔබගේ NIC අංකය ඇතුළත් කරන්න\"",
             "placeholder=\"0771234567\"": "placeholder=\"ඔබගේ ජංගම අංකය\"",
             "placeholder=\"0771234567 හෝ rohan@audit.lk\"": "placeholder=\"Email හෝ mobile number\"",
+            "placeholder=\"e.g. 0771234567\"": "placeholder=\"enter the customer mobile number\"",
             "(e.g. 0771234567)": "(enter the customer mobile number)",
           }
           for p in Path('src').rglob('*'):
