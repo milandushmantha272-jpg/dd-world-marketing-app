@@ -4,21 +4,27 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Cleanup Fake Identity Data"]
-    types: [completed]
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: dd-world-apk-build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 22
+          cache: npm
 
       - name: Setup Java
         uses: actions/setup-java@v6
@@ -30,7 +36,10 @@ jobs:
         uses: android-actions/setup-android@v4
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
+
+      - name: TypeScript Check
+        run: npx tsc --noEmit
 
       - name: Build Web Application
         run: npm run build
@@ -44,9 +53,16 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-      - name: Upload Absolute APK Artifact
+      - name: Verify APK
+        run: |
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum android/app/build/outputs/apk/debug/app-debug.apk | tee apk-sha256.txt
+
+      - name: Upload APK
         uses: actions/upload-artifact@v6
         with:
           name: DD-World-Enterprise-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            apk-sha256.txt
           if-no-files-found: error
