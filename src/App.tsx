@@ -18,6 +18,7 @@ import { DialogLiaisonHub } from './components/common/DialogLiaisonHub';
 import { DialogOfficerPortal } from './components/common/DialogOfficerPortal';
 import { OwnerDialogOfficerMessenger } from './components/common/OwnerDialogOfficerMessenger';
 import { WeeklySalesSheetWorkflow } from './components/common/WeeklySalesSheetWorkflow';
+import { MainNavigation } from './components/common/MainNavigation';
 import { safeStorage } from './utils/safeStorage';
 
 const GlobalCallContainer: React.FC = () => {
@@ -73,7 +74,7 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans relative">
       <Navbar />
       {updateNotice && <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 text-white text-xs font-bold py-2 px-4 text-center shadow-lg flex items-center justify-center gap-2 animate-pulse border-b border-white/20 z-50"><span>{updateNotice}</span><button onClick={() => setUpdateNotice(null)} className="ml-2 text-white/80 hover:text-white text-sm font-extrabold">✕</button></div>}
-      <main className="flex-1 pb-16">
+      <main className="flex-1 pb-24">
         {currentUser.role === 'owner' && <OwnerDashboard />}
         {currentUser.role === 'team_leader' && <TeamLeaderDashboard />}
         {currentUser.role === 'agent' && <AgentDashboard />}
@@ -82,6 +83,7 @@ const AppContent: React.FC = () => {
       <DialogLiaisonHub />
       <OwnerDialogOfficerMessenger />
       <GlobalCallContainer />
+      <MainNavigation />
       <OfflineIndicator />
     </div>
   );
