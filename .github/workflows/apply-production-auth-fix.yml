@@ -1,127 +1,128 @@
 name: Apply Production Auth Fix
+
 on:
   push:
     branches: [main]
+
 permissions:
   contents: write
+
 jobs:
   patch:
-    if: ${{ !contains(github.event.head_commit.message, 'security: enforce Firebase authentication') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Harden login and active-account enforcement
-        shell: python
+
+      - name: Apply and verify production auth hardening
+        shell: bash
         run: |
+          set -euo pipefail
+          python3 <<'PY'
           from pathlib import Path
 
-          p = Path('src/components/LoginModal.tsx')
-          s = p.read_text(encoding='utf-8')
+          login = Path('src/components/LoginModal.tsx')
+          s = login.read_text(encoding='utf-8')
 
-          old_select = """    // If user has a password set, populate their code so they can enter password
-    if (target.password || target.tempPassword) {
-      setAgentCode(target.agentCode || target.employeeId || target.id);
-      setError(`ℹ️ ${target.name} සඳහා මුරපදයක් (Password) අවශ්‍යයි. කරුණාකර පහත Password ඇතුළත් කර Login වන්න.`);
-      return;
-    }
+          # Idempotent guard: once the secure flow is present, do not create another commit.
+          if "await login(found.id, passwordInput.trim());" in s and "Biometric/FIDO2 login enrollment is not configured" in s and "const requiredPass" not in s:
+              print('LoginModal already hardened')
+          else:
+              old_select = """    // If user has a password set, populate their code so they can enter password
+              if (target.password || target.tempPassword) {
+                setAgentCode(target.agentCode || target.employeeId || target.id);
+                setError(`ℹ️ ${target.name} සඳහා මුරපදයක් (Password) අවශ්‍යයි. කරුණාකර පහත Password ඇතුළත් කර Login වන්න.`);
+                return;
+              }
 
-    // Remember last selected user for quick fingerprint login
-    safeStorage.setItem('ddworld_last_bio_user_id', userId);
-    login(userId);"""
-          new_select = """    // Selecting a profile never authenticates the user. Firebase Auth verifies credentials.
-    setAgentCode(target.agentCode || target.employeeId || target.email || target.id);
-    setPasswordInput('');
-    safeStorage.setItem('ddworld_last_bio_user_id', userId);
-    setError(`🔐 ${target.name}: Firebase Password එක ඇතුළත් කර Login කරන්න.`);"""
-          if old_select not in s:
-              raise SystemExit('profile-selection auth block not found')
-          s = s.replace(old_select, new_select, 1)
+              // Remember last selected user for quick fingerprint login
+              safeStorage.setItem('ddworld_last_bio_user_id', userId);
+              login(userId);"""
+              new_select = """    // Selecting a profile never authenticates the user. Firebase Auth verifies credentials.
+              setAgentCode(target.agentCode || target.employeeId || target.email || target.id);
+              setPasswordInput('');
+              safeStorage.setItem('ddworld_last_bio_user_id', userId);
+              setError(`🔐 ${target.name}: Firebase Password එක ඇතුළත් කර Login කරන්න.`);"""
+              if old_select in s:
+                  s = s.replace(old_select, new_select, 1)
+              else:
+                  raise SystemExit('profile-selection auth block not found')
 
-          s = s.replace(
-              "  const handleManualLogin = (e: React.FormEvent) => {",
-              "  const handleManualLogin = async (e: React.FormEvent) => {",
-              1,
-          )
+              s = s.replace("  const handleManualLogin = (e: React.FormEvent) => {", "  const handleManualLogin = async (e: React.FormEvent) => {", 1)
 
-          start = s.find('    // Check password if set by owner\n    const requiredPass =')
-          end = s.find("    safeStorage.setItem('ddworld_last_bio_user_id', found.id);", start)
-          if start < 0 or end < 0:
-              raise SystemExit('manual credential block not found')
-          replacement = """    if (!passwordInput || !passwordInput.trim()) {
-      setError(`කරුණාකර ${found.name} සඳහා Firebase Password එක ඇතුළත් කරන්න.`);
-      return;
-    }
-    try {
-      safeStorage.setItem('ddworld_last_bio_user_id', found.id);
-      await login(found.id, passwordInput.trim());
-    } catch (err: any) {
-      setError(err?.message || 'Firebase authentication අසාර්ථකයි.');
-    }
-"""
-          s = s[:start] + replacement + s[end:]
+              start = s.find('    // Check password if set by owner\n    const requiredPass =')
+              end = s.find("    safeStorage.setItem('ddworld_last_bio_user_id', found.id);", start)
+              if start < 0 or end < 0:
+                  raise SystemExit('manual credential block not found')
+              s = s[:start] + """    if (!passwordInput || !passwordInput.trim()) {
+              setError(`කරුණාකර ${found.name} සඳහා Firebase Password එක ඇතුළත් කරන්න.`);
+              return;
+            }
+            try {
+              safeStorage.setItem('ddworld_last_bio_user_id', found.id);
+              await login(found.id, passwordInput.trim());
+            } catch (err: any) {
+              setError(err?.message || 'Firebase authentication අසාර්ථකයි.');
+            }
+""" + s[end:]
 
-          b = s.find('      // Find candidate user (either remembered user, or first user of selected role)')
-          e = s.find('    } catch (err: any) {', b)
-          if b < 0 or e < 0:
-              raise SystemExit('biometric candidate block not found')
-          biometric_failure = """      setIsCheckingSecurity(false);
-      setIsBioScanning(false);
-      throw new Error('Biometric/FIDO2 login enrollment is not configured on this device. Use Firebase Password Login.');
-"""
-          s = s[:b] + biometric_failure + s[e:]
+              b = s.find('      // Find candidate user (either remembered user, or first user of selected role)')
+              e = s.find('    } catch (err: any) {', b)
+              if b < 0 or e < 0:
+                  raise SystemExit('biometric block not found')
+              s = s[:b] + """      setIsCheckingSecurity(false);
+              setIsBioScanning(false);
+              throw new Error('Biometric/FIDO2 login enrollment is not configured on this device. Use Firebase Password Login.');
+""" + s[e:]
 
-          s = s.replace('Biometric: සක්‍රීයයි (Ready)', 'Secure Auth: සක්‍රීයයි')
-          s = s.replace('FIDO2 / Biometric Ready', 'Secure Login Required')
-          p.write_text(s, encoding='utf-8')
+              s = s.replace('Biometric: සක්‍රීයයි (Ready)', 'Secure Auth: සක්‍රීයයි')
+              s = s.replace('FIDO2 / Biometric Ready', 'Secure Login Required')
+              login.write_text(s, encoding='utf-8')
 
-          r = Path('firestore.rules')
-          rs = r.read_text(encoding='utf-8')
-          helper = """    function isActiveEmployee() {
-      let userData = getUserData();
-      return userData.status == 'active' &&
-             userData.employmentStatus == 'ACTIVE' &&
-             userData.idApprovalStatus != 'REJECTED';
-    }
-
-"""
+          rules = Path('firestore.rules')
+          rs = rules.read_text(encoding='utf-8')
           if 'function isActiveEmployee()' not in rs:
               needle = '    /**\n     * Check if user is system owner/admin\n     */\n'
               if needle not in rs:
                   raise SystemExit('Firestore owner helper anchor not found')
-              rs = rs.replace(needle, helper + needle, 1)
+              rs = rs.replace(needle, """    function isActiveEmployee() {
+              let userData = getUserData();
+              return userData.status == 'active' &&
+                     userData.employmentStatus == 'ACTIVE' &&
+                     userData.idApprovalStatus != 'REJECTED';
+            }
 
-          sales_marker = "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user"
-          if sales_marker in rs and 'allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user' not in rs:
-              rs = rs.replace(sales_marker, "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user", 1)
+""" + needle, 1)
 
-          attendance_marker = "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid"
-          if attendance_marker in rs and 'allow create: if isAuthorized() &&\n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid' not in rs:
-              rs = rs.replace(attendance_marker, "allow create: if isAuthorized() &&\n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid", 1)
-
-          r.write_text(rs, encoding='utf-8')
+          rs = rs.replace("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user", "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user", 1)
+          rs = rs.replace("allow create: if isAuthorized() &&\n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid", "allow create: if isAuthorized() &&\n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid", 1)
+          rules.write_text(rs, encoding='utf-8')
+          PY
 
       - name: Verify hardening
         shell: bash
         run: |
-          ! grep -q "requiredPass" src/components/LoginModal.tsx
+          set -euo pipefail
+          ! grep -q "const requiredPass" src/components/LoginModal.tsx
           ! grep -q "passwordInput.trim() !==" src/components/LoginModal.tsx
           ! grep -q "Biometric scan latency simulation" src/components/LoginModal.tsx
-          grep -q "await login(found.id, passwordInput.trim())" src/components/LoginModal.tsx
+          grep -q "await login(found.id, passwordInput.trim());" src/components/LoginModal.tsx
+          grep -q "Biometric/FIDO2 login enrollment is not configured" src/components/LoginModal.tsx
           grep -q "function isActiveEmployee()" firestore.rules
 
-      - name: Commit safely on latest main
+      - name: Commit hardening if needed
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git rebase origin/main
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/components/LoginModal.tsx firestore.rules
           if git diff --cached --quiet; then
-            echo "No hardening changes needed"
+            echo 'No hardening changes needed'
             exit 0
           fi
-          git commit -m "security: enforce Firebase authentication and active-user access"
+          git fetch origin main
+          git rebase origin/main
+          git commit -m 'security: enforce Firebase authentication and active-user access'
           git push origin HEAD:main
