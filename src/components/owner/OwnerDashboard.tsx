@@ -198,7 +198,7 @@ export const OwnerDashboard: React.FC = () => {
   const [agMobile, setAgMobile] = useState('');
   const [agEmail, setAgEmail] = useState('');
   const [agTempPassword, setAgTempPassword] = useState('');
-  const [agTeamId, setAgTeamId] = useState('team-1');
+  const [agTeamId, setAgTeamId] = useState('');
   const [tlTeamName, setTlTeamName] = useState('');
   const [addMsg, setAddMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
