@@ -90,10 +90,14 @@ jobs:
           leader = Path('src/components/leader/TeamLeaderDashboard.tsx').read_text()
           if 'await login(target.id, password.trim())' not in login:
               raise SystemExit('Firebase password login call missing')
-          if 'Biometric scan latency simulation' in login or 'requiredPass' in login:
-              raise SystemExit('legacy simulated authentication remains')
-          if 'function isActiveEmployee()' not in rules or "idApprovalStatus == 'APPROVED'" not in rules:
-              raise SystemExit('active employee approval guard missing')
+          if 'Biometric scan latency simulation' in login:
+              raise SystemExit('simulated biometric authentication remains')
+          if 'user.password === password' in login or 'user.pinCode === password' in login:
+              raise SystemExit('profile-field password comparison remains')
+          if 'function isActiveEmployee()' not in rules:
+              raise SystemExit('active employee guard missing')
+          if "idApprovalStatus == 'APPROVED'" not in rules:
+              raise SystemExit('approval gate missing')
           if rules.count('isActiveEmployee()') < 4:
               raise SystemExit('active employee guard not applied to required write paths')
           for name, text, values in [
