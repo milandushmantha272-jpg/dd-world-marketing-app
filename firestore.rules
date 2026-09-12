@@ -45,6 +45,14 @@ service cloud.firestore {
       return getUserData().teamId;
     }
 
+    function isActiveEmployee() {
+    let userData = getUserData();
+    return (userData.role == 'owner' || userData.role == 'MASTER_LEADER' || userData.id == 'owner-1') ||
+           (userData.status == 'active' &&
+            userData.employmentStatus == 'ACTIVE' &&
+            userData.idApprovalStatus == 'APPROVED');
+  }
+
     /**
      * Check if user is system owner/admin
      */
@@ -216,6 +224,7 @@ service cloud.firestore {
       // Create: Only authenticated agents can create sales
       allow create: if isAuthorized() && 
                        isSignedIn() &&
+                       isActiveEmployee() &&
                        // Prevent impersonation - agentId must be current user
                        request.resource.data.agentId == request.auth.uid &&
                        // Validate required fields
@@ -281,6 +290,7 @@ service cloud.firestore {
       // Create: Only authenticated users can submit GPS data
       allow create: if isAuthorized() && 
                        isSignedIn() &&
+                       isActiveEmployee() &&
                        // Prevent impersonation
                        request.resource.data.userId == request.auth.uid &&
                        // Validate GPS coordinates
@@ -349,6 +359,7 @@ service cloud.firestore {
 
       // Update: Sessions can be updated to extend or end
       allow update: if isSignedIn() && 
+                       isActiveEmployee() &&
                        request.auth.uid == resource.data.userId &&
                        // Cannot modify user or device after creation
                        (resource.data.userId == request.resource.data.userId &&
