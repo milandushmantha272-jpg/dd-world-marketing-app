@@ -39,6 +39,8 @@ jobs:
               '|| "DD World Team"': '|| "Not Assigned"',
               "|| 'No. 124, Kandy Road, Kadawatha, Sri Lanka'": "|| ''",
               "|| 'Sri Lanka'": "|| ''",
+              "|| 'Colombo, Sri Lanka'": "|| ''",
+              "|| 'Dushmantha Fernando (Owner)'": "|| ''",
           }
 
           for path in Path('src').rglob('*'):
@@ -57,7 +59,7 @@ jobs:
       - name: Validate runtime fallback cleanup
         shell: bash
         run: |
-          if grep -RInE "199518294021|951829402V|0771234567|\|\|[[:space:]]*['\"]AG-000['\"]|\|\|[[:space:]]*['\"]Team Alpha['\"]|\|\|[[:space:]]*['\"]Alpha Team['\"]|\|\|[[:space:]]*['\"]DD World Agent['\"]|\|\|[[:space:]]*['\"]DD World Team['\"]|\|\|[[:space:]]*['\"]No\. 124, Kandy Road, Kadawatha, Sri Lanka['\"]|\|\|[[:space:]]*['\"]Sri Lanka['\"]" src --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' --exclude='initialData.ts'; then
+          if grep -RInE "199518294021|951829402V|0771234567|\|\|[[:space:]]*['\"]AG-000['\"]|\|\|[[:space:]]*['\"]Team Alpha['\"]|\|\|[[:space:]]*['\"]Alpha Team['\"]|\|\|[[:space:]]*['\"]DD World Agent['\"]|\|\|[[:space:]]*['\"]DD World Team['\"]|\|\|[[:space:]]*['\"]No\. 124, Kandy Road, Kadawatha, Sri Lanka['\"]|\|\|[[:space:]]*['\"]Sri Lanka['\"]|\|\|[[:space:]]*['\"]Colombo, Sri Lanka['\"]|\|\|[[:space:]]*['\"]Dushmantha Fernando \(Owner\)['\"]" src --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' --exclude='initialData.ts'; then
             echo "Runtime fake identity fallback remains."
             exit 1
           fi
