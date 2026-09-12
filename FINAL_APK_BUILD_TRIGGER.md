@@ -2,4 +2,6 @@
 
 Build the Android APK from the latest verified `main` source state.
 
-Source baseline: `110f6d7504c0e7cc2eff03ebcc45f4694e67bb84`
+Source baseline: `1c156da1423d6f556d41ba590922638d36c17b29`
+
+Workflow maintenance: updated GitHub Actions to current supported major versions.
