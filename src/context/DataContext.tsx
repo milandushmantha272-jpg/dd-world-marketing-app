@@ -2433,9 +2433,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Start Tracking Session for Working Hours (08:00 AM -> 08:00 PM)
       const sessId = `SESS-${record.agentCode || record.agentId.substring(0, 4)}-${targetDate}`;
       const nowIso = new Date().toISOString();
-      const userLat = agentUser?.latitude || 6.9271;
-      const userLng = agentUser?.longitude || 79.8612;
-      const userAcc = agentUser?.accuracy || 12;
+      const userLat = agentUser?.latitude;
+      const userLng = agentUser?.longitude;
+      const userAcc = agentUser?.accuracy;
+      if (userLat === undefined || userLng === undefined || userAcc === undefined) {
+        console.warn('Location record blocked: verified GPS coordinates/accuracy are unavailable.');
+        return;
+      }
 
       addLocationRecord({
         employee_id: record.agentId,

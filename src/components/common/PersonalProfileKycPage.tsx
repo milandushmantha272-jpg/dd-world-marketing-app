@@ -255,7 +255,7 @@ export const PersonalProfileKycPage: React.FC = () => {
               <input
                 type="text"
                 required
-                placeholder="උදා: 199518294021 / 951829402V"
+                placeholder="ඔබගේ NIC අංකය ඇතුළත් කරන්න"
                 value={nicNumber}
                 onChange={(e) => setNicNumber(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-700 text-white text-xs font-bold rounded-xl p-3 focus:ring-2 focus:ring-amber-500 outline-none"
@@ -567,7 +567,7 @@ export const PersonalProfileKycPage: React.FC = () => {
                   : 'Field Executive Agent'}
               </p>
               <div className="mt-1 px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/40 text-[9px] font-mono text-blue-200 font-bold">
-                Code: {currentUser?.agentCode || 'DD-001'}
+                Code: {currentUser?.agentCode || 'Not Assigned'}
               </div>
             </div>
 

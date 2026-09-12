@@ -144,8 +144,8 @@ export const OwnerDashboard: React.FC = () => {
     updateUserAppStatus,
   } = useData();
 
-  const [activeTab, setActiveTab] = useState<OwnerTab>('app_download_status');
-  const [selectedTeamIdForPage, setSelectedTeamIdForPage] = useState<string>('team-1');
+  const [activeTab, setActiveTab] = useState<OwnerTab>('overview');
+  const [selectedTeamIdForPage, setSelectedTeamIdForPage] = useState<string>('');
 
   // Vault upload state
   const [vaultTitle, setVaultTitle] = useState('');
@@ -176,13 +176,13 @@ export const OwnerDashboard: React.FC = () => {
   const [jobRoleTeamFilter, setJobRoleTeamFilter] = useState('all');
 
   // Owner Sales form state (Owner Direct Sale or Assign to Agent)
-  const [ownerSaleTeamId, setOwnerSaleTeamId] = useState<string>('team-9');
+  const [ownerSaleTeamId, setOwnerSaleTeamId] = useState<string>('');
   const [ownerSaleAgent, setOwnerSaleAgent] = useState<'ME' | string>('ME');
   const [ownerSaleType, setOwnerSaleType] = useState<'ගොවිමිතුරු' | 'සයුරු' | 'අනෙකුත්'>('ගොවිමිතුරු');
   const [ownerSaleName, setOwnerSaleName] = useState('ගොවිමිතුරු කෘෂි උපදේශන සේවාව');
   const [ownerCustName, setOwnerCustName] = useState('');
   const [ownerCustPhone, setOwnerCustPhone] = useState('');
-  const [ownerAmount, setOwnerAmount] = useState('150');
+  const [ownerAmount, setOwnerAmount] = useState('');
   const [ownerNotes, setOwnerNotes] = useState('');
   const [ownerSaleSuccess, setOwnerSaleSuccess] = useState(false);
 
@@ -194,10 +194,10 @@ export const OwnerDashboard: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addStaffRole, setAddStaffRole] = useState<'agent' | 'team_leader'>('agent');
   const [agName, setAgName] = useState('');
-  const [agCode, setAgCode] = useState('AG-004');
+  const [agCode, setAgCode] = useState('');
   const [agMobile, setAgMobile] = useState('');
   const [agEmail, setAgEmail] = useState('');
-  const [agTempPassword, setAgTempPassword] = useState('ddworld@2026');
+  const [agTempPassword, setAgTempPassword] = useState('');
   const [agTeamId, setAgTeamId] = useState('team-1');
   const [tlTeamName, setTlTeamName] = useState('');
   const [addMsg, setAddMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -220,7 +220,7 @@ export const OwnerDashboard: React.FC = () => {
   const [mtgDesc, setMtgDesc] = useState('');
   const [mtgDate, setMtgDate] = useState(new Date().toISOString().split('T')[0]);
   const [mtgTime, setMtgTime] = useState('10:00');
-  const [mtgLink, setMtgLink] = useState('https://meet.google.com/ddw-owner-meeting');
+  const [mtgLink, setMtgLink] = useState('');
   const [mtgTeamId, setMtgTeamId] = useState('all');
 
   // Call simulator state
@@ -303,64 +303,20 @@ export const OwnerDashboard: React.FC = () => {
     },
   ]);
 
-  // Simulated Live GPS Agents with Stationary Alert (>1 Hour)
-  const gpsAgents = [
-    {
-      id: 'ag-9176',
-      name: 'W.A.Chamod Luvanjana (9176)',
-      district: 'Colombo - Fort',
-      lat: '6.9271° N',
-      lng: '79.8612° E',
-      stationaryDuration: '1 පැය 25 මිනිත්තු ⚠️ (STATIONARY ALERT)',
-      isStationaryOverHour: true,
-      teamLeaderName: 'D. M. T. R. Dissanayaka',
-      phone: '0773344551',
-    },
-    {
-      id: 'ag-9074',
-      name: 'H. Madushan (9074)',
-      district: 'Kandy - City Center',
-      lat: '7.2906° N',
-      lng: '80.6337° E',
-      stationaryDuration: '1 පැය 40 මිනිත්තු ⚠️ (STATIONARY ALERT)',
-      isStationaryOverHour: true,
-      teamLeaderName: 'A. K. S. Fernando',
-      phone: '0711122334',
-    },
-    {
-      id: 'ag-9180',
-      name: 'ඒ. බී. ප්‍රනාන්දු (9180)',
-      district: 'Gampaha - Town',
-      lat: '7.0840° N',
-      lng: '79.9936° E',
-      stationaryDuration: '18 මිනිත්තු (Active Moving)',
+  // Owner GPS view uses only verified runtime user coordinates; no simulated agents.
+  const gpsAgents = users
+    .filter((u) => u.role === 'agent' && u.latitude !== undefined && u.longitude !== undefined)
+    .map((u) => ({
+      id: u.id,
+      name: u.name,
+      district: u.district || u.assignedDistrict || 'Not Assigned',
+      lat: `${u.latitude?.toFixed(4)}°`,
+      lng: `${u.longitude?.toFixed(4)}°`,
+      stationaryDuration: 'Live GPS',
       isStationaryOverHour: false,
-      teamLeaderName: 'D. M. T. R. Dissanayaka',
-      phone: '',
-    },
-    {
-      id: 'ag-9190',
-      name: 'කමල් පෙරේරා (9190)',
-      district: 'Kurunegala - Town',
-      lat: '7.4863° N',
-      lng: '80.3623° E',
-      stationaryDuration: '40 මිනිත්තු (Active Moving)',
-      isStationaryOverHour: false,
-      teamLeaderName: 'K. L. N. Silva',
-      phone: '0789988776',
-    },
-    {
-      id: 'ag-9200',
-      name: 'සුනිල් ජයවර්ධන (9200)',
-      district: 'Matara - Town',
-      lat: '5.9485° N',
-      lng: '80.5353° E',
-      stationaryDuration: '12 මිනිත්තු (Active Moving)',
-      isStationaryOverHour: false,
-      teamLeaderName: 'N. P. Perera',
-      phone: '0714455667',
-    },
-  ];
+      teamLeaderName: users.find((tl) => tl.id === u.teamLeaderId)?.name || 'Not Assigned',
+      phone: u.mobile || '',
+    }));
 
   const handleSendExternalReport = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1793,7 +1749,7 @@ export const OwnerDashboard: React.FC = () => {
                     type="text"
                     value={extContact}
                     onChange={(e) => setExtContact(e.target.value)}
-                    placeholder="0771234567 හෝ rohan@audit.lk"
+                    placeholder="Email හෝ mobile number"
                     required
                     className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 text-xs focus:ring-2 focus:ring-emerald-500"
                   />

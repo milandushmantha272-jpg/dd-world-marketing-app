@@ -248,7 +248,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
 
   const handleShareWhatsApp = () => {
     if (!appCustomerPhone.trim()) {
-      alert('කරුණාකර පාරිභෝගිකයාගේ දුරකථන අංකය ඇතුළත් කරන්න (e.g. 0771234567)');
+      alert('කරුණාකර පාරිභෝගිකයාගේ දුරකථන අංකය ඇතුළත් කරන්න (enter the customer mobile number)');
       return;
     }
     let formattedPhone = appCustomerPhone.trim().replace(/[^0-9]/g, '');
@@ -562,7 +562,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
                 </label>
                 <input
                   type="tel"
-                  placeholder="e.g. 0771234567"
+                  placeholder="enter the customer mobile number"
                   value={appCustomerPhone}
                   onChange={(e) => setAppCustomerPhone(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono text-sm focus:outline-none focus:border-emerald-500"

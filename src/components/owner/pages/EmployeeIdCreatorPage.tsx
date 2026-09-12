@@ -148,7 +148,7 @@ export const EmployeeIdCreatorPage: React.FC = () => {
               >
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.name} ({u.role.toUpperCase()}) - [{u.agentCode || 'ID-00'}]
+                    {u.name} ({u.role.toUpperCase()}) - [{u.agentCode || 'Not Assigned'}]
                   </option>
                 ))}
               </select>
@@ -246,7 +246,7 @@ export const EmployeeIdCreatorPage: React.FC = () => {
                 <h3 className="text-base font-black text-white mt-3 text-center">{activeUser.name}</h3>
                 <p className="text-xs text-amber-300 font-bold text-center mt-0.5">{designation}</p>
                 <div className="mt-1 px-3 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/40 text-[10px] font-mono text-blue-200 font-bold">
-                  Code: {activeUser.agentCode || 'DD-001'}
+                  Code: {activeUser.agentCode || 'Not Assigned'}
                 </div>
               </div>
 
