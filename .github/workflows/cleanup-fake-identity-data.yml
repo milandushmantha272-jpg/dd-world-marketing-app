@@ -26,6 +26,18 @@ jobs:
               '"951829402V"': '""',
               "'0771234567'": "''",
               '"0771234567"': '""',
+              "|| 'AG-000'": "|| ''",
+              '|| "AG-000"': '|| ""',
+              "|| 'Team Alpha'": "|| 'Not Assigned'",
+              '|| "Team Alpha"': '|| "Not Assigned"',
+              "|| 'Alpha Team'": "|| 'Not Assigned'",
+              '|| "Alpha Team"': '|| "Not Assigned"',
+              "|| 'DD World Agent'": "|| 'Not Available'",
+              '|| "DD World Agent"': '|| "Not Available"',
+              "|| 'DD World Team'": "|| 'Not Assigned'",
+              '|| "DD World Team"': '|| "Not Assigned"',
+              "|| 'No. 124, Kandy Road, Kadawatha, Sri Lanka'": "|| ''",
+              "|| 'Sri Lanka'": "|| ''",
           }
 
           for path in Path('src').rglob('*'):
@@ -41,7 +53,7 @@ jobs:
       - name: Validate no fake identity values remain in runtime source
         shell: bash
         run: |
-          ! grep -RInE "199518294021|951829402V|0771234567" src --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx'
+          ! grep -RInE "199518294021|951829402V|0771234567|AG-000|Team Alpha|Alpha Team|DD World Agent|DD World Team|No\. 124, Kandy Road, Kadawatha, Sri Lanka|images\.unsplash\.com/photo-1534528741775" src --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' --exclude='initialData.ts'
 
       - name: Commit cleanup
         shell: bash
