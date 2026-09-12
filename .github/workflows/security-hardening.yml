@@ -1,4 +1,4 @@
-name: Security Hardening Patch
+name: Security Hardening
 
 on:
   push:
@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 jobs:
-  harden:
+  harden-and-verify:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -16,96 +16,68 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply production authentication hardening
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply active-employee Firestore guard
         shell: python
         run: |
           from pathlib import Path
-          import re
-
-          login = Path('src/components/LoginModal.tsx')
-          s = login.read_text(encoding='utf-8')
-
-          # Remove local password/PIN authentication and require AuthContext/Firebase Auth.
-          s = re.sub(
-              r"  const handleSelectUser = \(userId: string\) => \{.*?^  \};",
-              '''  const handleSelectUser = (userId: string) => {
-            setError('');
-            setFraudAlert(null);
-            const target = users.find((u) => u.id === userId);
-            if (!target) return;
-            if (target.employmentStatus === 'BLOCKED' || target.employmentStatus === 'SUSPENDED' || target.employmentStatus === 'EXITED' || target.status === 'blocked') {
-              setError(`🚫 ${target.name}: account is blocked/suspended/exited. Login denied.`);
-              return;
+          p = Path('firestore.rules')
+          s = p.read_text(encoding='utf-8')
+          helper = """    function isActiveEmployee() {
+              let userData = getUserData();
+              return userData.status == 'active' &&
+                     userData.employmentStatus == 'ACTIVE' &&
+                     userData.idApprovalStatus != 'REJECTED';
             }
-            setAgentCode(target.agentCode || target.employeeId || target.email || target.id);
-            setPasswordInput('');
-            safeStorage.setItem('ddworld_last_bio_user_id', userId);
-            setError(`🔐 ${target.name}: Firebase Password එක ඇතුළත් කර Login කරන්න.`);
-          };''', s, count=1, flags=re.S | re.M)
 
-          s = s.replace('  const handleManualLogin = (e: React.FormEvent) => {', '  const handleManualLogin = async (e: React.FormEvent) => {', 1)
-          s, n = re.subn(
-              r"    // Check password if set by owner\n    const requiredPass =.*?^    safeStorage\.setItem\('ddworld_last_bio_user_id', found\.id\);\n    login\(found\.id\);",
-              '''    if (!passwordInput || !passwordInput.trim()) {
-      setError(`කරුණාකර ${found.name} සඳහා Firebase Password එක ඇතුළත් කරන්න.`);
-      return;
-    }
-    try {
-      safeStorage.setItem('ddworld_last_bio_user_id', found.id);
-      await login(found.id, passwordInput.trim());
-    } catch (err: any) {
-      setError(err?.message || 'Firebase authentication අසාර්ථකයි.');
-    }''', s, count=1, flags=re.S | re.M)
-          if n != 1:
-              raise SystemExit('manual credential block not found')
-
-          s, n = re.subn(
-              r"      // Find candidate user.*?      // Biometric scan latency simulation\n      await new Promise\(\(resolve\) => setTimeout\(resolve, 900\)\);\n\n      setBioSuccess\(true\);\n      setTimeout\(\(\) => \{\n        setIsBioScanning\(false\);\n        setBioSuccess\(false\);\n        login\(candidateUser\.id\);\n      \}, 650\);",
-              "      setIsBioScanning(false);\n      throw new Error('Biometric/FIDO2 secure enrollment තවම සම්පූර්ණ කර නැත. Password Login භාවිතා කරන්න.');",
-              s, count=1, flags=re.S)
-          if n != 1:
-              raise SystemExit('biometric simulation block not found')
-
-          s = s.replace('FIDO2 / Biometric Ready', 'Secure Login Required')
-          s = s.replace('Biometric: සක්‍රීයයි (Ready)', 'Secure Auth: සක්‍රීයයි')
-          login.write_text(s, encoding='utf-8')
-
-          rules = Path('firestore.rules')
-          r = rules.read_text(encoding='utf-8')
-          helper = '''    function isActiveEmployee() {
-      let userData = getUserData();
-      return userData.status == 'active' &&
-             userData.employmentStatus == 'ACTIVE' &&
-             userData.idApprovalStatus != 'REJECTED';
-    }
-
-'''
-          if 'function isActiveEmployee()' not in r:
-              anchor = '    /**\n     * Check if user is system owner/admin\n     */\n'
-              if anchor not in r:
+"""
+          if 'function isActiveEmployee()' not in s:
+              anchor = "    /**\n     * Check if user is system owner/admin\n     */\n"
+              if anchor not in s:
                   raise SystemExit('Firestore owner helper anchor not found')
-              r = r.replace(anchor, helper + anchor, 1)
-          r = re.sub(r'(allow create: if isAuthorized\(\) &&\s*isSignedIn\(\) &&\s*)', r'\1isActiveEmployee() &&\n                       ', r, count=1)
-          rules.write_text(r, encoding='utf-8')
+              s = s.replace(anchor, helper + anchor, 1)
+          replacements = [
+              ("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user", "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user"),
+              ("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid", "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid"),
+          ]
+          for old, new in replacements:
+              s = s.replace(old, new, 1)
+          old_update = "allow update: if isSignedIn() && \n                       request.auth.uid == resource.data.userId &&"
+          new_update = "allow update: if isSignedIn() && \n                       isActiveEmployee() &&\n                       request.auth.uid == resource.data.userId &&"
+          s = s.replace(old_update, new_update, 1)
+          p.write_text(s, encoding='utf-8')
 
-      - name: Verify hardening
+      - name: Verify Firebase-only login and Firestore hardening
         shell: bash
         run: |
-          ! grep -q "passwordInput.trim() !== requiredPass.trim()" src/components/LoginModal.tsx
-          ! grep -q "Biometric scan latency simulation" src/components/LoginModal.tsx
-          grep -q "await login(found.id, passwordInput.trim())" src/components/LoginModal.tsx
-          grep -q "function isActiveEmployee()" firestore.rules
+          set -euo pipefail
+          ! grep -Eq 'requiredPass|tempPassword|pinCode.*passwordInput|passwordInput.*requiredPass|Biometric scan latency simulation' src/components/LoginModal.tsx
+          grep -q 'await login(target.id, password.trim())' src/components/LoginModal.tsx
+          grep -q 'function isActiveEmployee()' firestore.rules
+          test "$(grep -c 'isActiveEmployee()' firestore.rules)" -ge 4
 
-      - name: Commit safely on latest main
+      - name: Typecheck and production build
+        run: |
+          npm run lint
+          npm run build
+
+      - name: Commit hardening changes
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/components/LoginModal.tsx firestore.rules
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add firestore.rules
           if git diff --cached --quiet; then
-            echo "No hardening changes needed"
+            echo 'No Firestore hardening changes needed'
             exit 0
           fi
-          git commit -m "security: enforce Firebase authentication and active-user access"
-          git pull --rebase origin main
+          git commit -m 'security: enforce active employee access in Firestore rules'
           git push origin HEAD:main
