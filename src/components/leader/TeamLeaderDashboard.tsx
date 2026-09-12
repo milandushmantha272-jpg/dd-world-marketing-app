@@ -159,7 +159,7 @@ export const TeamLeaderDashboard: React.FC = () => {
           agentName: currentUser.name,
           agentCode: currentUser.agentCode || 'TL-000',
           teamId: currentUser.teamId || 'team-1',
-          teamName: currentUser.teamName || 'Not Assigned',
+          teamName: currentUser.teamName || 'Team Alpha',
           checkInTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           status: attStatus,
         });
@@ -214,7 +214,7 @@ export const TeamLeaderDashboard: React.FC = () => {
           agentName: currentUser.name,
           agentCode: currentUser.agentCode || 'TL-000',
           teamId: currentUser.teamId || 'team-1',
-          teamName: currentUser.teamName || 'Not Assigned',
+          teamName: currentUser.teamName || 'Team Alpha',
           checkOutTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           status: 'completed',
         });
