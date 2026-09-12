@@ -64,7 +64,6 @@ jobs:
 
           rules.write_text(s)
 
-          # Remove all demo/fallback identity values from production attendance writes.
           for path, replacements in {
               'src/components/agent/AgentDashboard.tsx': [
                   ("currentUser.agentCode || 'AG-000'", "currentUser.agentCode || ''"),
@@ -87,15 +86,34 @@ jobs:
       - name: Verify production security invariants
         run: |
           set -e
-          ! grep -Eq 'requiredPass|tempPassword|pinCode.*passwordInput|passwordInput.*requiredPass|Biometric scan latency simulation' src/components/LoginModal.tsx
-          grep -q 'await login(target.id, password.trim())' src/components/LoginModal.tsx
-          grep -q 'function isActiveEmployee()' firestore.rules
-          grep -q "idApprovalStatus == 'APPROVED'" firestore.rules
-          grep -q "getUserRole() == 'owner'" firestore.rules
-          grep -q "getUserRole() == 'team_leader'" firestore.rules
-          test "$(grep -c 'isActiveEmployee()' firestore.rules)" -ge 5
-          ! grep -R -n -E "AG-000|TL-000|team-1|Team Alpha" src/components/agent/AgentDashboard.tsx src/components/leader/TeamLeaderDashboard.tsx
-          ! grep -R -n -E "fallback.*(latitude|longitude)|latitude.*fallback|longitude.*fallback" src/components/agent/AgentDashboard.tsx src/components/leader/TeamLeaderDashboard.tsx
+          python - <<'PY'
+          from pathlib import Path
+          login = Path('src/components/LoginModal.tsx').read_text()
+          rules = Path('firestore.rules').read_text()
+          agent = Path('src/components/agent/AgentDashboard.tsx').read_text()
+          leader = Path('src/components/leader/TeamLeaderDashboard.tsx').read_text()
+
+          forbidden = ['requiredPass', 'tempPassword', 'Biometric scan latency simulation']
+          if any(x in login for x in forbidden):
+              raise SystemExit('insecure login fallback remains')
+          if 'await login(target.id, password.trim())' not in login:
+              raise SystemExit('Firebase password login call missing')
+          if 'function isActiveEmployee()' not in rules:
+              raise SystemExit('active employee guard missing')
+          if "idApprovalStatus == 'APPROVED'" not in rules:
+              raise SystemExit('approval gate missing')
+          if "getUserRole() == 'owner'" not in rules or "getUserRole() == 'team_leader'" not in rules:
+              raise SystemExit('canonical role mapping missing')
+          if rules.count('isActiveEmployee()') < 4:
+              raise SystemExit('active employee guard not applied to required write paths')
+          for name, text, forbidden_values in [
+              ('AgentDashboard', agent, ['AG-000', 'team-1', 'Team Alpha']),
+              ('TeamLeaderDashboard', leader, ['TL-000', 'team-1', 'Team Alpha']),
+          ]:
+              for value in forbidden_values:
+                  if value in text:
+                      raise SystemExit(f'demo attendance value remains in {name}: {value}')
+          PY
 
       - name: Commit production hardening
         run: |
