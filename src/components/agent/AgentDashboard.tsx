@@ -69,7 +69,7 @@ export const AgentDashboard: React.FC = () => {
           addSecurityAlert({
             userId: currentUser.id,
             userName: currentUser.name,
-            agentCode: currentUser.agentCode || '',
+            agentCode: currentUser.agentCode || 'AG-000',
             type: 'GPS_SPOOFING',
             reason: `Mock Location / Fake GPS Detected during Check-In: ${fakeCheck.reason}`,
             severity: 'critical',
@@ -83,9 +83,9 @@ export const AgentDashboard: React.FC = () => {
         addAttendanceRecord({
           agentId: currentUser.id,
           agentName: currentUser.name,
-          agentCode: currentUser.agentCode || '',
+          agentCode: currentUser.agentCode || 'AG-000',
           teamId: currentUser.teamId || 'team-1',
-          teamName: currentUser.teamName || 'Not Assigned',
+          teamName: currentUser.teamName || 'Team Alpha',
           checkInTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           status: attStatus,
         });
@@ -124,7 +124,7 @@ export const AgentDashboard: React.FC = () => {
           addSecurityAlert({
             userId: currentUser.id,
             userName: currentUser.name,
-            agentCode: currentUser.agentCode || '',
+            agentCode: currentUser.agentCode || 'AG-000',
             type: 'GPS_SPOOFING',
             reason: `Mock Location / Fake GPS Detected during Check-Out: ${fakeCheck.reason}`,
             severity: 'critical',
@@ -138,9 +138,9 @@ export const AgentDashboard: React.FC = () => {
         addAttendanceRecord({
           agentId: currentUser.id,
           agentName: currentUser.name,
-          agentCode: currentUser.agentCode || '',
+          agentCode: currentUser.agentCode || 'AG-000',
           teamId: currentUser.teamId || 'team-1',
-          teamName: currentUser.teamName || 'Not Assigned',
+          teamName: currentUser.teamName || 'Team Alpha',
           checkOutTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           status: 'completed',
         });
