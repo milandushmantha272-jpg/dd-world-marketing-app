@@ -52,34 +52,108 @@ export const AgentDashboard: React.FC = () => {
   const todayAttRecord = myAttendance.find((a) => a.date === dateTodayStr);
 
   const handleCheckIn = () => {
-    if (todayAttRecord?.checkInTime) { setAttMessage('⚠️ අද දින පැමිණීම (Check-In) දැනටමත් සටහන් කර ඇත.'); setTimeout(() => setAttMessage(null), 4000); return; }
-    if (!('geolocation' in navigator)) { setAttMessage('⚠️ මෙම device එකේ GPS support නොමැත. Attendance සුරැකුණේ නැත.'); setTimeout(() => setAttMessage(null), 5000); return; }
-    navigator.geolocation.getCurrentPosition((pos) => {
-      const fakeCheck = detectFakeGps(pos.coords);
-      if (fakeCheck.isFake) {
-        addSecurityAlert({ userId: currentUser.id, userName: currentUser.name, agentCode: currentUser.agentCode || '', type: 'GPS_SPOOFING', reason: `Mock Location / Fake GPS Detected during Check-In: ${fakeCheck.reason}`, severity: 'critical', coordinates: { latitude: pos.coords.latitude, longitude: pos.coords.longitude } });
-        setAttMessage('⚠️ Fake GPS හඳුනාගන්නා ලදී. Check-In අවහිර කරන ලදී.'); setTimeout(() => setAttMessage(null), 5000); return;
-      }
-      updateUserGps(currentUser.id, { latitude: pos.coords.latitude, longitude: pos.coords.longitude });
-      addAttendanceRecord({ agentId: currentUser.id, agentName: currentUser.name, agentCode: currentUser.agentCode || '', teamId: currentUser.teamId || '', teamName: currentUser.teamName || '', checkInTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), status: attStatus });
-      setAttMessage('✅ GPS verify කර Check-In සාර්ථකව සටහන් කරන ලදී.'); setTimeout(() => setAttMessage(null), 4000);
-    }, () => { setAttMessage('⚠️ GPS ලබාගත නොහැක. GPS ON කරලා නැවත උත්සාහ කරන්න. Attendance සුරැකුණේ නැත.'); setTimeout(() => setAttMessage(null), 5000); }, { enableHighAccuracy: true });
+    if (todayAttRecord?.checkInTime) {
+      setAttMessage('⚠️ අද දින පැමිණීම (Check-In) දැනටමත් සටහන් කර ඇත.');
+      setTimeout(() => setAttMessage(null), 4000);
+      return;
+    }
+    if (!('geolocation' in navigator)) {
+      setAttMessage('⚠️ මෙම device එකේ GPS support නොමැත. Attendance සුරැකුණේ නැත.');
+      setTimeout(() => setAttMessage(null), 5000);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const fakeCheck = detectFakeGps(pos.coords);
+        if (fakeCheck.isFake) {
+          addSecurityAlert({
+            userId: currentUser.id,
+            userName: currentUser.name,
+            agentCode: currentUser.agentCode || 'AG-000',
+            type: 'GPS_SPOOFING',
+            reason: `Mock Location / Fake GPS Detected during Check-In: ${fakeCheck.reason}`,
+            severity: 'critical',
+            coordinates: { latitude: pos.coords.latitude, longitude: pos.coords.longitude },
+          });
+          setAttMessage('⚠️ Fake GPS හඳුනාගන්නා ලදී. Check-In අවහිර කරන ලදී.');
+          setTimeout(() => setAttMessage(null), 5000);
+          return;
+        }
+        updateUserGps(currentUser.id, { latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        addAttendanceRecord({
+          agentId: currentUser.id,
+          agentName: currentUser.name,
+          agentCode: currentUser.agentCode || 'AG-000',
+          teamId: currentUser.teamId || 'team-1',
+          teamName: currentUser.teamName || 'Team Alpha',
+          checkInTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          status: attStatus,
+        });
+        setAttMessage('✅ GPS verify කර Check-In සාර්ථකව සටහන් කරන ලදී.');
+        setTimeout(() => setAttMessage(null), 4000);
+      },
+      (err) => {
+        console.warn('GPS error during check-in:', err);
+        setAttMessage('⚠️ GPS ලබාගත නොහැක. GPS ON කරලා නැවත උත්සාහ කරන්න. Attendance සුරැකුණේ නැත.');
+        setTimeout(() => setAttMessage(null), 5000);
+      },
+      { enableHighAccuracy: true }
+    );
   };
 
   const handleCheckOut = () => {
-    if (todayAttRecord?.checkOutTime) { setAttMessage('⚠️ අද දින පිටවීම (Check-Out) දැනටමත් සටහන් කර ඇත.'); setTimeout(() => setAttMessage(null), 4000); return; }
-    if (!todayAttRecord?.checkInTime) { setAttMessage('⚠️ මුලින් Check-In සාර්ථකව සටහන් කර තිබිය යුතුය.'); setTimeout(() => setAttMessage(null), 5000); return; }
-    if (!('geolocation' in navigator)) { setAttMessage('⚠️ GPS support නොමැත. Check-Out සුරැකුණේ නැත.'); setTimeout(() => setAttMessage(null), 5000); return; }
-    navigator.geolocation.getCurrentPosition((pos) => {
-      const fakeCheck = detectFakeGps(pos.coords);
-      if (fakeCheck.isFake) {
-        addSecurityAlert({ userId: currentUser.id, userName: currentUser.name, agentCode: currentUser.agentCode || '', type: 'GPS_SPOOFING', reason: `Mock Location / Fake GPS Detected during Check-Out: ${fakeCheck.reason}`, severity: 'critical', coordinates: { latitude: pos.coords.latitude, longitude: pos.coords.longitude } });
-        setAttMessage('⚠️ Fake GPS හඳුනාගන්නා ලදී. Check-Out අවහිර කරන ලදී.'); setTimeout(() => setAttMessage(null), 5000); return;
-      }
-      updateUserGps(currentUser.id, { latitude: pos.coords.latitude, longitude: pos.coords.longitude });
-      addAttendanceRecord({ agentId: currentUser.id, agentName: currentUser.name, agentCode: currentUser.agentCode || '', teamId: currentUser.teamId || '', teamName: currentUser.teamName || '', checkOutTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), status: 'completed' });
-      setAttMessage('✅ GPS verify කර Check-Out සාර්ථකව සටහන් කරන ලදී.'); setTimeout(() => setAttMessage(null), 4000);
-    }, () => { setAttMessage('⚠️ GPS verify කළ නොහැක. Check-Out සුරැකුණේ නැත.'); setTimeout(() => setAttMessage(null), 5000); }, { enableHighAccuracy: true });
+    if (todayAttRecord?.checkOutTime) {
+      setAttMessage('⚠️ අද දින පිටවීම (Check-Out) දැනටමත් සටහන් කර ඇත.');
+      setTimeout(() => setAttMessage(null), 4000);
+      return;
+    }
+    if (!(todayAttRecord?.checkInTime)) {
+      setAttMessage('⚠️ මුලින් Check-In සාර්ථකව සටහන් කර තිබිය යුතුය.');
+      setTimeout(() => setAttMessage(null), 5000);
+      return;
+    }
+    if (!('geolocation' in navigator)) {
+      setAttMessage('⚠️ GPS support නොමැත. Check-Out සුරැකුණේ නැත.');
+      setTimeout(() => setAttMessage(null), 5000);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const fakeCheck = detectFakeGps(pos.coords);
+        if (fakeCheck.isFake) {
+          addSecurityAlert({
+            userId: currentUser.id,
+            userName: currentUser.name,
+            agentCode: currentUser.agentCode || 'AG-000',
+            type: 'GPS_SPOOFING',
+            reason: `Mock Location / Fake GPS Detected during Check-Out: ${fakeCheck.reason}`,
+            severity: 'critical',
+            coordinates: { latitude: pos.coords.latitude, longitude: pos.coords.longitude },
+          });
+          setAttMessage('⚠️ Fake GPS හඳුනාගන්නා ලදී. Check-Out අවහිර කරන ලදී.');
+          setTimeout(() => setAttMessage(null), 5000);
+          return;
+        }
+        updateUserGps(currentUser.id, { latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        addAttendanceRecord({
+          agentId: currentUser.id,
+          agentName: currentUser.name,
+          agentCode: currentUser.agentCode || 'AG-000',
+          teamId: currentUser.teamId || 'team-1',
+          teamName: currentUser.teamName || 'Team Alpha',
+          checkOutTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          status: 'completed',
+        });
+        setAttMessage('✅ GPS verify කර Check-Out සාර්ථකව සටහන් කරන ලදී.');
+        setTimeout(() => setAttMessage(null), 4000);
+      },
+      (err) => {
+        console.warn('GPS error during check-out:', err);
+        setAttMessage('⚠️ GPS verify කළ නොහැක. Check-Out සුරැකුණේ නැත.');
+        setTimeout(() => setAttMessage(null), 5000);
+      },
+      { enableHighAccuracy: true }
+    );
   };
 
   const handleProductSubmit = (e: React.FormEvent) => {
