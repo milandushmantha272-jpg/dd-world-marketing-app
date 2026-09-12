@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   harden-login:
-    if: contains(github.event.head_commit.message, 'security: bind DD World login to Firebase Auth')
+    if: contains(github.event.head_commit.message, 'security: trigger production auth hardening')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
