@@ -1,0 +1,147 @@
+name: Security Hardening Patch
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply production authentication and access hardening
+        shell: python
+        run: |
+          from pathlib import Path
+
+          login = Path('src/components/LoginModal.tsx')
+          s = login.read_text(encoding='utf-8')
+
+          old = '''  const handleSelectUser = (userId: string) => {
+    setError('');
+    setFraudAlert(null);
+    const target = users.find((u) => u.id === userId);
+    if (!target) return;
+
+    // Check if account is blocked or suspended
+    if (
+      target.employmentStatus === 'BLOCKED' ||
+      target.employmentStatus === 'SUSPENDED' ||
+      target.employmentStatus === 'EXITED' ||
+      target.status === 'blocked'
+    ) {
+      setError(`🚫 මෙම ගිණුම (${target.name}) පරිපාලක (Owner) විසින් අත්හිටුවා ඇත (ACCOUNT BLOCKED). පිවිසීම අවලංගුයි.`);
+      return;
+    }
+
+    // If user has a password set, populate their code so they can enter password
+    if (target.password || target.tempPassword) {
+      setAgentCode(target.agentCode || target.employeeId || target.id);
+      setError(`ℹ️ ${target.name} සඳහා මුරපදයක් (Password) අවශ්‍යයි. කරුණාකර පහත Password ඇතුළත් කර Login වන්න.`);
+      return;
+    }
+
+    // Remember last selected user for quick fingerprint login
+    safeStorage.setItem('ddworld_last_bio_user_id', userId);
+    login(userId);
+  };'''
+          new = '''  const handleSelectUser = (userId: string) => {
+    setError('');
+    setFraudAlert(null);
+    const target = users.find((u) => u.id === userId);
+    if (!target) return;
+
+    if (
+      target.employmentStatus === 'BLOCKED' ||
+      target.employmentStatus === 'SUSPENDED' ||
+      target.employmentStatus === 'EXITED' ||
+      target.status === 'blocked'
+    ) {
+      setError(`🚫 මෙම ගිණුම (${target.name}) Owner විසින් BLOCK / SUSPEND කර ඇත. Login අවලංගුයි.`);
+      return;
+    }
+
+    // Selecting a profile never authenticates the user. Firebase Auth must
+    // verify the password before any DD World session is established.
+    setAgentCode(target.agentCode || target.employeeId || target.email || target.id);
+    setPasswordInput('');
+    safeStorage.setItem('ddworld_last_bio_user_id', userId);
+    setError(`🔐 ${target.name}: Firebase Password එක ඇතුළත් කර Login කරන්න.`);
+  };'''
+          if old in s:
+              s = s.replace(old, new)
+
+          old2 = '''  const handleManualLogin = (e: React.FormEvent) => {
+    e.preventDefault();'''
+          new2 = '''  const handleManualLogin = async (e: React.FormEvent) => {
+    e.preventDefault();'''
+          s = s.replace(old2, new2, 1)
+
+          start = s.index('    // Check password if set by owner\n    const requiredPass =')
+          end = s.index("    safeStorage.setItem('ddworld_last_bio_user_id', found.id);", start)
+          replacement = '''    if (!passwordInput || !passwordInput.trim()) {
+      setError(`කරුණාකර ${found.name} සඳහා Firebase Password එක ඇතුළත් කරන්න.`);
+      return;
+    }
+
+    try {
+      // Never compare password/PIN/tempPassword values stored in the app.
+      // Firebase Auth is the only credential verifier.
+      safeStorage.setItem('ddworld_last_bio_user_id', found.id);
+      await login(found.id, passwordInput);
+    } catch (err: any) {
+      setError(err?.message || 'Login අසාර්ථකයි. Email/Password නැවත පරීක්ෂා කරන්න.');
+    }
+'''
+          s = s[:start] + replacement + s[end:]
+          s = s.replace("    safeStorage.setItem('ddworld_last_bio_user_id', found.id);\n    login(found.id);", "    safeStorage.setItem('ddworld_last_bio_user_id', found.id);\n    void login(found.id, passwordInput).catch((err: any) => setError(err?.message || 'Login අසාර්ථකයි.'));", 1)
+
+          # Biometric button must not simulate authentication or select a user.
+          marker = "      // Find candidate user (either remembered user, or first user of selected role)"
+          if marker in s:
+              bs = s.index(marker)
+              be = s.index('    } catch (err: any) {', bs)
+              block = '''      setIsBioScanning(false);
+      throw new Error('Biometric/FIDO2 login සඳහා මෙම device එකේ secure credential enrollment තවම සම්පූර්ණ කර නැත. Password Login භාවිතා කරන්න.');
+'''
+              s = s[:bs] + block + s[be:]
+
+          s = s.replace('FIDO2 / Biometric Ready', 'Secure Login Required')
+          s = s.replace('Biometric: සක්‍රීයයි (Ready)', 'Secure Auth: සක්‍රීයයි')
+          login.write_text(s, encoding='utf-8')
+
+          rules = Path('firestore.rules')
+          r = rules.read_text(encoding='utf-8')
+          helper = '''    function isActiveEmployee() {
+      let userData = getUserData();
+      return userData.status == 'active' &&
+             userData.employmentStatus == 'ACTIVE' &&
+             userData.idApprovalStatus != 'REJECTED';
+    }
+
+'''
+          if 'function isActiveEmployee()' not in r:
+              needle = '    /**\n     * Check if user is system owner/admin\n     */\n'
+              r = r.replace(needle, helper + needle, 1)
+
+          # Enforce active employment on all sensitive field operations.
+          r = r.replace("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user", "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user", 1)
+          r = r.replace("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid &&\n                       // Validate GPS coordinates", "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid &&\n                       // Validate GPS coordinates", 1)
+          r = r.replace("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid &&\n                       // Session must have start time", "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid &&\n                       // Session must have start time", 1)
+          r = r.replace("allow update: if isSignedIn() && \n                       request.auth.uid == resource.data.userId &&", "allow update: if isSignedIn() &&\n                       isActiveEmployee() &&\n                       request.auth.uid == resource.data.userId &&", 1)
+          rules.write_text(r, encoding='utf-8')
+      - name: Commit hardened files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/LoginModal.tsx firestore.rules
+          if git diff --cached --quiet; then
+            echo "No hardening changes needed"
+            exit 0
+          fi
+          git commit -m "security: enforce Firebase authentication and active-user access"
+          git push
