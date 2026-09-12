@@ -9,79 +9,57 @@ permissions:
 
 jobs:
   harden:
+    # Avoid a self-trigger loop after the hardening commit.
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply production authentication and access hardening
+
+      - name: Apply production authentication hardening
         shell: python
         run: |
           from pathlib import Path
+          import re
 
           login = Path('src/components/LoginModal.tsx')
           s = login.read_text(encoding='utf-8')
 
-          old = '''  const handleSelectUser = (userId: string) => {
-    setError('');
-    setFraudAlert(null);
-    const target = users.find((u) => u.id === userId);
-    if (!target) return;
+          # Profile selection must never authenticate or inspect local passwords.
+          s = re.sub(
+              r"  const handleSelectUser = \(userId: string\) => \{.*?^  \};",
+              '''  const handleSelectUser = (userId: string) => {
+            setError('');
+            setFraudAlert(null);
+            const target = users.find((u) => u.id === userId);
+            if (!target) return;
 
-    // Check if account is blocked or suspended
-    if (
-      target.employmentStatus === 'BLOCKED' ||
-      target.employmentStatus === 'SUSPENDED' ||
-      target.employmentStatus === 'EXITED' ||
-      target.status === 'blocked'
-    ) {
-      setError(`🚫 මෙම ගිණුම (${target.name}) පරිපාලක (Owner) විසින් අත්හිටුවා ඇත (ACCOUNT BLOCKED). පිවිසීම අවලංගුයි.`);
-      return;
-    }
+            if (
+              target.employmentStatus === 'BLOCKED' ||
+              target.employmentStatus === 'SUSPENDED' ||
+              target.employmentStatus === 'EXITED' ||
+              target.status === 'blocked'
+            ) {
+              setError(`🚫 මෙම ගිණුම (${target.name}) Owner විසින් BLOCK / SUSPEND කර ඇත. Login අවලංගුයි.`);
+              return;
+            }
 
-    // If user has a password set, populate their code so they can enter password
-    if (target.password || target.tempPassword) {
-      setAgentCode(target.agentCode || target.employeeId || target.id);
-      setError(`ℹ️ ${target.name} සඳහා මුරපදයක් (Password) අවශ්‍යයි. කරුණාකර පහත Password ඇතුළත් කර Login වන්න.`);
-      return;
-    }
+            // Selecting a profile never authenticates the user. Firebase Auth
+            // must verify the password before a DD World session is established.
+            setAgentCode(target.agentCode || target.employeeId || target.email || target.id);
+            setPasswordInput('');
+            safeStorage.setItem('ddworld_last_bio_user_id', userId);
+            setError(`🔐 ${target.name}: Firebase Password එක ඇතුළත් කර Login කරන්න.`);
+          };''',
+              s, count=1, flags=re.S | re.M)
 
-    // Remember last selected user for quick fingerprint login
-    safeStorage.setItem('ddworld_last_bio_user_id', userId);
-    login(userId);
-  };'''
-          new = '''  const handleSelectUser = (userId: string) => {
-    setError('');
-    setFraudAlert(null);
-    const target = users.find((u) => u.id === userId);
-    if (!target) return;
+          # Manual login must delegate credential verification to Firebase Auth.
+          s = s.replace(
+              '  const handleManualLogin = (e: React.FormEvent) => {',
+              '  const handleManualLogin = async (e: React.FormEvent) => {', 1)
 
-    if (
-      target.employmentStatus === 'BLOCKED' ||
-      target.employmentStatus === 'SUSPENDED' ||
-      target.employmentStatus === 'EXITED' ||
-      target.status === 'blocked'
-    ) {
-      setError(`🚫 මෙම ගිණුම (${target.name}) Owner විසින් BLOCK / SUSPEND කර ඇත. Login අවලංගුයි.`);
-      return;
-    }
-
-    // Selecting a profile never authenticates the user. Firebase Auth must
-    // verify the password before any DD World session is established.
-    setAgentCode(target.agentCode || target.employeeId || target.email || target.id);
-    setPasswordInput('');
-    safeStorage.setItem('ddworld_last_bio_user_id', userId);
-    setError(`🔐 ${target.name}: Firebase Password එක ඇතුළත් කර Login කරන්න.`);
-  };'''
-          if old in s:
-              s = s.replace(old, new)
-
-          old2 = '''  const handleManualLogin = (e: React.FormEvent) => {
-    e.preventDefault();'''
-          new2 = '''  const handleManualLogin = async (e: React.FormEvent) => {
-    e.preventDefault();'''
-          s = s.replace(old2, new2, 1)
-
-          start = s.index('    // Check password if set by owner\n    const requiredPass =')
-          end = s.index("    safeStorage.setItem('ddworld_last_bio_user_id', found.id);", start)
+          password_block = re.compile(
+              r"    // Check password if set by owner\n    const requiredPass =.*?^    login\(found\.id\);",
+              re.S | re.M)
           replacement = '''    if (!passwordInput || !passwordInput.trim()) {
       setError(`කරුණාකර ${found.name} සඳහා Firebase Password එක ඇතුළත් කරන්න.`);
       return;
@@ -89,30 +67,30 @@ jobs:
 
     try {
       // Never compare password/PIN/tempPassword values stored in the app.
-      // Firebase Auth is the only credential verifier.
       safeStorage.setItem('ddworld_last_bio_user_id', found.id);
-      await login(found.id, passwordInput);
+      await login(found.id, passwordInput.trim());
     } catch (err: any) {
-      setError(err?.message || 'Login අසාර්ථකයි. Email/Password නැවත පරීක්ෂා කරන්න.');
-    }
-'''
-          s = s[:start] + replacement + s[end:]
-          s = s.replace("    safeStorage.setItem('ddworld_last_bio_user_id', found.id);\n    login(found.id);", "    safeStorage.setItem('ddworld_last_bio_user_id', found.id);\n    void login(found.id, passwordInput).catch((err: any) => setError(err?.message || 'Login අසාර්ථකයි.'));", 1)
+      setError(err?.message || 'Firebase authentication අසාර්ථකයි.');
+    }'''
+          s, n = password_block.subn(replacement, s, count=1)
+          if n == 0:
+              raise SystemExit('manual credential block not found')
 
-          # Biometric button must not simulate authentication or select a user.
-          marker = "      // Find candidate user (either remembered user, or first user of selected role)"
-          if marker in s:
-              bs = s.index(marker)
-              be = s.index('    } catch (err: any) {', bs)
-              block = '''      setIsBioScanning(false);
-      throw new Error('Biometric/FIDO2 login සඳහා මෙම device එකේ secure credential enrollment තවම සම්පූර්ණ කර නැත. Password Login භාවිතා කරන්න.');
-'''
-              s = s[:bs] + block + s[be:]
+          # Biometric UI must not simulate a successful authentication.
+          bio_pattern = re.compile(
+              r"      // Find candidate user.*?^      \}\);\n\n      // Biometric scan latency simulation.*?^      \}, 650\);",
+              re.S | re.M)
+          bio_replacement = '''      setIsBioScanning(false);
+      throw new Error('Biometric/FIDO2 login සඳහා secure credential enrollment තවම සම්පූර්ණ කර නැත. Password Login භාවිතා කරන්න.');'''
+          s, n = bio_pattern.subn(bio_replacement, s, count=1)
+          if n == 0:
+              raise SystemExit('biometric simulation block not found')
 
           s = s.replace('FIDO2 / Biometric Ready', 'Secure Login Required')
           s = s.replace('Biometric: සක්‍රීයයි (Ready)', 'Secure Auth: සක්‍රීයයි')
           login.write_text(s, encoding='utf-8')
 
+          # Block/suspend/exit users at Firestore write boundaries as well.
           rules = Path('firestore.rules')
           r = rules.read_text(encoding='utf-8')
           helper = '''    function isActiveEmployee() {
@@ -125,14 +103,32 @@ jobs:
 '''
           if 'function isActiveEmployee()' not in r:
               needle = '    /**\n     * Check if user is system owner/admin\n     */\n'
+              if needle not in r:
+                  raise SystemExit('Firestore owner helper anchor not found')
               r = r.replace(needle, helper + needle, 1)
 
-          # Enforce active employment on all sensitive field operations.
-          r = r.replace("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user", "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user", 1)
-          r = r.replace("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid &&\n                       // Validate GPS coordinates", "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid &&\n                       // Validate GPS coordinates", 1)
-          r = r.replace("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid &&\n                       // Session must have start time", "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid &&\n                       // Session must have start time", 1)
-          r = r.replace("allow update: if isSignedIn() && \n                       request.auth.uid == resource.data.userId &&", "allow update: if isSignedIn() &&\n                       isActiveEmployee() &&\n                       request.auth.uid == resource.data.userId &&", 1)
+          r = r.replace(
+              'allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user',
+              'allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user', 1)
+          r = r.replace(
+              'allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid &&\n                       // Validate GPS coordinates',
+              'allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid &&\n                       // Validate GPS coordinates', 1)
+          r = r.replace(
+              'allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid &&\n                       // Session must have start time',
+              'allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid &&\n                       // Session must have start time', 1)
+          r = r.replace(
+              'allow update: if isSignedIn() && \n                       request.auth.uid == resource.data.userId &&',
+              'allow update: if isSignedIn() &&\n                       isActiveEmployee() &&\n                       request.auth.uid == resource.data.userId &&', 1)
           rules.write_text(r, encoding='utf-8')
+
+      - name: Verify hardening patterns
+        shell: bash
+        run: |
+          ! grep -q "passwordInput.trim() !== requiredPass.trim()" src/components/LoginModal.tsx
+          ! grep -q "Biometric scan latency simulation" src/components/LoginModal.tsx
+          grep -q "await login(found.id, passwordInput.trim())" src/components/LoginModal.tsx
+          grep -q "function isActiveEmployee()" firestore.rules
+
       - name: Commit hardened files
         shell: bash
         run: |
