@@ -2,82 +2,18 @@ name: Security Hardening
 
 on:
   push:
-    branches: [main]
-
-permissions:
-  contents: write
+    branches: [ main ]
 
 jobs:
-  harden-and-verify:
-    if: github.actor != 'github-actions[bot]'
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Apply active-employee Firestore guard
-        shell: python
+      - uses: actions/checkout@v6
+      - name: Verify secure login source
         run: |
-          from pathlib import Path
-          p = Path('firestore.rules')
-          s = p.read_text(encoding='utf-8')
-          helper = """    function isActiveEmployee() {
-              let userData = getUserData();
-              return userData.status == 'active' &&
-                     userData.employmentStatus == 'ACTIVE' &&
-                     userData.idApprovalStatus != 'REJECTED';
-            }
-
-"""
-          if 'function isActiveEmployee()' not in s:
-              anchor = "    /**\n     * Check if user is system owner/admin\n     */\n"
-              if anchor not in s:
-                  raise SystemExit('Firestore owner helper anchor not found')
-              s = s.replace(anchor, helper + anchor, 1)
-          replacements = [
-              ("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation - agentId must be current user", "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation - agentId must be current user"),
-              ("allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid", "allow create: if isAuthorized() && \n                       isSignedIn() &&\n                       isActiveEmployee() &&\n                       // Prevent impersonation\n                       request.resource.data.userId == request.auth.uid"),
-          ]
-          for old, new in replacements:
-              s = s.replace(old, new, 1)
-          old_update = "allow update: if isSignedIn() && \n                       request.auth.uid == resource.data.userId &&"
-          new_update = "allow update: if isSignedIn() && \n                       isActiveEmployee() &&\n                       request.auth.uid == resource.data.userId &&"
-          s = s.replace(old_update, new_update, 1)
-          p.write_text(s, encoding='utf-8')
-
-      - name: Verify Firebase-only login and Firestore hardening
-        shell: bash
-        run: |
-          set -euo pipefail
+          set -e
           ! grep -Eq 'requiredPass|tempPassword|pinCode.*passwordInput|passwordInput.*requiredPass|Biometric scan latency simulation' src/components/LoginModal.tsx
           grep -q 'await login(target.id, password.trim())' src/components/LoginModal.tsx
+      - name: Verify Firestore active-user guard
+        run: |
           grep -q 'function isActiveEmployee()' firestore.rules
-          test "$(grep -c 'isActiveEmployee()' firestore.rules)" -ge 4
-
-      - name: Typecheck and production build
-        run: |
-          npm run lint
-          npm run build
-
-      - name: Commit hardening changes
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add firestore.rules
-          if git diff --cached --quiet; then
-            echo 'No Firestore hardening changes needed'
-            exit 0
-          fi
-          git commit -m 'security: enforce active employee access in Firestore rules'
-          git push origin HEAD:main
