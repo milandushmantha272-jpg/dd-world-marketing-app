@@ -39,14 +39,15 @@ class LocationTrackingService : Service() {
         private const val TAG = "LocationTrackingService"
         const val CHANNEL_ID = "ddworld_location_channel"
         const val NOTIFICATION_ID = 8801
-        
+
         const val ACTION_START = "com.ddworld.marketing.ACTION_START"
         const val ACTION_STOP = "com.ddworld.marketing.ACTION_STOP"
-        
+
         const val EXTRA_EMPLOYEE_ID = "extra_employee_id"
         const val EXTRA_AGENT_CODE = "extra_agent_code"
         const val EXTRA_TEAM_ID = "extra_team_id"
         const val EXTRA_SESSION_ID = "extra_session_id"
+        const val EXTRA_FIREBASE_ID_TOKEN = "extra_firebase_id_token"
 
         @Volatile
         var isServiceRunning = false
@@ -60,6 +61,7 @@ class LocationTrackingService : Service() {
     private var agentCode: String = ""
     private var teamId: String = ""
     private var trackingSessionId: String = ""
+    private var firebaseIdToken: String = ""
 
     override fun onCreate() {
         super.onCreate()
@@ -86,19 +88,24 @@ class LocationTrackingService : Service() {
         agentCode = intent?.getStringExtra(EXTRA_AGENT_CODE) ?: getSavedPref("agentCode")
         teamId = intent?.getStringExtra(EXTRA_TEAM_ID) ?: getSavedPref("teamId")
         trackingSessionId = intent?.getStringExtra(EXTRA_SESSION_ID) ?: getSavedPref("trackingSessionId")
+        firebaseIdToken = intent?.getStringExtra(EXTRA_FIREBASE_ID_TOKEN) ?: getSavedPref("firebaseIdToken")
 
         if (employeeId.isNotEmpty()) {
             savePref("employeeId", employeeId)
             savePref("agentCode", agentCode)
             savePref("teamId", teamId)
             savePref("trackingSessionId", trackingSessionId)
+            savePref("firebaseIdToken", firebaseIdToken)
+        }
+
+        if (firebaseIdToken.isEmpty()) {
+            Log.e(TAG, "Firebase ID token missing; refusing unauthenticated background GPS upload")
+            return START_NOT_STICKY
         }
 
         startForeground(NOTIFICATION_ID, createForegroundNotification())
         isServiceRunning = true
-
         startRealLocationUpdates()
-
         return START_STICKY
     }
 
@@ -123,7 +130,6 @@ class LocationTrackingService : Service() {
     }
 
     private fun processRealGpsLocation(location: Location) {
-        // 1. Verify Working Hours (08:00 AM - 08:00 PM Asia/Colombo)
         if (!isApprovedWorkingHours()) {
             Log.d(TAG, "Outside approved working hours (08:00 AM - 08:00 PM Colombo). Skipping official record.")
             return
@@ -143,6 +149,7 @@ class LocationTrackingService : Service() {
             put("accuracy", location.accuracy.toDouble())
             put("speed", location.speed.toDouble())
             put("heading", location.bearing.toDouble())
+            put("altitude", location.altitude)
             put("timestamp", timestampIso)
             put("batteryLevel", batteryLevel)
             put("networkStatus", if (isNetworkAvailable) "ONLINE" else "OFFLINE")
@@ -165,7 +172,6 @@ class LocationTrackingService : Service() {
         val colomboTimeZone = TimeZone.getTimeZone("Asia/Colombo")
         val calendar = Calendar.getInstance(colomboTimeZone)
         val hour = calendar.get(Calendar.HOUR_OF_DAY)
-        // 08:00 AM to 08:00 PM -> hours 8 through 19 inclusive (8:00 to 19:59)
         return hour in 8..19
     }
 
@@ -173,8 +179,8 @@ class LocationTrackingService : Service() {
         val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { filter ->
             registerReceiver(null, filter)
         }
-        val level: Int = batteryStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
-        val scale: Int = batteryStatus?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+        val level = batteryStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+        val scale = batteryStatus?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
         return if (level >= 0 && scale > 0) (level * 100 / scale) else 100
     }
 
@@ -191,17 +197,21 @@ class LocationTrackingService : Service() {
         return sdf.format(Date(if (timeMs > 0) timeMs else System.currentTimeMillis()))
     }
 
+    private fun configureAuthenticatedConnection(conn: HttpURLConnection) {
+        conn.setRequestProperty("Content-Type", "application/json")
+        conn.setRequestProperty("Authorization", "Bearer $firebaseIdToken")
+        conn.doOutput = true
+        conn.connectTimeout = 10000
+        conn.readTimeout = 10000
+    }
+
     private fun syncRecordToCloud(record: JSONObject) {
-        // Send via async HTTP thread to Cloud API / Firestore Proxy
         Thread {
             try {
                 val url = URL("https://ais-dev-x3vgvdkcnqcxy6kg52vg7i-814098050496.asia-east1.run.app/api/native-gps-sync")
                 val conn = url.openConnection() as HttpURLConnection
                 conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.doOutput = true
-                conn.connectTimeout = 10000
-                conn.readTimeout = 10000
+                configureAuthenticatedConnection(conn)
 
                 val writer = OutputStreamWriter(conn.outputStream)
                 writer.write(record.toString())
@@ -209,8 +219,11 @@ class LocationTrackingService : Service() {
                 writer.close()
 
                 val responseCode = conn.responseCode
-                Log.d(TAG, "Cloud sync response code: $responseCode")
+                Log.d(TAG, "Authenticated cloud sync response code: $responseCode")
                 conn.disconnect()
+                if (responseCode !in 200..299) {
+                    enqueueOfflineRecord(record)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Network sync failed, queuing record offline", e)
                 enqueueOfflineRecord(record)
@@ -231,22 +244,21 @@ class LocationTrackingService : Service() {
         val prefs = getSharedPreferences("ddworld_gps_queue", Context.MODE_PRIVATE)
         val queueStr = prefs.getString("queue", "[]") ?: "[]"
         val array = JSONArray(queueStr)
-        if (array.length() == 0) return
+        if (array.length() == 0 || firebaseIdToken.isEmpty()) return
 
         Thread {
             try {
                 val url = URL("https://ais-dev-x3vgvdkcnqcxy6kg52vg7i-814098050496.asia-east1.run.app/api/native-gps-batch-sync")
                 val conn = url.openConnection() as HttpURLConnection
                 conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.doOutput = true
+                configureAuthenticatedConnection(conn)
 
                 val writer = OutputStreamWriter(conn.outputStream)
                 writer.write(array.toString())
                 writer.flush()
                 writer.close()
 
-                if (conn.responseCode == 200) {
+                if (conn.responseCode in 200..299) {
                     prefs.edit().putString("queue", "[]").apply()
                     Log.d(TAG, "Flushed ${array.length()} offline records to cloud.")
                 }
@@ -260,11 +272,10 @@ class LocationTrackingService : Service() {
     private fun createForegroundNotification(): Notification {
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("DD WORLD GPS Tracking Active 🟢")
-            .setContentText("Field Location Service running in background")
+            .setContentText("Authenticated field location service running in background")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
-
         return builder.build()
     }
 
