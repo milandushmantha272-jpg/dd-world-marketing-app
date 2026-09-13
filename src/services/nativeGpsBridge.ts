@@ -1,4 +1,5 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import { auth } from './firebase';
 
 export interface NativeGpsBridgePlugin {
   startTracking(options: {
@@ -6,6 +7,7 @@ export interface NativeGpsBridgePlugin {
     agentCode: string;
     teamId: string;
     trackingSessionId: string;
+    firebaseIdToken: string;
   }): Promise<{ status: string; message: string }>;
   stopTracking(): Promise<{ status: string; message: string }>;
   getTrackingStatus(): Promise<{
@@ -30,14 +32,17 @@ export const startNativeForegroundGpsTracking = async (params: {
 }) => {
   if (isNativePlatform()) {
     try {
-      const result = await NativeGpsBridge.startTracking(params);
+      const user = auth.currentUser;
+      if (!user) throw new Error('Firebase Auth session is required before native GPS tracking.');
+      const firebaseIdToken = await user.getIdToken(true);
+      const result = await NativeGpsBridge.startTracking({ ...params, firebaseIdToken });
       console.log('⚡ Native Android Location Service Started:', result);
       return result;
     } catch (err) {
       console.error('Failed to start native location tracking:', err);
     }
   } else {
-    console.log('🌐 Web Environment Detected: Using PWA Foreground Location Listener + Cloud Server Sync API');
+    console.log('🌐 Web Environment Detected: Using PWA geolocation + Firestore persistence');
   }
 };
 
