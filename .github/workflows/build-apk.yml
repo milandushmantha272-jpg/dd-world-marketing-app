@@ -39,7 +39,7 @@ jobs:
         run: npm install --include=dev --no-audit --no-fund
 
       - name: TypeScript Check
-        run: npx --yes -p typescript@5.9.3 tsc --noEmit
+        run: npx --yes -p typescript@5.9.3 tsc --noEmit --pretty false
 
       - name: Build Web Application
         run: npm run build
