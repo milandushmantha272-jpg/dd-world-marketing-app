@@ -29,6 +29,21 @@ service cloud.firestore {
               getUserData().id == 'owner-1');
     }
 
+    // The only allowed self-created employee profile is the configured Owner
+    // bootstrap, and only after Firebase Auth has verified the exact Owner email.
+    function isOwnerBootstrap(userId) {
+      return isAuthorized() &&
+             request.auth.uid == userId &&
+             request.auth.token.email == 'milandushmantha272@gmail.com' &&
+             request.resource.data.email == 'milandushmantha272@gmail.com' &&
+             request.resource.data.firebaseUid == request.auth.uid &&
+             request.resource.data.role == 'owner' &&
+             request.resource.data.status == 'active' &&
+             request.resource.data.employmentStatus == 'ACTIVE' &&
+             request.resource.data.idApprovalStatus == 'APPROVED' &&
+             request.resource.data.approvedByOwner == true;
+    }
+
     function isActiveEmployee() {
       let userData = getUserData();
       return isOwner() ||
@@ -95,7 +110,11 @@ service cloud.firestore {
                      (request.auth.uid == userId ||
                       (isTeamSupervisor() && isInSameTeam(resource.data.teamId)) ||
                       isOwner());
-      allow create: if false;
+
+      // Normal employees can never self-create profiles. The sole exception is
+      // the verified configured Owner account on its first successful login.
+      allow create: if isOwnerBootstrap(userId);
+
       allow update: if isSignedIn() &&
                        !isOwnerDoc(resource.data, userId) &&
                        !isOwnerDoc(request.resource.data, userId) &&
@@ -171,7 +190,6 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
 
-    // Compatibility read model for the UI. Native GPS writes remain owner/employee scoped.
     match /location_logs/{recordId} {
       allow read: if isSignedIn() &&
                      (request.auth.uid == resource.data.userId ||
