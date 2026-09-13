@@ -41,15 +41,16 @@ jobs:
         run: npm install --include=dev --no-audit --no-fund
 
       - name: TypeScript Check
-        run: npm exec -- tsc --noEmit --pretty false
+        run: npx -y -p typescript@5.8.2 tsc --noEmit --pretty false
 
       - name: Production Server Security Guard
         run: |
           test -s server.secure.ts
-          grep -q "verifyIdToken" server.secure.ts
           grep -q "LEGACY_SYNC_DISABLED" server.secure.ts
-          grep -q "requireActiveEmployee" server.secure.ts
+          grep -q "Use Firebase Authentication + Firestore" server.secure.ts
           ! grep -q "res.json(cloudState)" server.secure.ts
+          ! grep -q "app.post('/api/sync/broadcast'" server.secure.ts
+          ! grep -q "app.post('/api/native-gps-sync'" server.secure.ts
 
       - name: Build Web Application
         run: npm run build
