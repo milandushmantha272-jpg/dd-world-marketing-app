@@ -82,10 +82,16 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$APKSIGNER"
           "$APKSIGNER" verify --print-certs "$APK" | tee signing-certificate.txt
-          SHA1="$(awk -F': ' '/Signer #1 certificate SHA-1 digest:/ {print $2; exit}' signing-certificate.txt)"
-          SHA256="$(awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print $2; exit}' signing-certificate.txt)"
-          test -n "$SHA1"
-          test -n "$SHA256"
+
+          # apksigner output can contain variable whitespace and formatting.
+          # Normalize whitespace before extracting the two required digests.
+          SHA1="$(sed -n 's/^[[:space:]]*Signer #1 certificate SHA-1 digest:[[:space:]]*//p' signing-certificate.txt | head -n 1 | tr -d '[:space:]')"
+          SHA256="$(sed -n 's/^[[:space:]]*Signer #1 certificate SHA-256 digest:[[:space:]]*//p' signing-certificate.txt | head -n 1 | tr -d '[:space:]')"
+
+          # Fail clearly if apksigner did not expose both fingerprints.
+          [[ "$SHA1" =~ ^([0-9A-Fa-f]{2}:){19}[0-9A-Fa-f]{2}$ ]]
+          [[ "$SHA256" =~ ^([0-9A-Fa-f]{2}:){31}[0-9A-Fa-f]{2}$ ]]
+
           printf 'SHA-1: %s\nSHA-256: %s\n' "$SHA1" "$SHA256" | tee signing-fingerprints.txt
 
       - name: Verify APK
@@ -93,6 +99,8 @@ jobs:
           test -s android/app/build/outputs/apk/debug/app-debug.apk
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk | tee apk-sha256.txt
           test -s signing-fingerprints.txt
+          grep -Eq '^SHA-1: ([0-9A-Fa-f]{2}:){19}[0-9A-Fa-f]{2}$' signing-fingerprints.txt
+          grep -Eq '^SHA-256: ([0-9A-Fa-f]{2}:){31}[0-9A-Fa-f]{2}$' signing-fingerprints.txt
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q "classes.dex"
 
       - name: Upload APK
