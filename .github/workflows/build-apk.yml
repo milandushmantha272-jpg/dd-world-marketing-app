@@ -41,7 +41,7 @@ jobs:
         run: npm install --include=dev --no-audit --no-fund
 
       - name: TypeScript Check
-        run: npm exec -- tsc --noEmit --pretty false
+        run: npm exec --yes --package=typescript@5.8.2 -- tsc --noEmit --pretty false
 
       - name: Production Server Security Guard
         run: |
