@@ -197,7 +197,6 @@ export const OwnerDashboard: React.FC = () => {
   const [agCode, setAgCode] = useState('');
   const [agMobile, setAgMobile] = useState('');
   const [agEmail, setAgEmail] = useState('');
-  const [agTempPassword, setAgTempPassword] = useState('');
   const [agTeamId, setAgTeamId] = useState('');
   const [tlTeamName, setTlTeamName] = useState('');
   const [addMsg, setAddMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -236,32 +235,7 @@ export const OwnerDashboard: React.FC = () => {
   const [extNote, setExtNote] = useState('');
   const [extSuccessMsg, setExtSuccessMsg] = useState<string | null>(null);
 
-  // Owner Custom Password modal state
-  const [isPwdModalOpen, setIsPwdModalOpen] = useState(false);
   const [gpsMapModalOpen, setGpsMapModalOpen] = useState(false);
-  const [newOwnerPwd, setNewOwnerPwd] = useState('');
-  const [confirmOwnerPwd, setConfirmOwnerPwd] = useState('');
-  const [pwdMsg, setPwdMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  const handleSaveOwnerPassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newOwnerPwd.trim()) {
-      setPwdMsg({ type: 'error', text: 'කරුණාකර නව මුරපදය ඇතුළත් කරන්න.' });
-      return;
-    }
-    if (newOwnerPwd !== confirmOwnerPwd) {
-      setPwdMsg({ type: 'error', text: 'මුරපද දෙක එකිනෙකට නොගැලපේ.' });
-      return;
-    }
-    safeStorage.setItem('ddw_custom_owner_password', newOwnerPwd.trim());
-    setPwdMsg({ type: 'success', text: 'Owner මුරපදය සාර්ථකව වෙනස් කරන ලදී! මින් ඉදිරියට මෙම මුරපදය මගින් Log විය හැක.' });
-    setTimeout(() => {
-      setIsPwdModalOpen(false);
-      setNewOwnerPwd('');
-      setConfirmOwnerPwd('');
-      setPwdMsg(null);
-    }, 2500);
-  };
 
   // Website CMS state
   const [selectedIdCardUserId, setSelectedIdCardUserId] = useState<string | null>(null);
@@ -514,7 +488,6 @@ export const OwnerDashboard: React.FC = () => {
         code: agCode,
         mobile: agMobile,
         email: agEmail,
-        tempPassword: agTempPassword,
         teamName: tlTeamName || `${agName} Team`,
       });
     } else {
@@ -526,7 +499,6 @@ export const OwnerDashboard: React.FC = () => {
         agentCode: agCode,
         mobile: agMobile,
         email: agEmail,
-        tempPassword: agTempPassword,
         teamId: agTeamId,
         teamLeaderId,
       });
@@ -3532,8 +3504,6 @@ export const OwnerDashboard: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value={agTempPassword}
-                  onChange={(e) => setAgTempPassword(e.target.value)}
                   required
                   className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 text-xs font-mono"
                 />
@@ -3753,96 +3723,6 @@ export const OwnerDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Owner Custom Password Change Modal */}
-      {isPwdModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-amber-500/30 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-100">
-                    Owner මුරපදය (Password) වෙනස් කිරීම
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    ඔබට කැමති රහස් මුරපදයක් මෙතැනින් සකසා ගත හැක
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setIsPwdModalOpen(false);
-                  setPwdMsg(null);
-                }}
-                className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 transition"
-              >
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
-
-            {pwdMsg && (
-              <div
-                className={`p-3 rounded-xl text-xs mb-4 font-medium ${
-                  pwdMsg.type === 'success'
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                }`}
-              >
-                {pwdMsg.text}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveOwnerPassword} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  නව මුරපදය (New Password)
-                </label>
-                <input
-                  type="password"
-                  value={newOwnerPwd}
-                  onChange={(e) => setNewOwnerPwd(e.target.value)}
-                  placeholder="නව රහස් මුරපදය ඇතුළත් කරන්න"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  නව මුරපදය නැවත තහවුරු කරන්න (Confirm Password)
-                </label>
-                <input
-                  type="password"
-                  value={confirmOwnerPwd}
-                  onChange={(e) => setConfirmOwnerPwd(e.target.value)}
-                  placeholder="නව මුරපදය නැවත ටයිප් කරන්න"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsPwdModalOpen(false);
-                    setPwdMsg(null);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
-                >
-                  අවලංගු කරන්න
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition"
-                >
-                  නව මුරපදය සුරකින්න
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Direct Quick-Access Modals inside Owner Dashboard */}
       <SriLankaGpsMapModal
