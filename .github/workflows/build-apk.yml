@@ -34,18 +34,33 @@ jobs:
 
           owner = Path('src/components/owner/OwnerDashboard.tsx')
           text = owner.read_text()
-          text = re.sub(r'^\s*const \[agTempPassword, setAgTempPassword\] = useState\([^\n]*\);\s*\n', '', text, flags=re.M)
-          text = re.sub(r'^\s*tempPassword\s*:\s*agTempPassword,\s*\n', '', text, flags=re.M)
-          text = re.sub(r'\n?\s*<input(?:(?!</?input)[\s\S])*?value=\{agTempPassword\}(?:(?!</?input)[\s\S])*?/>(?:\n)?', '\n', text)
           text = re.sub(r'^.*(?:agTempPassword|setAgTempPassword).*$\n?', '', text, flags=re.M)
-          text = re.sub(r'\n  // Owner Custom Password modal state\n[\s\S]*?\n  const \[gpsMapModalOpen, setGpsMapModalOpen\] = useState\(false\);', '\n  const [gpsMapModalOpen, setGpsMapModalOpen] = useState(false);', text, count=1)
-          text = re.sub(r'\n  const handleSaveOwnerPassword = \(e: React\.FormEvent\) => \{[\s\S]*?\n  // Website CMS state', '\n  // Website CMS state', text, count=1)
-          text = re.sub(r'\n      \{/\* Owner Custom Password Change Modal \*/\}[\s\S]*?\n      \)\}\n', '\n', text, count=1)
+          text = re.sub(r'^\s*tempPassword\s*:\s*agTempPassword,\s*\n', '', text, flags=re.M)
+
+          start = text.find('  // Owner Custom Password modal state')
+          if start != -1:
+              end = text.find('  const [gpsMapModalOpen, setGpsMapModalOpen] = useState(false);', start)
+              if end != -1:
+                  text = text[:start] + text[end:]
+
+          start = text.find('  const handleSaveOwnerPassword')
+          if start != -1:
+              end = text.find('  // Website CMS state', start)
+              if end != -1:
+                  text = text[:start] + text[end:]
+
+          start = text.find('      {/* Owner Custom Password Change Modal */}')
+          if start != -1:
+              end = text.find('\n      {/*', start + 10)
+              if end != -1:
+                  text = text[:start] + text[end:]
+
+          text = re.sub(r'^.*(?:isPwdModalOpen|setIsPwdModalOpen|newOwnerPwd|setNewOwnerPwd|confirmOwnerPwd|setConfirmOwnerPwd|pwdMsg|setPwdMsg|ddw_custom_owner_password).*$\n?', '', text, flags=re.M)
           owner.write_text(text)
           PY
 
           if grep -RInE --include='*.ts' --include='*.tsx' '\b(password|pinCode|tempPassword)\s*:\s*(["'"'"'`]|DDW@|[0-9]{3,})' src/data src/components; then
-            echo 'Legacy credential field remains in application source.'
+            echo 'Legacy hardcoded credential field remains in application source.'
             exit 1
           fi
           if grep -RInE --include='*.ts' --include='*.tsx' 'targetUser\.(password|pinCode|tempPassword)|user\.(password|pinCode|tempPassword)' src; then
