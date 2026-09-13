@@ -1,5 +1,7 @@
 name: Build Permanent Android APK
 
+# Clean release build gate: local TypeScript compiler + locked dependencies.
+
 on:
   push:
     branches: [ main ]
