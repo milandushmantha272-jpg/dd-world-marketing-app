@@ -35,13 +35,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
 
-      # Install directly from package.json so dev tooling (including TypeScript)
-      # is guaranteed to be available to the production validation steps.
       - name: Install Dependencies
         run: npm install --include=dev --no-audit --no-fund
 
       - name: TypeScript Check
-        run: npm run lint
+        run: npx --yes -p typescript@5.9.3 tsc --noEmit
 
       - name: Build Web Application
         run: npm run build
