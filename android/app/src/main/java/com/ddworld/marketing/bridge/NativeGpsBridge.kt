@@ -20,10 +20,10 @@ class NativeGpsBridge : Plugin() {
         val agentCode = call.getString("agentCode", "") ?: ""
         val teamId = call.getString("teamId", "") ?: ""
         val trackingSessionId = call.getString("trackingSessionId", "") ?: ""
-        val firebaseIdToken = call.getString("firebaseIdToken", "") ?: ""
+        val firebaseCustomToken = call.getString("firebaseCustomToken", "") ?: ""
 
-        if (employeeId.isEmpty() || trackingSessionId.isEmpty() || firebaseIdToken.isEmpty()) {
-            call.reject("Authorized Firebase session, employeeId and trackingSessionId are required")
+        if (employeeId.isEmpty() || trackingSessionId.isEmpty() || firebaseCustomToken.isEmpty()) {
+            call.reject("Authorized Firebase session, employeeId, trackingSessionId and Firebase custom token are required")
             return
         }
 
@@ -34,7 +34,7 @@ class NativeGpsBridge : Plugin() {
             putString("agentCode", agentCode)
             putString("teamId", teamId)
             putString("trackingSessionId", trackingSessionId)
-            putString("firebaseIdToken", firebaseIdToken)
+            putString("firebaseCustomToken", firebaseCustomToken)
             putBoolean("isAuthorizedSessionActive", true)
             apply()
         }
@@ -45,7 +45,7 @@ class NativeGpsBridge : Plugin() {
             putExtra(LocationTrackingService.EXTRA_AGENT_CODE, agentCode)
             putExtra(LocationTrackingService.EXTRA_TEAM_ID, teamId)
             putExtra(LocationTrackingService.EXTRA_SESSION_ID, trackingSessionId)
-            putExtra(LocationTrackingService.EXTRA_FIREBASE_ID_TOKEN, firebaseIdToken)
+            putExtra(LocationTrackingService.EXTRA_FIREBASE_CUSTOM_TOKEN, firebaseCustomToken)
         }
 
         try {
@@ -67,7 +67,7 @@ class NativeGpsBridge : Plugin() {
     fun stopTracking(call: PluginCall) {
         val context = context
         val prefs = context.getSharedPreferences("ddworld_native_gps", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("isAuthorizedSessionActive", false).remove("firebaseIdToken").apply()
+        prefs.edit().putBoolean("isAuthorizedSessionActive", false).remove("firebaseCustomToken").apply()
 
         val serviceIntent = Intent(context, LocationTrackingService::class.java).apply {
             action = LocationTrackingService.ACTION_STOP
