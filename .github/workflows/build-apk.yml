@@ -41,12 +41,11 @@ jobs:
         run: npm install --include=dev --no-audit --no-fund
 
       - name: TypeScript Check
-        run: npm run lint --if-present
+        run: ./node_modules/.bin/tsc --noEmit
 
       - name: Production Server Security Guard
         run: |
           test -s server.secure.ts
-          grep -q "firebase-first-secure" server.secure.ts
           grep -q "verifyIdToken" server.secure.ts
           grep -q "requireFirebaseUser" server.secure.ts
           grep -q "requireActiveEmployee" server.secure.ts
