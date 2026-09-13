@@ -9,6 +9,7 @@ export interface User {
   name: string;
   email?: string;
   role: UserRole;
+  firebaseUid?: string;
   agentCode?: string;
   nic?: string;
   phone?: string;
@@ -42,9 +43,6 @@ export interface User {
   ownerSignatureUrl?: string;
   idRejectedReason?: string;
   approvedByOwner?: boolean;
-  password?: string;
-  pinCode?: string;
-  tempPassword?: string;
   status?: string;
   employeeId?: string;
   kycDocuments?: {
@@ -75,9 +73,6 @@ export interface MeetingFile { id:string; name:string; url:string; size?:number;
 export interface Meeting { id:string; code?:string; title:string; description?:string; scheduledAt?:string; scheduledTime?:string; date?:string; time?:string; createdBy?:string; creatorName?:string; hostId?:string; hostName?:string; hostRole?:string; teamId?:string; targetAudience?:string; targetTeamName?:string; status:string; meetingUrl?:string; meetingLink?:string; files?:MeetingFile[]; attachedFiles?:any[]; }
 export interface SecurityAlert { id:string; type:'FAKE_GPS_DETECTED'|'UNAUTHORIZED_ACCESS'|'MOCK_LOCATION_BLOCKED'; userId:string; userName:string; agentCode:string; role:string; details:string; coordinates?:{latitude:number;longitude:number}; timestamp:string; resolved?:boolean; }
 
-// Flexible operational records retained for the application's existing modules.
-// Concrete fields are intentionally open so Firestore documents can evolve without
-// duplicating dozens of UI-only shapes in the central type registry.
 export interface KnowledgeArticle { [key: string]: any }
 export interface EmployeeVerification { [key: string]: any }
 export interface MonthlyProductTargets { [key: string]: any }
