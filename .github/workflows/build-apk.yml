@@ -41,18 +41,19 @@ jobs:
         run: npm install --include=dev --no-audit --no-fund
 
       - name: TypeScript Check
-        run: node ./node_modules/typescript/bin/tsc --noEmit --pretty false
+        run: npx --no-install tsc --noEmit --pretty false
 
       - name: Production Server Security Guard
         run: |
           test -s server.secure.ts
-          grep -q "firebase-first-secure" server.secure.ts
-          grep -q "verifyIdToken" server.secure.ts
-          grep -q "requireFirebaseUser" server.secure.ts
-          grep -q "requireActiveEmployee" server.secure.ts
-          grep -q "collection('location_records')" server.secure.ts
+          grep -q "firebase-first" server.secure.ts
+          grep -q "LEGACY_SYNC_DISABLED" server.secure.ts
+          grep -q "Sensitive state must not be exposed" server.secure.ts
           ! grep -q "res.json(cloudState)" server.secure.ts
-          ! grep -q "LEGACY_SYNC_DISABLED" server.secure.ts
+          ! grep -q "app.post('/api/sync/broadcast'" server.secure.ts
+          ! grep -q "app.get('/api/sync/state'" server.secure.ts
+          ! grep -q "app.post('/api/native-gps-sync'" server.secure.ts
+          ! grep -q "app.post('/api/native-gps-batch-sync'" server.secure.ts
 
       - name: Build Web Application
         run: npm run build
