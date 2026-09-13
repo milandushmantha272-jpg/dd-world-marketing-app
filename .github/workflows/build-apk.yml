@@ -49,6 +49,19 @@ jobs:
           ! grep -q "let cloudState" server.secure.ts
           ! grep -q "signInAnonymously" src/services/firebase.ts
 
+      - name: Verify Android Signing Certificate
+        run: |
+          set -euo pipefail
+          test -s android/gradlew
+          chmod +x android/gradlew
+          cd android
+          ./gradlew signingReport --no-daemon | tee ../signing-report.txt
+          echo "=== ACTUAL SIGNING CERTIFICATE FINGERPRINTS ==="
+          awk '/Variant: debug/{flag=1} flag && /SHA1:/{print "SHA-1: "$2} flag && /SHA-256:/{print "SHA-256: "$2; flag=0}' ../signing-report.txt
+          test -s ../signing-report.txt
+          grep -Eiq 'SHA1:|SHA-1:' ../signing-report.txt
+          grep -Eiq 'SHA-256:' ../signing-report.txt
+
       - name: Build Web Application
         run: npm run build
 
@@ -86,4 +99,5 @@ jobs:
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             apk-sha256.txt
+            signing-report.txt
           if-no-files-found: error
