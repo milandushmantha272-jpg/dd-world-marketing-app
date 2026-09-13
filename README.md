@@ -39,6 +39,7 @@ The Owner is the ultimate application authority and can manage employee activati
 - Gradle
 - Kotlin / Java
 - Firebase Authentication / Firestore
+- Firebase Admin SDK for authenticated server APIs
 
 📦 Android App
 
@@ -71,11 +72,13 @@ cd android
 
 📱 Project Status
 
-✅ Android build pipeline is passing.
+✅ Firebase-first secure server mode is enabled.
 
-✅ Security hardening and GPS attendance verification have been applied.
+✅ Legacy unauthenticated in-memory sync endpoints are disabled/replaced with authenticated Firebase/Firestore APIs.
 
-🔎 Final QA / real-device validation remains the final release gate. The production APK should be tested on a physical Android device for login, permissions, GPS, attendance, sales, role access, offline recovery and end-to-end data synchronization before public distribution.
+✅ Native Android GPS uploads require a verified Firebase session and active employee profile.
+
+🔎 Final QA / real-device validation remains the final release gate. The production APK should be tested on a physical Android device for launch, login, permissions, GPS, attendance, sales, role access, offline recovery and end-to-end data synchronization before public distribution.
 
 👨‍💻 Developer
 
