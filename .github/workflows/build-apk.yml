@@ -35,6 +35,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
 
+      - name: Refresh lockfile metadata
+        run: npm install --package-lock-only --ignore-scripts
+
       - name: Install Dependencies
         run: npm ci --include=dev
 
