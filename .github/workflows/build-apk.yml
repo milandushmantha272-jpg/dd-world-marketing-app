@@ -38,6 +38,13 @@ jobs:
           text = re.sub(r'^\s*tempPassword\s*:\s*agTempPassword,\s*\n', '', text, flags=re.M)
           text = re.sub(r'\n?\s*<input(?:(?!</?input)[\s\S])*?value=\{agTempPassword\}(?:(?!</?input)[\s\S])*?/>(?:\n)?', '\n', text)
           text = re.sub(r'^.*(?:agTempPassword|setAgTempPassword).*$\n?', '', text, flags=re.M)
+          text = re.sub(r'^\s*// Owner Custom Password modal state\s*\n', '', text, flags=re.M)
+          text = re.sub(r'^\s*const \[isPwdModalOpen, setIsPwdModalOpen\] = useState\([^\n]*\);\s*\n', '', text, flags=re.M)
+          text = re.sub(r'^\s*const \[newOwnerPwd, setNewOwnerPwd\] = useState\([^\n]*\);\s*\n', '', text, flags=re.M)
+          text = re.sub(r'^\s*const \[confirmOwnerPwd, setConfirmOwnerPwd\] = useState\([^\n]*\);\s*\n', '', text, flags=re.M)
+          text = re.sub(r'^\s*const \[pwdMsg, setPwdMsg\] = useState<[\s\S]*?\n', '', text, flags=re.M)
+          text = re.sub(r'\n  const handleSaveOwnerPassword = \(e: React\.FormEvent\) => \{[\s\S]*?\n  \};\n', '\n', text, count=1)
+          text = re.sub(r'\n      \{/\* Owner Custom Password Change Modal \*/\}[\s\S]*?\n      \)\}\n', '\n', text, count=1)
           owner.write_text(text)
           PY
 
@@ -47,6 +54,10 @@ jobs:
           fi
           if grep -RInE --include='*.ts' --include='*.tsx' 'targetUser\.(password|pinCode|tempPassword)|user\.(password|pinCode|tempPassword)' src; then
             echo 'Legacy credential read remains in application source.'
+            exit 1
+          fi
+          if grep -RInE --include='*.ts' --include='*.tsx' 'agTempPassword|setAgTempPassword|isPwdModalOpen|newOwnerPwd|confirmOwnerPwd|handleSaveOwnerPassword' src; then
+            echo 'Legacy password UI logic remains in application source.'
             exit 1
           fi
 
