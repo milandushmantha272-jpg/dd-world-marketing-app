@@ -18,43 +18,49 @@ class BootReceiver : BroadcastReceiver() {
         val action = intent.action
         Log.d(TAG, "BootReceiver triggered with action: $action")
 
-        if (Intent.ACTION_BOOT_COMPLETED == action || "android.intent.action.MY_PACKAGE_REPLACED" == action) {
-            val prefs = context.getSharedPreferences("ddworld_native_gps", Context.MODE_PRIVATE)
-            val employeeId = prefs.getString("employeeId", "") ?: ""
-            val agentCode = prefs.getString("agentCode", "") ?: ""
-            val teamId = prefs.getString("teamId", "") ?: ""
-            val trackingSessionId = prefs.getString("trackingSessionId", "") ?: ""
-            val isAuthorized = prefs.getBoolean("isAuthorizedSessionActive", false)
+        if (Intent.ACTION_BOOT_COMPLETED != action && action != "android.intent.action.MY_PACKAGE_REPLACED") return
 
-            // 1. Verify Authentication & Session state
-            if (!isAuthorized || employeeId.isEmpty() || trackingSessionId.isEmpty()) {
-                Log.d(TAG, "No authorized active tracking session found after boot. Will NOT auto-start tracking.")
-                return
-            }
+        val auth = NativeFirebaseAuth.auth(context)
+        if (auth.currentUser == null) {
+            Log.d(TAG, "Firebase Auth session is not available after boot. Tracking will NOT auto-start.")
+            return
+        }
 
-            // 2. Verify Working Hours (08:00 AM to 08:00 PM Asia/Colombo)
-            val colomboTimeZone = TimeZone.getTimeZone("Asia/Colombo")
-            val calendar = Calendar.getInstance(colomboTimeZone)
-            val hour = calendar.get(Calendar.HOUR_OF_DAY)
-            if (hour !in 8..19) {
-                Log.d(TAG, "Device booted outside authorized working hours ($hour:00 Colombo). Will NOT start tracking.")
-                return
-            }
+        val prefs = context.getSharedPreferences("ddworld_native_gps", Context.MODE_PRIVATE)
+        val employeeId = prefs.getString("employeeId", "") ?: ""
+        val agentCode = prefs.getString("agentCode", "") ?: ""
+        val teamId = prefs.getString("teamId", "") ?: ""
+        val trackingSessionId = prefs.getString("trackingSessionId", "") ?: ""
+        val isAuthorized = prefs.getBoolean("isAuthorizedSessionActive", false)
 
-            Log.d(TAG, "Valid authorized session verified after boot ($trackingSessionId). Resuming native service.")
-            val serviceIntent = Intent(context, LocationTrackingService::class.java).apply {
-                this.action = LocationTrackingService.ACTION_START
-                putExtra(LocationTrackingService.EXTRA_EMPLOYEE_ID, employeeId)
-                putExtra(LocationTrackingService.EXTRA_AGENT_CODE, agentCode)
-                putExtra(LocationTrackingService.EXTRA_TEAM_ID, teamId)
-                putExtra(LocationTrackingService.EXTRA_SESSION_ID, trackingSessionId)
-            }
+        if (!isAuthorized || employeeId.isEmpty() || trackingSessionId.isEmpty()) {
+            Log.d(TAG, "No authorized active tracking session found after boot. Will NOT auto-start tracking.")
+            return
+        }
 
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Colombo"))
+        if (calendar.get(Calendar.HOUR_OF_DAY) !in 8..19) {
+            Log.d(TAG, "Device booted outside authorized working hours. Will NOT start tracking.")
+            return
+        }
+
+        Log.d(TAG, "Valid Firebase-authenticated tracking session verified after boot ($trackingSessionId). Resuming native service.")
+        val serviceIntent = Intent(context, LocationTrackingService::class.java).apply {
+            action = LocationTrackingService.ACTION_START
+            putExtra(LocationTrackingService.EXTRA_EMPLOYEE_ID, employeeId)
+            putExtra(LocationTrackingService.EXTRA_AGENT_CODE, agentCode)
+            putExtra(LocationTrackingService.EXTRA_TEAM_ID, teamId)
+            putExtra(LocationTrackingService.EXTRA_SESSION_ID, trackingSessionId)
+        }
+
+        try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(serviceIntent)
             } else {
                 context.startService(serviceIntent)
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to resume authenticated tracking after boot", e)
         }
     }
 }
