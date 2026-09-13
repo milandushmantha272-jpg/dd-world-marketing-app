@@ -63,7 +63,7 @@ service cloud.firestore {
              userDocData.role == 'owner' ||
              userDocData.role == 'MASTER_LEADER' ||
              userDocData.id == 'owner-1' ||
-             userDocData.email == 'd.d.worldmarketing1234@gmail.com';
+             userDocData.email == 'milandushmantha272@gmail.com';
     }
 
     function isRecentTimestamp(timestamp) {
