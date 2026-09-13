@@ -68,6 +68,16 @@ const requireActiveEmployee: express.RequestHandler = async (_req, res, next) =>
   }
 };
 
+const isOwnerRequest = (res: express.Response): boolean => {
+  const profile = res.locals.employeeProfile || {};
+  return profile.role === 'owner' || profile.role === 'MASTER_LEADER' || profile.id === 'owner-1';
+};
+
+const isSupervisorRequest = (res: express.Response): boolean => {
+  const profile = res.locals.employeeProfile || {};
+  return isOwnerRequest(res) || profile.role === 'team_leader' || profile.role === 'TEAM_SUPERVISOR';
+};
+
 const validateGpsRecord = (record: any) => {
   const latitude = Number(record?.latitude);
   const longitude = Number(record?.longitude);
@@ -112,6 +122,17 @@ const buildGpsDocument = (uid: string, record: any) => ({
   receivedAt: FieldValue.serverTimestamp(),
 });
 
+const collectionNames = [
+  'messages', 'attendance', 'sales', 'meetings', 'leaves', 'verifications',
+  'sms_logs', 'users', 'teams', 'ivr', 'location_logs', 'security_alerts',
+  'team_targets', 'agent_targets', 'weekly_reports'
+] as const;
+
+const readCollection = async (name: string, limit = 500) => {
+  const snapshot = await firestore.collection(name).limit(limit).get();
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+};
+
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
@@ -121,19 +142,135 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-const disabled = (_req: express.Request, res: express.Response) => {
-  res.status(410).json({
-    error: 'LEGACY_SYNC_DISABLED',
-    message: 'Use authenticated Firebase + Firestore data flows.',
-  });
-};
-app.get('/api/sync/state', disabled);
-app.post('/api/sync/broadcast', disabled);
-app.get('/api/stream', disabled);
+// Backward-compatible sync API. It is now authenticated and Firestore-backed;
+// there is no in-memory/disk cloud state source of truth.
+app.get('/api/sync/state', requireFirebaseUser, requireActiveEmployee, async (_req, res) => {
+  try {
+    const [messages, attendance, productSales, meetings, leaves, verifications, smsLogs, users, teams, ivr, locationLogs, securityAlerts, teamTargets, agentTargets, weeklyReports] = await Promise.all(
+      collectionNames.map((name) => readCollection(name)),
+    );
+    return res.json({
+      messages,
+      attendance,
+      productSales,
+      meetings,
+      leaves,
+      verifications,
+      smsLogs,
+      users,
+      teams,
+      ivr,
+      locationLogs,
+      securityAlerts,
+      teamTargets,
+      agentTargets,
+      weeklyReports,
+      updatedAt: new Date().toISOString(),
+      source: 'firestore',
+    });
+  } catch (error) {
+    console.error('Firestore sync state read failed:', error);
+    return res.status(503).json({ error: 'FIRESTORE_SYNC_READ_FAILED' });
+  }
+});
 
-// Exchange the short-lived web Firebase ID token for a native Firebase custom token.
-// The native Firebase SDK then owns refresh-token lifecycle and can refresh its ID token
-// while the background tracking service runs.
+const broadcastTypeToCollection: Record<string, string> = {
+  NEW_MESSAGE: 'messages',
+  ADD_ATTENDANCE: 'attendance',
+  ADD_SALE: 'sales',
+  UPDATE_USER_GPS: 'users',
+  CREATE_MEETING: 'meetings',
+  CANCEL_MEETING: 'meetings',
+  SUBMIT_LEAVE: 'leaves',
+  UPDATE_LEAVE: 'leaves',
+  ADD_EZCASH: 'ez_cash',
+  ADD_AGENT: 'users',
+  ADD_VERIFICATION: 'verifications',
+  ADD_SMS_LOG: 'sms_logs',
+  UPDATE_TEAM_TARGETS: 'team_targets',
+  UPDATE_AGENT_TARGETS: 'agent_targets',
+  ADD_COMPANY_WEEKLY_REPORT: 'weekly_reports',
+  UPDATE_EMPLOYMENT_STATUS: 'users',
+  UPDATE_JOB_POSITION: 'users',
+  APPROVE_EMPLOYEE_ID: 'users',
+  REJECT_EMPLOYEE_ID: 'users',
+  REQUEST_NEW_PHOTO: 'users',
+  SUBMIT_EMPLOYEE_PHOTO: 'users',
+};
+
+app.post('/api/sync/broadcast', requireFirebaseUser, requireActiveEmployee, async (req, res) => {
+  const { type, data } = req.body || {};
+  if (!type || data === undefined) return res.status(400).json({ error: 'SYNC_EVENT_REQUIRED' });
+
+  const collectionName = broadcastTypeToCollection[type];
+  if (!collectionName) return res.status(400).json({ error: 'UNSUPPORTED_SYNC_EVENT' });
+
+  const callerUid = String((res.locals.firebaseUser as DecodedIdToken).uid);
+  const actorIsOwner = isOwnerRequest(res);
+  const actorIsSupervisor = isSupervisorRequest(res);
+
+  const protectedOwnerEvents = new Set(['UPDATE_EMPLOYMENT_STATUS', 'UPDATE_JOB_POSITION', 'APPROVE_EMPLOYEE_ID', 'REJECT_EMPLOYEE_ID', 'REQUEST_NEW_PHOTO', 'SUBMIT_EMPLOYEE_PHOTO']);
+  if (protectedOwnerEvents.has(type) && !actorIsOwner) return res.status(403).json({ error: 'OWNER_ONLY' });
+  if (['ADD_AGENT', 'UPDATE_TEAM_TARGETS', 'UPDATE_AGENT_TARGETS', 'ADD_COMPANY_WEEKLY_REPORT'].includes(type) && !actorIsSupervisor) {
+    return res.status(403).json({ error: 'SUPERVISOR_REQUIRED' });
+  }
+
+  try {
+    if (type === 'START_CALL' || type === 'ACCEPT_CALL' || type === 'REJECT_CALL' || type === 'END_CALL') {
+      return res.json({ success: true, persisted: false, source: 'ephemeral-ui-event', userId: callerUid });
+    }
+
+    if (type === 'UPDATE_USER_GPS') {
+      const targetId = String(data.id || data.userId || '');
+      if (!targetId) return res.status(400).json({ error: 'USER_ID_REQUIRED' });
+      if (!actorIsOwner && targetId !== callerUid && data.userId !== callerUid) {
+        return res.status(403).json({ error: 'SELF_ONLY' });
+      }
+      await firestore.collection('users').doc(targetId).set({ ...data, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      return res.json({ success: true, persisted: true, source: 'firestore', userId: callerUid });
+    }
+
+    if (type === 'SYNC_USERS_LIST') {
+      if (!actorIsOwner) return res.status(403).json({ error: 'OWNER_ONLY' });
+      if (!Array.isArray(data) || data.length > 200) return res.status(400).json({ error: 'USER_LIST_REQUIRED' });
+      const batch = firestore.batch();
+      for (const user of data) {
+        const id = String(user?.id || '');
+        if (!id) continue;
+        batch.set(firestore.collection('users').doc(id), user, { merge: true });
+      }
+      await batch.commit();
+      return res.json({ success: true, persisted: true, source: 'firestore' });
+    }
+
+    const id = typeof data === 'object' && data !== null ? String(data.id || '') : '';
+    if (type === 'CANCEL_MEETING' && id) {
+      await firestore.collection('meetings').doc(id).set({ status: 'cancelled', cancelledAt: FieldValue.serverTimestamp() }, { merge: true });
+    } else if (id) {
+      await firestore.collection(collectionName).doc(id).set({ ...data, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    } else {
+      await firestore.collection(collectionName).add({ ...data, createdAt: FieldValue.serverTimestamp() });
+    }
+
+    return res.json({ success: true, persisted: true, source: 'firestore', userId: callerUid });
+  } catch (error) {
+    console.error('Firestore sync write failed:', error);
+    return res.status(503).json({ error: 'FIRESTORE_SYNC_WRITE_FAILED' });
+  }
+});
+
+// EventSource is kept as a non-sensitive connection heartbeat only. Cross-device
+// data delivery is provided by Firestore onSnapshot listeners.
+app.get('/api/stream', (_req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+  res.write(`data: ${JSON.stringify({ type: 'CONNECTED', source: 'firestore' })}\n\n`);
+  const heartbeat = setInterval(() => res.write(`data: ${JSON.stringify({ type: 'HEARTBEAT', timestamp: new Date().toISOString() })}\n\n`), 25000);
+  _req.on('close', () => clearInterval(heartbeat));
+});
+
 app.post('/api/native-auth/exchange', requireFirebaseUser, requireActiveEmployee, async (_req, res) => {
   const decoded = res.locals.firebaseUser as DecodedIdToken;
   try {
