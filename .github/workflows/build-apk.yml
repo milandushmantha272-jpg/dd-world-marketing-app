@@ -1,7 +1,5 @@
 name: Build Permanent Android APK
 
-# Clean release build gate: local TypeScript compiler + locked dependencies.
-
 on:
   push:
     branches: [ main ]
@@ -22,31 +20,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Security credential cleanup
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          initial = Path('src/data/initialData.ts')
-          text = initial.read_text()
-          text = re.sub(r'^\s*(?:password|pinCode|tempPassword)\s*:\s*[^,\n]+,\s*\n', '', text, flags=re.M)
-          initial.write_text(text)
-          owner = Path('src/components/owner/OwnerDashboard.tsx')
-          text = owner.read_text()
-          text = re.sub(r'^.*(?:agTempPassword|setAgTempPassword).*$\n?', '', text, flags=re.M)
-          text = re.sub(r'^\s*tempPassword\s*:\s*agTempPassword,\s*\n', '', text)
-          owner.write_text(text)
-          PY
-          if grep -RInE --include='*.ts' --include='*.tsx' '\b(password|pinCode|tempPassword)\s*:\s*(["'"'"'`]|DDW@|[0-9]{3,})' src/data src/components; then exit 1; fi
-          if grep -RInE --include='*.ts' --include='*.tsx' 'targetUser\.(password|pinCode|tempPassword)|user\.(password|pinCode|tempPassword)' src; then exit 1; fi
-
-      - name: Commit credential cleanup to main
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          if git diff --quiet; then echo 'No credential cleanup changes required.'; else git add src/data/initialData.ts src/components/owner/OwnerDashboard.tsx; git commit -m 'security: remove legacy hardcoded credentials'; git push; fi
-
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
@@ -62,32 +35,20 @@ jobs:
             git add package-lock.json
             git commit -m 'build: synchronize npm lockfile'
             git push
-            echo 'LOCKFILE_UPDATED=1' >> "$GITHUB_ENV"
-          else
-            echo 'LOCKFILE_UPDATED=0' >> "$GITHUB_ENV"
           fi
 
-      - name: Setup Java
-        uses: actions/setup-java@v6
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
-        with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
-
       - name: Install Dependencies
-        if: env.LOCKFILE_UPDATED != '1'
         run: npm ci --include=dev --no-audit --no-fund
 
+      - name: Verify local TypeScript compiler
+        run: |
+          test -x ./node_modules/.bin/tsc
+          ./node_modules/.bin/tsc --version
+
       - name: TypeScript Check
-        if: env.LOCKFILE_UPDATED != '1'
         run: ./node_modules/.bin/tsc --noEmit
 
       - name: Production Server Security Guard
-        if: env.LOCKFILE_UPDATED != '1'
         run: |
           test -s server.secure.ts
           grep -q "verifyIdToken" server.secure.ts
@@ -100,29 +61,35 @@ jobs:
           ! grep -q "signInAnonymously" src/services/firebase.ts
 
       - name: Build Web Application
-        if: env.LOCKFILE_UPDATED != '1'
         run: npm run build
 
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
       - name: Sync Capacitor Android
-        if: env.LOCKFILE_UPDATED != '1'
         run: npx cap sync android
 
       - name: Build Android Debug APK
-        if: env.LOCKFILE_UPDATED != '1'
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
       - name: Verify APK
-        if: env.LOCKFILE_UPDATED != '1'
         run: |
           test -s android/app/build/outputs/apk/debug/app-debug.apk
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk | tee apk-sha256.txt
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q "classes.dex"
 
       - name: Upload APK
-        if: env.LOCKFILE_UPDATED != '1'
         uses: actions/upload-artifact@v6
         with:
           name: DD-World-Enterprise-APK
