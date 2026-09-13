@@ -16,8 +16,6 @@ const firebaseAdminApp = getApps().length
   : initializeApp({ credential: applicationDefault() });
 const adminAuth = getAuth(firebaseAdminApp);
 
-// DD WORLD uses a named Firestore database. Keep the ID configurable for
-// deployments while retaining the production database as the safe default.
 const FIRESTORE_DATABASE_ID =
   process.env.FIRESTORE_DATABASE_ID ||
   'ai-studio-ddworldmarketing-a17f9096-827d-46aa-b4ce-ba3e4657b367';
@@ -132,6 +130,19 @@ const disabled = (_req: express.Request, res: express.Response) => {
 app.get('/api/sync/state', disabled);
 app.post('/api/sync/broadcast', disabled);
 app.get('/api/stream', disabled);
+
+// Exchange the short-lived web Firebase ID token for a native Firebase custom token.
+// The native Firebase SDK then owns refresh-token lifecycle and can refresh its ID token
+// while the background tracking service runs.
+app.post('/api/native-auth/exchange', requireFirebaseUser, requireActiveEmployee, async (_req, res) => {
+  const decoded = res.locals.firebaseUser as DecodedIdToken;
+  try {
+    const customToken = await adminAuth.createCustomToken(decoded.uid, { ddWorldNative: true });
+    return res.json({ success: true, customToken });
+  } catch {
+    return res.status(500).json({ error: 'NATIVE_TOKEN_EXCHANGE_FAILED' });
+  }
+});
 
 app.post('/api/native-gps-sync', requireFirebaseUser, requireActiveEmployee, async (req, res) => {
   const record = req.body || {};
