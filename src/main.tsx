@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
+import './security/authenticatedFetch';
 import { registerSW } from 'virtual:pwa-register';
 
 // Initialize PWA Service Worker for offline asset caching & background sync
