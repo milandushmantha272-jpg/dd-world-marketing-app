@@ -15,10 +15,10 @@ class BootReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        val action = intent.action
-        Log.d(TAG, "BootReceiver triggered with action: $action")
+        val incomingAction = intent.action
+        Log.d(TAG, "BootReceiver triggered with action: $incomingAction")
 
-        if (Intent.ACTION_BOOT_COMPLETED != action && action != "android.intent.action.MY_PACKAGE_REPLACED") return
+        if (Intent.ACTION_BOOT_COMPLETED != incomingAction && incomingAction != "android.intent.action.MY_PACKAGE_REPLACED") return
 
         val auth = NativeFirebaseAuth.auth(context)
         if (auth.currentUser == null) {
@@ -46,7 +46,7 @@ class BootReceiver : BroadcastReceiver() {
 
         Log.d(TAG, "Valid Firebase-authenticated tracking session verified after boot ($trackingSessionId). Resuming native service.")
         val serviceIntent = Intent(context, LocationTrackingService::class.java).apply {
-            action = LocationTrackingService.ACTION_START
+            this.action = LocationTrackingService.ACTION_START
             putExtra(LocationTrackingService.EXTRA_EMPLOYEE_ID, employeeId)
             putExtra(LocationTrackingService.EXTRA_AGENT_CODE, agentCode)
             putExtra(LocationTrackingService.EXTRA_TEAM_ID, teamId)
