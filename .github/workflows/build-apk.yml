@@ -49,19 +49,6 @@ jobs:
           ! grep -q "let cloudState" server.secure.ts
           ! grep -q "signInAnonymously" src/services/firebase.ts
 
-      - name: Verify Android Signing Certificate
-        run: |
-          set -euo pipefail
-          test -s android/gradlew
-          chmod +x android/gradlew
-          cd android
-          ./gradlew signingReport --no-daemon | tee ../signing-report.txt
-          echo "=== ACTUAL SIGNING CERTIFICATE FINGERPRINTS ==="
-          awk '/Variant: debug/{flag=1} flag && /SHA1:/{print "SHA-1: "$2} flag && /SHA-256:/{print "SHA-256: "$2; flag=0}' ../signing-report.txt
-          test -s ../signing-report.txt
-          grep -Eiq 'SHA1:|SHA-1:' ../signing-report.txt
-          grep -Eiq 'SHA-256:' ../signing-report.txt
-
       - name: Build Web Application
         run: npm run build
 
@@ -86,10 +73,26 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
+      - name: Extract Actual Signing Certificate Fingerprints
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --print-certs "$APK" | tee signing-certificate.txt
+          SHA1="$(awk -F': ' '/Signer #1 certificate SHA-1 digest:/ {print $2; exit}' signing-certificate.txt)"
+          SHA256="$(awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print $2; exit}' signing-certificate.txt)"
+          test -n "$SHA1"
+          test -n "$SHA256"
+          printf 'SHA-1: %s\nSHA-256: %s\n' "$SHA1" "$SHA256" | tee signing-fingerprints.txt
+
       - name: Verify APK
         run: |
           test -s android/app/build/outputs/apk/debug/app-debug.apk
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk | tee apk-sha256.txt
+          test -s signing-fingerprints.txt
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q "classes.dex"
 
       - name: Upload APK
@@ -99,5 +102,6 @@ jobs:
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             apk-sha256.txt
-            signing-report.txt
+            signing-certificate.txt
+            signing-fingerprints.txt
           if-no-files-found: error
