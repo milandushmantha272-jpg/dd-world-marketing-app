@@ -9,7 +9,7 @@ export const isOwnerDoc = (user: any, targetId?: string): boolean => {
   const id = user?.id || targetId;
   const role = user?.role;
   const email = String(user?.email || '').trim().toLowerCase();
-  return id === 'owner-1' || targetId === 'owner-1' || role === 'owner' || role === 'MASTER_LEADER' || email === 'd.d.worldmarketing123@gmail.com' || email === 'owner@ddworld.local';
+  return id === 'owner-1' || targetId === 'owner-1' || role === 'owner' || role === 'MASTER_LEADER' || email === 'milandushmantha272@gmail.com' || email === 'owner@ddworld.local';
 };
 
 interface DataContextType {
