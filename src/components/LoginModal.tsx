@@ -5,6 +5,7 @@ import { useData } from '../context/DataContext';
 import { UserRole } from '../types';
 import { DdWorldLogo } from './common/DdWorldLogo';
 import { safeStorage } from '../utils/safeStorage';
+import { OWNER_EMAIL } from '../config/owner';
 
 const blockedStatuses = new Set(['BLOCKED', 'SUSPENDED', 'EXITED', 'TEMPORARY_SUSPENDED', 'RESIGNED', 'TERMINATED', 'blocked']);
 const roleMeta: Record<UserRole, { label: string; icon: React.ElementType }> = {
@@ -21,16 +22,36 @@ export const LoginModal: React.FC = () => {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault(); setError('');
     const value = identifier.trim().toLowerCase();
-    if (!value || !password.trim()) { setError('Employee ID / Agent Code / Email සහ Firebase Password දෙකම ඇතුළත් කරන්න.'); return; }
-    const target = users.find((user) => user.id.toLowerCase() === value || user.agentCode?.trim().toLowerCase() === value || user.employeeId?.trim().toLowerCase() === value || user.email?.trim().toLowerCase() === value);
-    if (!target) { setError('Employee account එක හමු නොවීය.'); return; }
-    if (target.role !== selectedRole) { setError(`මෙම account එක ${roleMeta[target.role]?.label || target.role} role එකට අයත්ය.`); return; }
-    if (blockedStatuses.has(String(target.employmentStatus || '')) || target.status === 'blocked') { setError('මෙම account එක Owner විසින් BLOCK / SUSPEND / EXIT කර ඇත. Login denied.'); return; }
-    if (!target.email?.trim()) { setError('මෙම account එකට Firebase email එකක් සකසා නැත.'); return; }
+    const cleanPassword = password.trim();
+    if (!value || !cleanPassword) { setError('Employee ID / Agent Code / Email සහ Firebase Password දෙකම ඇතුළත් කරන්න.'); return; }
+
+    // Existing employee records are still used for fast local validation, but
+    // Owner email login is intentionally allowed to proceed to Firebase Auth
+    // even when the Firestore users collection has no matching document yet.
+    const target = users.find((user) =>
+      user.id.toLowerCase() === value ||
+      user.agentCode?.trim().toLowerCase() === value ||
+      user.employeeId?.trim().toLowerCase() === value ||
+      user.email?.trim().toLowerCase() === value,
+    );
+
+    if (!target && !value.includes('@')) { setError('Employee account එක හමු නොවීය.'); return; }
+    if (target && target.role !== selectedRole) { setError(`මෙම account එක ${roleMeta[target.role]?.label || target.role} role එකට අයත්ය.`); return; }
+    if (target && (blockedStatuses.has(String(target.employmentStatus || '')) || target.status === 'blocked')) {
+      setError('මෙම account එක Owner විසින් BLOCK / SUSPEND / EXIT කර ඇත. Login denied.');
+      return;
+    }
+    if (target && !target.email?.trim()) { setError('මෙම employee account එකට Firebase email එකක් සකසා නැත.'); return; }
+
     setBusy(true);
-    try { await login(target.id, password.trim()); safeStorage.setItem('ddworld_last_login_id', target.id); }
-    catch (err: any) { setError(err?.message || 'Firebase authentication අසාර්ථකයි.'); }
-    finally { setBusy(false); }
+    try {
+      // Firebase Authentication is attempted first. For the configured Owner
+      // email this no longer depends on an old/local Firestore email record.
+      await login(value === OWNER_EMAIL ? OWNER_EMAIL : (target?.id || value), cleanPassword, selectedRole);
+      safeStorage.setItem('ddworld_last_login_id', target?.id || value);
+    } catch (err: any) {
+      setError(err?.message || 'Firebase authentication අසාර්ථකයි.');
+    } finally { setBusy(false); }
   };
 
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 p-4 backdrop-blur-md overflow-y-auto">
@@ -41,7 +62,7 @@ export const LoginModal: React.FC = () => {
       <div className="mb-5 grid grid-cols-4 gap-1 rounded-xl bg-slate-950 p-1">
         {(Object.keys(roleMeta) as UserRole[]).map((role) => { const Icon = roleMeta[role].icon; const selected = selectedRole === role; return <button key={role} type="button" onClick={() => { setSelectedRole(role); setError(''); }} className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-[10px] font-bold transition ${selected ? 'bg-red-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-label={`Login as ${roleMeta[role].label}`}><Icon className="h-4 w-4" />{roleMeta[role].label}</button>; })}
       </div>
-      {selectedRole === 'owner' && <div className="mb-4 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-100"><b>First-time Owner login:</b> use the Owner Firebase email and the Firebase password created in Firebase Authentication. Local/demo passwords are not authentication credentials.</div>}
+      {selectedRole === 'owner' && <div className="mb-4 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-100"><b>First-time Owner login:</b> use the configured Owner Firebase email and the Firebase password created in Firebase Authentication. If the Owner employee profile is missing, it will be securely bootstrapped after Firebase Auth succeeds.</div>}
       {selectedRole === 'dialog_officer' && <div className="mb-4 rounded-xl border border-purple-500/30 bg-purple-500/10 p-3 text-xs text-purple-100"><b>Dialog Officer:</b> active Owner-approved employee + Firebase Authentication required. Login opens the restricted Officer ↔ Owner work portal.</div>}
       <form onSubmit={submit} className="space-y-4">
         <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-300">Employee ID / Agent Code / Email</span><input value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-red-500" placeholder="Enter employee identifier" /></label>
