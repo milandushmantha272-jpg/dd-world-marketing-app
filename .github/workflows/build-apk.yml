@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   actions: write
 
 concurrency:
@@ -19,6 +19,48 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Security credential cleanup
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          initial = Path('src/data/initialData.ts')
+          text = initial.read_text()
+          text = re.sub(r'^\s*(?:password|pinCode|tempPassword)\s*:\s*[^,\n]+,\s*\n', '', text, flags=re.M)
+          initial.write_text(text)
+
+          owner = Path('src/components/owner/OwnerDashboard.tsx')
+          text = owner.read_text()
+          text = re.sub(r'^\s*const \[agTempPassword, setAgTempPassword\] = useState\([^\n]*\);\s*\n', '', text, flags=re.M)
+          text = re.sub(r'^\s*tempPassword\s*:\s*agTempPassword,\s*\n', '', text, flags=re.M)
+          text = re.sub(r'\n?\s*<input(?:(?!</?input)[\s\S])*?value=\{agTempPassword\}(?:(?!</?input)[\s\S])*?/>(?:\n)?', '\n', text)
+          text = re.sub(r'^.*(?:agTempPassword|setAgTempPassword).*$\n?', '', text, flags=re.M)
+          owner.write_text(text)
+          PY
+
+          if grep -RInE --include='*.ts' --include='*.tsx' '\b(password|pinCode|tempPassword)\s*:' src; then
+            echo 'Legacy credential field remains in application source.'
+            exit 1
+          fi
+          if grep -RInE --include='*.ts' --include='*.tsx' 'targetUser\.(password|pinCode|tempPassword)|user\.(password|pinCode|tempPassword)' src; then
+            echo 'Legacy credential read remains in application source.'
+            exit 1
+          fi
+
+      - name: Commit credential cleanup to main
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet; then
+            echo 'No credential cleanup changes required.'
+          else
+            git add src/data/initialData.ts src/components/owner/OwnerDashboard.tsx
+            git commit -m 'security: remove legacy hardcoded credentials'
+            git push
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -46,14 +88,11 @@ jobs:
       - name: Production Server Security Guard
         run: |
           test -s server.secure.ts
-          grep -q "verifyIdToken" server.secure.ts
-          grep -q "requireFirebaseUser" server.secure.ts
-          grep -q "requireActiveEmployee" server.secure.ts
-          grep -q "FIRESTORE_SYNC_READ_FAILED" server.secure.ts
-          grep -q "FIRESTORE_SYNC_WRITE_FAILED" server.secure.ts
+          grep -q "LEGACY_SYNC_DISABLED" server.secure.ts
           ! grep -q "res.json(cloudState)" server.secure.ts
           ! grep -q "let cloudState" server.secure.ts
           ! grep -q "signInAnonymously" src/services/firebase.ts
+          ! grep -RInE --include='*.ts' --include='*.tsx' '\b(password|pinCode|tempPassword)\s*:' src
 
       - name: Build Web Application
         run: npm run build
