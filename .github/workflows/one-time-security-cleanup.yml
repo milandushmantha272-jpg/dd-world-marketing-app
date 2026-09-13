@@ -1,0 +1,54 @@
+name: One-time security cleanup
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: ${{ !contains(github.event.head_commit.message, 'one-time security cleanup') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Remove legacy plaintext password fallback
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/context/DataContext.tsx')
+          s = p.read_text()
+          old = "tempPassword: data.tempPassword || 'ddworld@2026',"
+          new = "tempPassword: data.tempPassword,"
+          if old in s:
+              p.write_text(s.replace(old, new))
+              print('Removed legacy default password fallback')
+          else:
+              print('Legacy default password fallback already absent')
+          PY
+
+      - name: Commit and push cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/context/DataContext.tsx
+          if git diff --cached --quiet; then
+            echo "No cleanup changes needed"
+            exit 0
+          fi
+          git commit -m "security: one-time security cleanup"
+          git push
+
+      - name: Remove one-time workflow
+        if: ${{ success() }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/one-time-security-cleanup.yml
+          git commit -m "chore: remove one-time security cleanup workflow"
+          git push
