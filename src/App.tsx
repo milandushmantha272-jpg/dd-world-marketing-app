@@ -41,6 +41,7 @@ const GlobalCallContainer: React.FC = () => {
 
 const AppContent: React.FC = () => {
   const { currentUser } = useAuth();
+  const { dataError, retryData } = useData();
   const [updateNotice, setUpdateNotice] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -68,6 +69,25 @@ const AppContent: React.FC = () => {
   }, [currentUser]);
 
   if (!currentUser) return <LoginModal />;
+
+  if (dataError) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
+        <div className="w-full max-w-lg rounded-2xl border border-red-500/30 bg-slate-900 p-6 shadow-2xl">
+          <div className="text-2xl font-extrabold mb-2">DD WORLD data connection</div>
+          <p className="text-sm text-slate-300 leading-6">{dataError}</p>
+          <button
+            type="button"
+            onClick={retryData}
+            className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 font-bold hover:bg-blue-500 active:scale-[0.99]"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (currentUser.role === 'dialog_officer') return <><DialogOfficerPortal /><WeeklySalesSheetWorkflow /><OfflineIndicator /></>;
 
   return (
