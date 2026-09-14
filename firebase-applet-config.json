@@ -1,12 +1,9 @@
 {
-  "projectId": "phat-osprey-d6shk",
-  "appId": "1:869043614850:web:9141f9c27184846c94b09b",
-  "apiKey": "AIzaSyCz-5puonwrxk9NldOkvhuzz4qagDRbWGc",
-  "authDomain": "phat-osprey-d6shk.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-ddworldmarketing-a17f9096-827d-46aa-b4ce-ba3e4657b367",
-  "storageBucket": "phat-osprey-d6shk.firebasestorage.app",
-  "messagingSenderId": "869043614850",
-  "measurementId": "",
-  "oAuthClientId": "869043614850-e45bb6s9acfcarovnlceggbhi0bue7ne.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "apiKey": "AIzaSyB8ejwv1W5KYHUAbfGb7LoSV2C3DC_oQmE",
+  "authDomain": "dd-world-app-dushmantha.firebaseapp.com",
+  "projectId": "dd-world-app-dushmantha",
+  "storageBucket": "dd-world-app-dushmantha.firebasestorage.app",
+  "messagingSenderId": "1031838170425",
+  "appId": "1:1031838170425:web:cf3905ca9d59870db23ce8",
+  "measurementId": "G-K56HHKSY0E"
 }
