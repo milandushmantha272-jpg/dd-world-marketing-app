@@ -53,13 +53,40 @@ export async function bootstrapOwnerProfileIfMissing(authUser: { id: string; ema
   const email = authUser.email?.trim().toLowerCase() || '';
   if (email !== OWNER_EMAIL) return null;
 
-  const { data: existing, error: lookupError } = await supabase
+  // First try the auth_user_id. If the Owner employee row was pre-created
+  // before the Supabase Auth account existed, claim that row by its email.
+  const { data: byAuthId, error: authLookupError } = await supabase
     .from('users')
     .select('*')
     .eq('auth_user_id', authUser.id)
     .maybeSingle();
-  if (lookupError) throw lookupError;
-  if (existing) return toAppUser(existing, authUser.id);
+  if (authLookupError) throw authLookupError;
+  if (byAuthId) return toAppUser(byAuthId, authUser.id);
+
+  const { data: byEmail, error: emailLookupError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', OWNER_EMAIL)
+    .maybeSingle();
+  if (emailLookupError) throw emailLookupError;
+
+  if (byEmail) {
+    const { data, error } = await supabase
+      .from('users')
+      .update({
+        auth_user_id: authUser.id,
+        name: OWNER_NAME,
+        role: 'owner',
+        status: 'active',
+        employment_status: 'ACTIVE',
+        id_approval_status: 'APPROVED',
+      })
+      .eq('id', byEmail.id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return toAppUser(data, authUser.id);
+  }
 
   const { data, error } = await supabase
     .from('users')
