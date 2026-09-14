@@ -49,6 +49,22 @@ jobs:
           ! grep -q "let cloudState" server.secure.ts
           ! grep -q "signInAnonymously" src/services/firebase.ts
 
+      - name: Verify Firebase deployment configuration
+        run: |
+          test -s firebase.json
+          test -s .firebaserc
+          grep -q '"rules": "firestore.rules"' firebase.json
+          grep -q 'dd-world-app-dushmantha' .firebaserc
+          test -s firestore.rules
+          grep -q "function isActiveEmployee()" firestore.rules
+
+      - name: Deploy Firestore Security Rules
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          test -n "$FIREBASE_TOKEN" || { echo "FIREBASE_TOKEN GitHub secret is required for Firebase rules deployment."; exit 1; }
+          npx --yes firebase-tools@latest deploy --only firestore:rules --project dd-world-app-dushmantha --token "$FIREBASE_TOKEN"
+
       - name: Build Web Application
         run: npm run build
 
@@ -84,8 +100,6 @@ jobs:
           test -x "$APKSIGNER" || exit 1
           "$APKSIGNER" verify --print-certs "$APK" | tee signing-certificate.txt
 
-          # Keep extraction non-fatal: APK build/verification/upload must not be
-          # blocked by a formatting/parser mismatch in this informational step.
           SHA1="$(sed -n 's/^[[:space:]]*Signer #1 certificate SHA-1 digest:[[:space:]]*//p' signing-certificate.txt | head -n 1 | tr -d '[:space:]')"
           SHA256="$(sed -n 's/^[[:space:]]*Signer #1 certificate SHA-256 digest:[[:space:]]*//p' signing-certificate.txt | head -n 1 | tr -d '[:space:]')"
 
