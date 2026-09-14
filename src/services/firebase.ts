@@ -9,15 +9,15 @@ import { doc, getDoc, getFirestore, setDoc } from 'firebase/firestore';
 import type { User } from '../types';
 import { OWNER_AGENT_CODE, OWNER_EMAIL, OWNER_NAME } from '../config/owner';
 
-// Keep the Firebase configuration explicit so runtime environment injection
-// or a stale JSON config cannot silently select a different Firebase project.
+// Exact Firebase configuration from the DD WORLD web app in
+// Firebase project: dd-world-app-dushmsntha.
 const firebaseConfig = {
   apiKey: 'AIzaSyB8ejwv1W5KYHUAbfGb7LoSV2C3DC_oQmE',
   authDomain: 'dd-world-app-dushmsntha.firebaseapp.com',
   projectId: 'dd-world-app-dushmsntha',
   storageBucket: 'dd-world-app-dushmsntha.firebasestorage.app',
-  messagingSenderId: '1033388701049',
-  appId: '1:1033388701049:web:c6e5f1f1d1d81bc0',
+  messagingSenderId: '1031838170425',
+  appId: '1:1031838170425:web:cf3905ca9d59870db23ce8',
 };
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
