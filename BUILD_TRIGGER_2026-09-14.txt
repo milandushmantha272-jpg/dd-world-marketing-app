@@ -1,0 +1,2 @@
+Build trigger after Firebase Auth configuration fix.
+The Android native Firebase configuration was aligned with the DD WORLD Firebase project before this build.
