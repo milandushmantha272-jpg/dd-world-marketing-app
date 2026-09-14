@@ -13,6 +13,8 @@ import { OWNER_EMAIL } from '../config/owner';
 
 interface AuthContextType {
   currentUser: User | null;
+  authError: string | null;
+  retryAuth: () => Promise<void>;
   login: (userOrId: User | string, password?: string, expectedRole?: UserRole) => Promise<void>;
   loginAsUser: (userOrId: User | string, password?: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -28,20 +30,39 @@ const isBlockedUser = (user: User) =>
 
 const isApprovedActiveEmployee = (user: User) => {
   const employmentStatus = user.employmentStatus || (user.status === 'blocked' ? 'BLOCKED' : 'ACTIVE');
-
-  // Owner is the ultimate authority. Existing Owner documents from before the
-  // employee-approval fields were introduced remain valid when ACTIVE.
-  if (user.role === 'owner') {
-    return employmentStatus === 'ACTIVE' && user.status !== 'blocked';
-  }
-
+  if (user.role === 'owner') return employmentStatus === 'ACTIVE' && user.status !== 'blocked';
   const approvalStatus = user.idApprovalStatus || 'PENDING';
   return employmentStatus === 'ACTIVE' && approvalStatus === 'APPROVED' && user.status !== 'blocked';
+};
+
+const formatAuthError = (error: unknown): string => {
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code || '')
+    : '';
+  const raw = error instanceof Error ? error.message : String(error || 'Unknown error');
+
+  if (code === 'permission-denied' || code === 'firestore/permission-denied' || /permission[- ]denied/i.test(raw)) {
+    return 'Firestore permission denied: Owner bootstrap සඳහා Firebase Firestore Security Rules නිවැරදිව deploy කර තිබේදැයි පරීක්ෂා කරන්න.';
+  }
+  if (/failed-precondition|database.*not.*found|cloud firestore.*not.*enabled/i.test(raw)) {
+    return 'Firestore database එක සූදානම් නැත. Firebase Console එකේ Cloud Firestore database එක create/enable කර තිබේදැයි පරීක්ෂා කරන්න.';
+  }
+  if (/network|offline|unavailable/i.test(raw)) {
+    return 'Firebase/Firestore connection එක ලබාගත නොහැක. Internet connection එක පරීක්ෂා කර Retry කරන්න.';
+  }
+  return `Login authorization/bootstrap failed: ${raw}`;
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { users, updateUserAppStatus } = useData();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authChecking, setAuthChecking] = useState(true);
+
+  const clearSession = () => {
+    setCurrentUser(null);
+    safeStorage.removeItem('ddworld_current_user_v2');
+  };
 
   const establishAuthorizedSession = async (firebaseUid: string): Promise<User> => {
     const firebaseUser = auth.currentUser;
@@ -49,18 +70,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (!firebaseUser.emailVerified) {
       await signOutFirebase();
-      setCurrentUser(null);
-      safeStorage.removeItem('ddworld_current_user_v2');
+      clearSession();
       throw new Error('Firebase email verification සම්පූර්ණ කළ පසු පමණක් login විය හැක.');
     }
 
-    // Firebase Auth proves the credential. The UID-keyed Firestore profile is
-    // then loaded; Owner-only first-login bootstrap is handled in firebase.ts.
     const firestoreProfile = await getAuthenticatedEmployeeProfile(firebaseUser);
     if (isBlockedUser(firestoreProfile) || !isApprovedActiveEmployee(firestoreProfile)) {
       await signOutFirebase();
-      setCurrentUser(null);
-      safeStorage.removeItem('ddworld_current_user_v2');
+      clearSession();
       throw new Error('Owner approval සහ ACTIVE employee status නොමැති account එකකට access ලබා නොදේ.');
     }
 
@@ -89,22 +106,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return authorizedProfile;
   };
 
+  const retryAuth = async () => {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) {
+      setAuthError('Firebase login session එක නොමැත. නැවත login කරන්න.');
+      setAuthChecking(false);
+      return;
+    }
+    setAuthChecking(true);
+    setAuthError(null);
+    try {
+      await establishAuthorizedSession(firebaseUser.uid);
+    } catch (error) {
+      console.warn('Firebase employee authorization retry failed:', error);
+      clearSession();
+      setAuthError(formatAuthError(error));
+    } finally {
+      setAuthChecking(false);
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {
-        setCurrentUser(null);
-        safeStorage.removeItem('ddworld_current_user_v2');
+        clearSession();
+        setAuthError(null);
+        setAuthChecking(false);
         return;
       }
 
-      // Do not wait for the users collection. A first-time Owner may have no
-      // Firestore employee document yet and must be able to bootstrap it.
+      setAuthChecking(true);
+      setAuthError(null);
       try {
         await establishAuthorizedSession(firebaseUser.uid);
       } catch (error) {
         console.warn('Firebase employee authorization rejected:', error);
-        setCurrentUser(null);
-        safeStorage.removeItem('ddworld_current_user_v2');
+        clearSession();
+        setAuthError(formatAuthError(error));
+      } finally {
+        setAuthChecking(false);
       }
     });
 
@@ -129,56 +169,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [users, currentUser]);
 
   const login = async (userOrId: User | string, password?: string, expectedRole?: UserRole) => {
-    let targetUser: User | undefined;
-    let credentialEmail = '';
+    setAuthError(null);
+    setAuthChecking(true);
+    try {
+      let targetUser: User | undefined;
+      let credentialEmail = '';
 
-    if (typeof userOrId === 'string') {
-      const cleanInput = userOrId.trim().toLowerCase();
-      targetUser = users.find(
-        (user) =>
-          user.id.toLowerCase() === cleanInput ||
-          user.agentCode?.trim().toLowerCase() === cleanInput ||
-          user.employeeId?.trim().toLowerCase() === cleanInput ||
-          user.email?.trim().toLowerCase() === cleanInput,
-      );
+      if (typeof userOrId === 'string') {
+        const cleanInput = userOrId.trim().toLowerCase();
+        targetUser = users.find(
+          (user) =>
+            user.id.toLowerCase() === cleanInput ||
+            user.agentCode?.trim().toLowerCase() === cleanInput ||
+            user.employeeId?.trim().toLowerCase() === cleanInput ||
+            user.email?.trim().toLowerCase() === cleanInput,
+        );
+        if (!targetUser && cleanInput.includes('@')) credentialEmail = cleanInput;
+      } else {
+        targetUser = userOrId;
+      }
 
-      // Owner first login must not depend on the local/Firestore users list.
-      // This also removes the stale old-email lookup as a prerequisite for Auth.
-      if (!targetUser && cleanInput.includes('@')) credentialEmail = cleanInput;
-    } else {
-      targetUser = userOrId;
-    }
+      if (!targetUser && !credentialEmail) throw new Error('DD World employee account was not found.');
+      if (targetUser && !targetUser.email?.trim()) throw new Error('මෙම employee account එකට Firebase email එකක් සකසා නැත.');
+      if (!password) throw new Error('Firebase Password එක අවශ්‍යයි.');
 
-    if (!targetUser && !credentialEmail) throw new Error('DD World employee account was not found.');
-    if (targetUser && !targetUser.email?.trim()) throw new Error('මෙම employee account එකට Firebase email එකක් සකසා නැත.');
-    if (!password) throw new Error('Firebase Password එක අවශ්‍යයි.');
+      credentialEmail = credentialEmail || targetUser!.email!.trim().toLowerCase();
+      const firebaseUser = await signInWithEmployeeCredentials(credentialEmail, password);
+      const authorizedProfile = await establishAuthorizedSession(firebaseUser.uid);
 
-    credentialEmail = credentialEmail || targetUser!.email!.trim().toLowerCase();
-    const firebaseUser = await signInWithEmployeeCredentials(credentialEmail, password);
-    const authorizedProfile = await establishAuthorizedSession(firebaseUser.uid);
+      if (expectedRole && authorizedProfile.role !== expectedRole) {
+        await signOutFirebase();
+        clearSession();
+        throw new Error(`මෙම account එක ${authorizedProfile.role} role එකට අයත්ය.`);
+      }
 
-    if (expectedRole && authorizedProfile.role !== expectedRole) {
-      await signOutFirebase();
-      setCurrentUser(null);
-      safeStorage.removeItem('ddworld_current_user_v2');
-      throw new Error(`මෙම account එක ${authorizedProfile.role} role එකට අයත්ය.`);
-    }
-
-    // The configured Owner email is accepted directly by Firebase Auth even
-    // when no local/Firestore employee lookup record existed before login.
-    if (credentialEmail === OWNER_EMAIL && authorizedProfile.role !== 'owner') {
-      await signOutFirebase();
-      setCurrentUser(null);
-      safeStorage.removeItem('ddworld_current_user_v2');
-      throw new Error('Configured Owner Firebase account එක Owner role එකක් නොවේ.');
+      if (credentialEmail === OWNER_EMAIL && authorizedProfile.role !== 'owner') {
+        await signOutFirebase();
+        clearSession();
+        throw new Error('Configured Owner Firebase account එක Owner role එකක් නොවේ.');
+      }
+    } catch (error) {
+      console.warn('DD World login failed:', error);
+      clearSession();
+      setAuthError(formatAuthError(error));
+      throw error;
+    } finally {
+      setAuthChecking(false);
     }
   };
 
   const loginAsUser = async (userOrId: User | string, password?: string) => login(userOrId, password);
 
   const logout = async () => {
-    setCurrentUser(null);
-    safeStorage.removeItem('ddworld_current_user_v2');
+    clearSession();
     try {
       await signOutFirebase();
     } catch (error) {
@@ -186,8 +229,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const authFailureView = authError && !currentUser ? (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#000', color: '#fff', fontFamily: 'sans-serif' }}>
+      <div style={{ width: '100%', maxWidth: 560, padding: 28, border: '1px solid #444', borderRadius: 16, background: '#111', boxSizing: 'border-box' }}>
+        <h2 style={{ marginTop: 0 }}>DD WORLD — Login / Firebase Error</h2>
+        <p style={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{authError}</p>
+        <button
+          type="button"
+          onClick={() => void retryAuth()}
+          disabled={authChecking}
+          style={{ marginTop: 12, padding: '12px 20px', borderRadius: 10, border: 0, cursor: authChecking ? 'wait' : 'pointer' }}
+        >
+          {authChecking ? 'Retrying…' : 'Retry'}
+        </button>
+      </div>
+    </div>
+  ) : null;
+
+  if (authFailureView) return authFailureView;
+
   return (
-    <AuthContext.Provider value={{ currentUser, login, loginAsUser, logout }}>
+    <AuthContext.Provider value={{ currentUser, authError, retryAuth, login, loginAsUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
