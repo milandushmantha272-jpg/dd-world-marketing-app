@@ -45,7 +45,7 @@ class LocationTrackingService : Service() {
         const val EXTRA_AGENT_CODE = "extra_agent_code"
         const val EXTRA_TEAM_ID = "extra_team_id"
         const val EXTRA_SESSION_ID = "extra_session_id"
-        const val EXTRA_FIREBASE_CUSTOM_TOKEN = "extra_firebase_custom_token"
+        const val EXTRA_SUPABASE_ACCESS_TOKEN = "extra_supabase_access_token"
 
         @Volatile
         var isServiceRunning = false
@@ -58,8 +58,8 @@ class LocationTrackingService : Service() {
     private var agentCode: String = ""
     private var teamId: String = ""
     private var trackingSessionId: String = ""
-    private var firebaseCustomToken: String = ""
-    private var firebaseAuthReady = false
+    private var supabaseAccessToken: String = ""
+    private var authReady = false
 
     override fun onCreate() {
         super.onCreate()
@@ -82,7 +82,7 @@ class LocationTrackingService : Service() {
         agentCode = intent?.getStringExtra(EXTRA_AGENT_CODE) ?: getSavedPref("agentCode")
         teamId = intent?.getStringExtra(EXTRA_TEAM_ID) ?: getSavedPref("teamId")
         trackingSessionId = intent?.getStringExtra(EXTRA_SESSION_ID) ?: getSavedPref("trackingSessionId")
-        firebaseCustomToken = intent?.getStringExtra(EXTRA_FIREBASE_CUSTOM_TOKEN) ?: ""
+        supabaseAccessToken = intent?.getStringExtra(EXTRA_SUPABASE_ACCESS_TOKEN) ?: getSavedPref("supabaseAccessToken")
 
         if (employeeId.isNotEmpty()) {
             savePref("employeeId", employeeId)
@@ -90,52 +90,29 @@ class LocationTrackingService : Service() {
             savePref("teamId", teamId)
             savePref("trackingSessionId", trackingSessionId)
         }
-        if (firebaseCustomToken.isNotEmpty()) savePref("firebaseCustomToken", firebaseCustomToken)
+        if (supabaseAccessToken.isNotEmpty()) savePref("supabaseAccessToken", supabaseAccessToken)
 
         startForeground(NOTIFICATION_ID, createForegroundNotification())
         isServiceRunning = true
-        authenticateFirebaseAndStartTracking()
+        authenticateSupabaseAndStartTracking()
         return START_STICKY
     }
 
-    private fun authenticateFirebaseAndStartTracking() {
-        val firebaseAuth = NativeFirebaseAuth.auth(this)
-        val currentUser = firebaseAuth.currentUser
-
-        if (currentUser != null) {
-            firebaseAuthReady = true
-            startRealLocationUpdates()
-            return
-        }
-
-        if (firebaseCustomToken.isEmpty()) {
-            Log.e(TAG, "No Firebase session or custom token; refusing GPS uploads")
-            firebaseAuthReady = false
+    private fun authenticateSupabaseAndStartTracking() {
+        if (supabaseAccessToken.isEmpty()) {
+            Log.e(TAG, "No Supabase access token; refusing GPS uploads")
+            authReady = false
             isServiceRunning = false
             stopSelf()
             return
         }
-
-        firebaseAuth.signInWithCustomToken(firebaseCustomToken)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful && firebaseAuth.currentUser != null) {
-                    firebaseAuthReady = true
-                    Log.d(TAG, "Native Firebase Auth session restored for background GPS")
-                    // The custom token is single-use; rely on Firebase Auth's persisted session/refresh token.
-                    removeSavedPref("firebaseCustomToken")
-                    firebaseCustomToken = ""
-                    startRealLocationUpdates()
-                } else {
-                    firebaseAuthReady = false
-                    Log.e(TAG, "Native Firebase custom-token sign-in failed", task.exception)
-                    isServiceRunning = false
-                    stopSelf()
-                }
-            }
+        authReady = true
+        Log.d(TAG, "Authorized Supabase session received for background GPS")
+        startRealLocationUpdates()
     }
 
     private fun startRealLocationUpdates() {
-        if (!firebaseAuthReady) return
+        if (!authReady) return
         try {
             val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 15000L)
                 .setMinUpdateIntervalMillis(5000L)
@@ -151,7 +128,7 @@ class LocationTrackingService : Service() {
     }
 
     private fun processRealGpsLocation(location: Location) {
-        if (!firebaseAuthReady) return
+        if (!authReady) return
         if (!isApprovedWorkingHours()) {
             Log.d(TAG, "Outside approved working hours (08:00 AM - 08:00 PM Colombo). Skipping official record.")
             return
@@ -212,24 +189,9 @@ class LocationTrackingService : Service() {
     }
 
     private fun configureAuthenticatedConnection(conn: HttpURLConnection) {
-        val user = NativeFirebaseAuth.auth(this).currentUser
-        if (user == null) throw IllegalStateException("Firebase Auth user unavailable")
-        val tokenTask = user.getIdToken(false)
-        val latch = java.util.concurrent.CountDownLatch(1)
-        var idToken: String? = null
-        var tokenError: Exception? = null
-        tokenTask.addOnCompleteListener { task ->
-            if (task.isSuccessful) idToken = task.result?.token
-            else tokenError = task.exception
-            latch.countDown()
-        }
-        if (!latch.await(15, java.util.concurrent.TimeUnit.SECONDS)) {
-            throw IllegalStateException("Timed out refreshing Firebase ID token")
-        }
-        tokenError?.let { throw it }
-        val token = idToken ?: throw IllegalStateException("Firebase ID token unavailable")
+        if (supabaseAccessToken.isBlank()) throw IllegalStateException("Supabase access token unavailable")
         conn.setRequestProperty("Content-Type", "application/json")
-        conn.setRequestProperty("Authorization", "Bearer $token")
+        conn.setRequestProperty("Authorization", "Bearer $supabaseAccessToken")
         conn.doOutput = true
         conn.connectTimeout = 10000
         conn.readTimeout = 10000
@@ -266,7 +228,7 @@ class LocationTrackingService : Service() {
     private fun flushOfflineQueue() {
         val prefs = getSharedPreferences("ddworld_gps_queue", Context.MODE_PRIVATE)
         val queue = JSONArray(prefs.getString("queue", "[]") ?: "[]")
-        if (queue.length() == 0 || !firebaseAuthReady) return
+        if (queue.length() == 0 || !authReady) return
         Thread {
             try {
                 val url = URL("https://ais-dev-x3vgvdkcnqcxy6kg52vg7i-814098050496.asia-east1.run.app/api/native-gps-batch-sync")
@@ -305,7 +267,9 @@ class LocationTrackingService : Service() {
     private fun stopTrackingService() {
         try { fusedLocationClient.removeLocationUpdates(locationCallback) } catch (e: Exception) { Log.e(TAG, "Error removing location updates", e) }
         isServiceRunning = false
-        firebaseAuthReady = false
+        authReady = false
+        supabaseAccessToken = ""
+        removeSavedPref("supabaseAccessToken")
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
         Log.d(TAG, "Native Location Tracking Service stopped cleanly")
