@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { collection, doc, setDoc, onSnapshot, type Unsubscribe } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
-import { db, auth } from '../services/firebase';
+import { supabase } from '../services/supabase';
 import { User, UserRole, Team, AttendanceRecord, ProductSale, IvrEntry, LeaveRequest, ChatMessage, Meeting, KnowledgeArticle, EmployeeVerification, MonthlyProductTargets, TeamProductTargets, AgentProductTarget, CompanyWeeklyReport, VaultFile, MarketingPost, WebAiChatMessage, SystemDoctorLog, DailyJobRoleReport, CallSession, SmsLogRecord, LocationRecord, LocationTrackingConfig, MotivationBannerMessage, CompanyMessage, DialogPerformanceRecord, TrainingProgressRecord, QuizResultRecord, WorkAreaRecord, EmployeeIdAuditLog, ColdStorageArchive, SecurityAlert } from '../types';
 
 export const isOwnerDoc = (user: any, targetId?: string): boolean => {
@@ -20,16 +18,20 @@ interface DataContextType {
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
-
 const EMPTY_TARGETS: MonthlyProductTargets = {};
+const empty = <T,>(): T[] => [];
 
-const readableFirestoreError = (error: any): string => {
-  const code = String(error?.code || '').toLowerCase();
-  if (code.includes('permission-denied')) return 'Firestore access was denied. Please confirm the signed-in employee is authorized, then Retry.';
-  if (code.includes('failed-precondition')) return 'Firestore is not ready for this request. Please check the database configuration, then Retry.';
-  if (code.includes('unavailable') || code.includes('network')) return 'Firestore is temporarily unavailable or offline. Check the connection, then Retry.';
-  return error?.message ? `Firestore data error: ${error.message}` : 'Unable to load Firestore data. Please Retry.';
-};
+const mapRow = (row: any) => ({
+  ...row,
+  id: row.id,
+  firebaseUid: undefined,
+  authUserId: row.auth_user_id,
+  teamId: row.team_id,
+  employmentStatus: row.employment_status,
+  idApprovalStatus: row.id_approval_status,
+  createdAt: row.created_at,
+  joinedDate: row.created_at?.slice?.(0, 10),
+});
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [users, setUsers] = useState<User[]>([]);
@@ -39,11 +41,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [ivrEntries, setIvrEntries] = useState<IvrEntry[]>([]);
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [meetings] = useState<Meeting[]>([]);
   const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([]);
-  const [coldArchives, setColdArchives] = useState<ColdStorageArchive[]>([]);
+  const [coldArchives] = useState<ColdStorageArchive[]>([]);
   const [knowledge] = useState<KnowledgeArticle[]>([]);
-  const [verifications, setVerifications] = useState<EmployeeVerification[]>([]);
+  const [verifications] = useState<EmployeeVerification[]>([]);
   const [monthlyTargets] = useState<MonthlyProductTargets>(EMPTY_TARGETS);
   const [teamTargets] = useState<TeamProductTargets[]>([]);
   const [agentTargets] = useState<AgentProductTarget[]>([]);
@@ -66,106 +68,57 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [dataError, setDataError] = useState<string | null>(null);
   const [retryToken, setRetryToken] = useState(0);
 
-  const retryData = useCallback(() => {
-    setDataError(null);
-    setRetryToken(value => value + 1);
-  }, []);
+  const retryData = useCallback(() => { setDataError(null); setRetryToken(v => v + 1); }, []);
 
   useEffect(() => {
     let active = true;
-    let unsubscribeAuth: Unsubscribe | undefined;
-    const unsubscribers: Unsubscribe[] = [];
-
-    const clearListeners = () => {
-      while (unsubscribers.length) unsubscribers.pop()?.();
-    };
-
-    const subscribeToCoreData = () => {
-      clearListeners();
-      if (!auth.currentUser || !active) return;
-
-      const subscribe = <T,>(collectionName: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
-        const unsubscribe = onSnapshot(
-          collection(db, collectionName),
-          snapshot => {
-            if (!active) return;
-            // Firestore naturally returns an empty snapshot for an empty collection.
-            // Keeping [] here makes empty databases a valid first-run state.
-            setter(snapshot.docs.map(item => ({ id: item.id, ...item.data() } as T)));
-            setDataError(null);
-          },
-          error => {
-            if (!active) return;
-            // A failed listener must not throw during React rendering. Keep the
-            // last safe value (normally []) and expose a retryable UI error.
-            console.warn(`Firestore ${collectionName} listener error:`, error);
-            setDataError(readableFirestoreError(error));
-          },
-        );
-        unsubscribers.push(unsubscribe);
-      };
-
-      subscribe<User>('users', setUsers);
-      subscribe<Team>('teams', setTeams);
-      subscribe<AttendanceRecord>('attendance', setAttendance);
-      subscribe<ProductSale>('sales', setSales);
-      subscribe<ChatMessage>('messages', setMessages);
-
-      // These collections are optional on a fresh project. They stay as safe
-      // empty arrays until their dedicated feature initializes them.
-      subscribe<IvrEntry>('ivr', setIvrEntries);
-      subscribe<LeaveRequest>('leaves', setLeaves);
-      subscribe<Meeting>('meetings', setMeetings);
-      subscribe<SecurityAlert>('security_alerts', setSecurityAlerts);
-      subscribe<ColdStorageArchive>('cold_storage_archives', setColdArchives);
-      subscribe<EmployeeVerification>('verifications', setVerifications);
-    };
-
-    // Do not start Firestore listeners before authentication. This prevents the
-    // rules from treating the initial app boot as an unauthorized read.
-    unsubscribeAuth = onAuthStateChanged(auth, firebaseUser => {
-      if (!active) return;
-      clearListeners();
-      if (!firebaseUser) {
-        setDataError(null);
-        setUsers([]); setTeams([]); setAttendance([]); setSales([]); setMessages([]);
-        setIvrEntries([]); setLeaves([]); setMeetings([]); setSecurityAlerts([]); setColdArchives([]); setVerifications([]);
-        return;
+    const load = async () => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!active || !session.session?.user) return;
+      setDataError(null);
+      try {
+        const [u,t,a,s,m,l,sa] = await Promise.all([
+          supabase.from('users').select('*'), supabase.from('teams').select('*'), supabase.from('attendance').select('*'),
+          supabase.from('sales').select('*'), supabase.from('messages').select('*'), supabase.from('leaves').select('*'), supabase.from('security_alerts').select('*')
+        ]);
+        const firstError = [u,t,a,s,m,l,sa].find(x => x.error)?.error;
+        if (firstError) throw firstError;
+        if (!active) return;
+        setUsers((u.data || []).map(mapRow));
+        setTeams((t.data || []).map((r:any) => ({ ...r, leaderId:r.leader_id, createdAt:r.created_at })));
+        setAttendance((a.data || []).map((r:any) => ({ ...r, userId:r.user_id, gpsLocation:r.gps_location, checkInTime:r.check_in_time, checkOutTime:r.check_out_time })));
+        setSales((s.data || []).map((r:any) => ({ ...r, agentId:r.agent_id, productName:r.product_name, saleDate:r.sale_date })));
+        setMessages((m.data || []).map((r:any) => ({ ...r, senderId:r.sender_id, receiverId:r.receiver_id, timestamp:r.timestamp })));
+        setLeaves((l.data || []).map((r:any) => ({ ...r, userId:r.user_id, startDate:r.start_date, endDate:r.end_date })));
+        setSecurityAlerts((sa.data || []).map((r:any) => ({ ...r, userId:r.user_id, timestamp:r.timestamp })));
+      } catch (error:any) {
+        if (active) setDataError(error?.message ? `Supabase data error: ${error.message}` : 'Unable to load Supabase data.');
       }
-      subscribeToCoreData();
-    });
-
-    // retryToken intentionally re-establishes the auth/listener chain.
-    void retryToken;
-
-    return () => {
-      active = false;
-      clearListeners();
-      unsubscribeAuth?.();
     };
+    void load();
+    const channel = supabase.channel('dd-world-core-data')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => void load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, () => void load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => void load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => void load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => void load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leaves' }, () => void load())
+      .subscribe();
+    void retryToken;
+    return () => { active = false; void supabase.removeChannel(channel); };
   }, [retryToken]);
 
   const sendMessage = (msg: { senderId:string; senderName:string; senderRole:UserRole; receiverId:string; receiverName:string; receiverRole:UserRole; content:string }) => {
-    const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
-    const payload: ChatMessage = { ...msg, id, timestamp: new Date().toISOString(), read: false };
-    void setDoc(doc(db, 'messages', id), payload).catch(error => {
-      console.warn('Firestore message write failed:', error);
-      setDataError(readableFirestoreError(error));
-    });
+    void supabase.from('messages').insert({ sender_id: msg.senderId, receiver_id: msg.receiverId, message: msg.content, timestamp: new Date().toISOString(), read: false })
+      .then(({ error }) => { if (error) setDataError(`Supabase message write failed: ${error.message}`); });
   };
 
-  // Safe feature defaults keep dashboards renderable while optional collections
-  // are empty. Feature-specific screens can populate these through their own
-  // services without requiring fake seed documents.
   const value = {
     users, teams, attendance, sales, ivrEntries, leaves, messages, meetings,
-    securityAlerts, coldArchives, knowledge, verifications, monthlyTargets,
-    teamTargets, agentTargets, companyWeeklyReports, vaultFiles, marketingPosts,
-    webAiMessages, systemDoctorLogs, smsLogs, activeCall, locationLogs,
-    locationConfig, motivationBanners, companyMessages, dialogPerformanceRecords,
-    trainingProgress, quizResults, workAreas, employeeIdAuditLogs,
-    dataError, retryData, sendMessage,
-    // Optional feature actions are safe no-ops until their dedicated service is available.
+    securityAlerts, coldArchives, knowledge, verifications, monthlyTargets, teamTargets, agentTargets,
+    companyWeeklyReports, vaultFiles, marketingPosts, webAiMessages, systemDoctorLogs, smsLogs, activeCall,
+    locationLogs, locationConfig, motivationBanners, companyMessages, dialogPerformanceRecords, trainingProgress,
+    quizResults, workAreas, employeeIdAuditLogs, dataError, retryData, sendMessage,
     addVaultFile: async () => {}, deleteVaultFile: async () => {}, addMarketingPost: async () => {}, deleteMarketingPost: async () => {},
     sendWebAiMessage: async () => {}, runSystemDoctorAutoHeal: async () => {}, getDailyJobRoleReports: async () => [],
     addAgent: async () => {}, addTeamLeader: async () => {}, updateAgentCode: async () => {}, deleteAgent: async () => {},
