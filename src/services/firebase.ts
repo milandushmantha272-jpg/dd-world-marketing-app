@@ -6,23 +6,25 @@ import {
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { doc, getDoc, getFirestore, setDoc } from 'firebase/firestore';
-import firebaseConfig from '../../firebase-applet-config.json';
 import type { User } from '../types';
 import { OWNER_AGENT_CODE, OWNER_EMAIL, OWNER_NAME } from '../config/owner';
 
+// Keep the Firebase configuration explicit so runtime environment injection
+// or a stale JSON config cannot silently select a different Firebase project.
+const firebaseConfig = {
+  apiKey: 'AIzaSyB8ejwv1W5KYHUAbfGb7LoSV2C3DC_oQmE',
+  authDomain: 'dd-world-app-dushmsntha.firebaseapp.com',
+  projectId: 'dd-world-app-dushmsntha',
+  storageBucket: 'dd-world-app-dushmsntha.firebasestorage.app',
+  messagingSenderId: '1033388701049',
+  appId: '1:1033388701049:web:c6e5f1f1d1d81bc0',
+};
+
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// The new Spark project uses the default Firestore database. Keep legacy
-// configs compatible without requiring firestoreDatabaseId in the JSON type.
-const databaseId =
-  'firestoreDatabaseId' in firebaseConfig &&
-  typeof firebaseConfig.firestoreDatabaseId === 'string' &&
-  firebaseConfig.firestoreDatabaseId !== '(default)'
-    ? firebaseConfig.firestoreDatabaseId
-    : undefined;
-
 export const auth = getAuth(app);
-export const db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+export const db = getFirestore(app);
+export default app;
 
 /** Firebase Authentication is the only credential authority. */
 export const signInWithEmployeeCredentials = async (
