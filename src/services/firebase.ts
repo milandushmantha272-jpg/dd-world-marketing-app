@@ -10,15 +10,15 @@ import { doc, getDoc, getFirestore, setDoc } from 'firebase/firestore';
 import type { User } from '../types';
 import { OWNER_AGENT_CODE, OWNER_EMAIL, OWNER_NAME } from '../config/owner';
 
-// Exact Firebase configuration from the DD WORLD web app in
-// Firebase project: dd-world-app-dushmsntha.
+// Correct Firebase configuration for DD WORLD.
 const firebaseConfig = {
-  apiKey: 'AIzaSyB8ejwvl1W5KYHUAbfGb7LoSV2C3DC_oQmE',
+  apiKey: 'AIzaSyB8ejwvlW5KYHUAbfGb7LoSV2C3DC_oQmE',
   authDomain: 'dd-world-app-dushmsntha.firebaseapp.com',
   projectId: 'dd-world-app-dushmsntha',
   storageBucket: 'dd-world-app-dushmsntha.firebasestorage.app',
   messagingSenderId: '1031838170425',
   appId: '1:1031838170425:web:cf3905ca9d59870db23ce8',
+  measurementId: 'G-K56HHKSY0E',
 };
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
@@ -41,22 +41,12 @@ export const signInWithEmployeeCredentials = async (
   return credential.user;
 };
 
-/**
- * Owner-only password recovery. Firebase sends the secure reset email;
- * the app never stores or sends the Owner password itself.
- */
+/** Owner-only password recovery. */
 export const sendOwnerPasswordReset = async (): Promise<void> => {
   await sendPasswordResetEmail(auth, OWNER_EMAIL);
 };
 
-/**
- * First-time Owner bootstrap.
- *
- * Firebase Authentication remains authoritative for the credential. If the
- * authenticated Owner has no /users/{uid} document yet, create the minimum
- * Owner authorization profile. This path is deliberately limited to the
- * configured Owner email and never bootstraps Agent/Team Leader accounts.
- */
+/** First-time Owner bootstrap. */
 export const bootstrapOwnerProfileIfMissing = async (
   firebaseUser: FirebaseUser,
 ): Promise<User | null> => {
@@ -89,11 +79,7 @@ export const bootstrapOwnerProfileIfMissing = async (
   return ownerProfile;
 };
 
-/**
- * Loads the employee authorization profile from the UID-keyed Firestore document.
- * The Firestore document is the RBAC authority after Firebase Authentication.
- * A missing document is eligible for Owner-only first-login bootstrap.
- */
+/** Loads the UID-keyed employee authorization profile. */
 export const getAuthenticatedEmployeeProfile = async (
   firebaseUser: FirebaseUser,
 ): Promise<User> => {
