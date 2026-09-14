@@ -20,21 +20,16 @@ class BootReceiver : BroadcastReceiver() {
 
         if (Intent.ACTION_BOOT_COMPLETED != incomingAction && incomingAction != "android.intent.action.MY_PACKAGE_REPLACED") return
 
-        val auth = NativeFirebaseAuth.auth(context)
-        if (auth.currentUser == null) {
-            Log.d(TAG, "Firebase Auth session is not available after boot. Tracking will NOT auto-start.")
-            return
-        }
-
         val prefs = context.getSharedPreferences("ddworld_native_gps", Context.MODE_PRIVATE)
         val employeeId = prefs.getString("employeeId", "") ?: ""
         val agentCode = prefs.getString("agentCode", "") ?: ""
         val teamId = prefs.getString("teamId", "") ?: ""
         val trackingSessionId = prefs.getString("trackingSessionId", "") ?: ""
+        val supabaseAccessToken = prefs.getString("supabaseAccessToken", "") ?: ""
         val isAuthorized = prefs.getBoolean("isAuthorizedSessionActive", false)
 
-        if (!isAuthorized || employeeId.isEmpty() || trackingSessionId.isEmpty()) {
-            Log.d(TAG, "No authorized active tracking session found after boot. Will NOT auto-start tracking.")
+        if (!isAuthorized || employeeId.isEmpty() || trackingSessionId.isEmpty() || supabaseAccessToken.isEmpty()) {
+            Log.d(TAG, "No authorized Supabase tracking session found after boot. Will NOT auto-start tracking.")
             return
         }
 
@@ -44,13 +39,14 @@ class BootReceiver : BroadcastReceiver() {
             return
         }
 
-        Log.d(TAG, "Valid Firebase-authenticated tracking session verified after boot ($trackingSessionId). Resuming native service.")
+        Log.d(TAG, "Valid Supabase-authenticated tracking session found after boot ($trackingSessionId). Resuming native service.")
         val serviceIntent = Intent(context, LocationTrackingService::class.java).apply {
-            this.action = LocationTrackingService.ACTION_START
+            action = LocationTrackingService.ACTION_START
             putExtra(LocationTrackingService.EXTRA_EMPLOYEE_ID, employeeId)
             putExtra(LocationTrackingService.EXTRA_AGENT_CODE, agentCode)
             putExtra(LocationTrackingService.EXTRA_TEAM_ID, teamId)
             putExtra(LocationTrackingService.EXTRA_SESSION_ID, trackingSessionId)
+            putExtra(LocationTrackingService.EXTRA_SUPABASE_ACCESS_TOKEN, supabaseAccessToken)
         }
 
         try {
@@ -60,7 +56,7 @@ class BootReceiver : BroadcastReceiver() {
                 context.startService(serviceIntent)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to resume authenticated tracking after boot", e)
+            Log.e(TAG, "Failed to resume authorized tracking after boot", e)
         }
     }
 }
