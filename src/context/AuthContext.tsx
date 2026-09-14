@@ -1,14 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { User, UserRole } from '../types';
+import type { User, UserRole } from '../types';
 import { useData } from './DataContext';
 import { safeStorage } from '../utils/safeStorage';
+import { supabase } from '../services/supabase';
 import {
-  auth,
   getAuthenticatedEmployeeProfile,
+  bootstrapOwnerProfileIfMissing,
   signInWithEmployeeCredentials,
-  signOutFirebase,
-} from '../services/firebase';
+  signOutSupabase,
+} from '../services/supabaseAuth';
 import { OWNER_EMAIL } from '../config/owner';
 
 interface AuthContextType {
@@ -22,17 +22,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const isBlockedUser = (user: User) =>
-  user.employmentStatus === 'BLOCKED' ||
-  user.employmentStatus === 'SUSPENDED' ||
-  user.employmentStatus === 'EXITED' ||
-  user.status === 'blocked';
-
 const isApprovedActiveEmployee = (user: User) => {
-  const employmentStatus = user.employmentStatus || (user.status === 'blocked' ? 'BLOCKED' : 'ACTIVE');
-  if (user.role === 'owner') return employmentStatus === 'ACTIVE' && user.status !== 'blocked';
-  const approvalStatus = user.idApprovalStatus || 'PENDING';
-  return employmentStatus === 'ACTIVE' && approvalStatus === 'APPROVED' && user.status !== 'blocked';
+  const status = String(user.status || '').toLowerCase();
+  const employment = String(user.employmentStatus || '').toUpperCase();
+  const approval = String(user.idApprovalStatus || '').toUpperCase();
+  if (user.role === 'owner') return status === 'active' && employment === 'ACTIVE';
+  return status === 'active' && employment === 'ACTIVE' && approval === 'APPROVED';
 };
 
 const formatAuthError = (error: unknown): string => {
@@ -40,17 +35,10 @@ const formatAuthError = (error: unknown): string => {
     ? String((error as { code?: unknown }).code || '')
     : '';
   const raw = error instanceof Error ? error.message : String(error || 'Unknown error');
-
-  if (code === 'permission-denied' || code === 'firestore/permission-denied' || /permission[- ]denied/i.test(raw)) {
-    return 'Firestore permission denied: Owner bootstrap සඳහා Firebase Firestore Security Rules නිවැරදිව deploy කර තිබේදැයි පරීක්ෂා කරන්න.';
-  }
-  if (/failed-precondition|database.*not.*found|cloud firestore.*not.*enabled/i.test(raw)) {
-    return 'Firestore database එක සූදානම් නැත. Firebase Console එකේ Cloud Firestore database එක create/enable කර තිබේදැයි පරීක්ෂා කරන්න.';
-  }
-  if (/network|offline|unavailable/i.test(raw)) {
-    return 'Firebase/Firestore connection එක ලබාගත නොහැක. Internet connection එක පරීක්ෂා කර Retry කරන්න.';
-  }
-  return `Login authorization/bootstrap failed: ${raw}`;
+  if (code === 'invalid_credentials') return 'Email හෝ password වැරදියි.';
+  if (code === 'email_not_confirmed') return 'Email verification සම්පූර්ණ කළ පසු පමණක් login විය හැක.';
+  if (/network|fetch/i.test(raw)) return 'Supabase connection එක ලබාගත නොහැක. Internet connection එක පරීක්ෂා කර Retry කරන්න.';
+  return `Login authorization failed: ${raw}`;
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -64,33 +52,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     safeStorage.removeItem('ddworld_current_user_v2');
   };
 
-  const establishAuthorizedSession = async (firebaseUid: string): Promise<User> => {
-    const firebaseUser = auth.currentUser;
-    if (!firebaseUser || firebaseUser.uid !== firebaseUid) throw new Error('Firebase session is no longer available.');
-
-    if (!firebaseUser.emailVerified) {
-      await signOutFirebase();
-      clearSession();
-      throw new Error('Firebase email verification සම්පූර්ණ කළ පසු පමණක් login විය හැක.');
+  const establishAuthorizedSession = async (authUser: { id: string; email?: string | null }) => {
+    if (!authUser.email) throw new Error('Supabase account එකට email address එකක් නොමැත.');
+    if (authUser.email.trim().toLowerCase() === OWNER_EMAIL) {
+      await bootstrapOwnerProfileIfMissing(authUser);
     }
-
-    const firestoreProfile = await getAuthenticatedEmployeeProfile(firebaseUser);
-    if (isBlockedUser(firestoreProfile) || !isApprovedActiveEmployee(firestoreProfile)) {
-      await signOutFirebase();
+    const profile = await getAuthenticatedEmployeeProfile(authUser.id);
+    if (!isApprovedActiveEmployee(profile)) {
+      await signOutSupabase();
       clearSession();
       throw new Error('Owner approval සහ ACTIVE employee status නොමැති account එකකට access ලබා නොදේ.');
     }
 
     const localProfile = users.find(
-      (u) => u.firebaseUid === firebaseUid || u.email?.trim().toLowerCase() === firestoreProfile.email?.trim().toLowerCase(),
+      (u) => u.email?.trim().toLowerCase() === profile.email?.trim().toLowerCase() || u.id === profile.id,
     );
-    const authorizedProfile: User = {
-      ...(localProfile || {}),
-      ...firestoreProfile,
-      id: firebaseUid,
-      firebaseUid,
-    };
-
+    const authorizedProfile: User = { ...(localProfile || {}), ...profile, id: profile.id };
     setCurrentUser(authorizedProfile);
     safeStorage.setItem('ddworld_current_user_v2', JSON.stringify(authorizedProfile));
 
@@ -102,23 +79,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         appVersion: 'v5.4',
       });
     }
-
     return authorizedProfile;
   };
 
   const retryAuth = async () => {
-    const firebaseUser = auth.currentUser;
-    if (!firebaseUser) {
-      setAuthError('Firebase login session එක නොමැත. නැවත login කරන්න.');
-      setAuthChecking(false);
-      return;
-    }
     setAuthChecking(true);
     setAuthError(null);
     try {
-      await establishAuthorizedSession(firebaseUser.uid);
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user) throw error || new Error('Supabase login session එක නොමැත.');
+      await establishAuthorizedSession(data.user);
     } catch (error) {
-      console.warn('Firebase employee authorization retry failed:', error);
       clearSession();
       setAuthError(formatAuthError(error));
     } finally {
@@ -127,44 +98,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) {
+    let mounted = true;
+    void (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (mounted && data.user) await establishAuthorizedSession(data.user);
+      } catch (error) {
+        if (mounted) {
+          clearSession();
+          setAuthError(formatAuthError(error));
+        }
+      } finally {
+        if (mounted) setAuthChecking(false);
+      }
+    })();
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) {
         clearSession();
-        setAuthError(null);
         setAuthChecking(false);
         return;
       }
-
-      setAuthChecking(true);
-      setAuthError(null);
-      try {
-        await establishAuthorizedSession(firebaseUser.uid);
-      } catch (error) {
-        console.warn('Firebase employee authorization rejected:', error);
+      void establishAuthorizedSession(session.user).catch((error) => {
         clearSession();
         setAuthError(formatAuthError(error));
-      } finally {
-        setAuthChecking(false);
-      }
+        void signOutSupabase().catch(() => undefined);
+      }).finally(() => setAuthChecking(false));
     });
 
-    return unsubscribe;
+    return () => {
+      mounted = false;
+      subscription.subscription.unsubscribe();
+    };
   }, [users]);
 
   useEffect(() => {
     if (!currentUser || !users.length) return;
-    const updated = users.find(
-      (u) => u.firebaseUid === currentUser.firebaseUid || u.email?.trim().toLowerCase() === currentUser.email?.trim().toLowerCase(),
-    );
-    if (!updated) return;
-
-    if (isBlockedUser(updated) || !isApprovedActiveEmployee(updated)) {
+    const updated = users.find((u) => u.email?.trim().toLowerCase() === currentUser.email?.trim().toLowerCase() || u.id === currentUser.id);
+    if (updated && !isApprovedActiveEmployee(updated)) {
       void logout();
-      window.dispatchEvent(
-        new CustomEvent('ddworld_auth_alert', {
-          detail: { message: 'ඔබගේ DD WORLD employee account එක ACTIVE සහ OWNER-APPROVED තත්ත්වයේ නොමැති නිසා access අවහිර කරන ලදී.' },
-        }),
-      );
+      window.dispatchEvent(new CustomEvent('ddworld_auth_alert', { detail: { message: 'ඔබගේ employee account එක ACTIVE සහ OWNER-APPROVED තත්ත්වයේ නොමැති නිසා access අවහිර කරන ලදී.' } }));
     }
   }, [users, currentUser]);
 
@@ -172,44 +145,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthError(null);
     setAuthChecking(true);
     try {
-      let targetUser: User | undefined;
-      let credentialEmail = '';
-
+      let email = '';
       if (typeof userOrId === 'string') {
-        const cleanInput = userOrId.trim().toLowerCase();
-        targetUser = users.find(
-          (user) =>
-            user.id.toLowerCase() === cleanInput ||
-            user.agentCode?.trim().toLowerCase() === cleanInput ||
-            user.employeeId?.trim().toLowerCase() === cleanInput ||
-            user.email?.trim().toLowerCase() === cleanInput,
-        );
-        if (!targetUser && cleanInput.includes('@')) credentialEmail = cleanInput;
+        const input = userOrId.trim().toLowerCase();
+        const target = users.find((u) => u.id.toLowerCase() === input || u.agentCode?.trim().toLowerCase() === input || u.employeeId?.trim().toLowerCase() === input || u.email?.trim().toLowerCase() === input);
+        email = target?.email?.trim().toLowerCase() || (input.includes('@') ? input : '');
       } else {
-        targetUser = userOrId;
+        email = userOrId.email?.trim().toLowerCase() || '';
       }
+      if (!email) throw new Error('Employee email එක හමු නොවීය.');
+      if (!password) throw new Error('Password එක අවශ්‍යයි.');
 
-      if (!targetUser && !credentialEmail) throw new Error('DD World employee account was not found.');
-      if (targetUser && !targetUser.email?.trim()) throw new Error('මෙම employee account එකට Firebase email එකක් සකසා නැත.');
-      if (!password) throw new Error('Firebase Password එක අවශ්‍යයි.');
-
-      credentialEmail = credentialEmail || targetUser!.email!.trim().toLowerCase();
-      const firebaseUser = await signInWithEmployeeCredentials(credentialEmail, password);
-      const authorizedProfile = await establishAuthorizedSession(firebaseUser.uid);
-
-      if (expectedRole && authorizedProfile.role !== expectedRole) {
-        await signOutFirebase();
+      const authUser = await signInWithEmployeeCredentials(email, password);
+      const profile = await establishAuthorizedSession(authUser);
+      if (expectedRole && profile.role !== expectedRole) {
+        await signOutSupabase();
         clearSession();
-        throw new Error(`මෙම account එක ${authorizedProfile.role} role එකට අයත්ය.`);
+        throw new Error(`මෙම account එක ${profile.role} role එකට අයත්ය.`);
       }
-
-      if (credentialEmail === OWNER_EMAIL && authorizedProfile.role !== 'owner') {
-        await signOutFirebase();
+      if (email === OWNER_EMAIL && profile.role !== 'owner') {
+        await signOutSupabase();
         clearSession();
-        throw new Error('Configured Owner Firebase account එක Owner role එකක් නොවේ.');
+        throw new Error('Configured Owner account එක Owner role එකක් නොවේ.');
       }
     } catch (error) {
-      console.warn('DD World login failed:', error);
       clearSession();
       setAuthError(formatAuthError(error));
       throw error;
@@ -222,37 +181,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     clearSession();
-    try {
-      await signOutFirebase();
-    } catch (error) {
-      console.warn('Firebase sign-out warning:', error);
-    }
+    try { await signOutSupabase(); } catch (error) { console.warn('Supabase sign-out warning:', error); }
   };
 
-  const authFailureView = authError && !currentUser ? (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#000', color: '#fff', fontFamily: 'sans-serif' }}>
+  if (authError && !currentUser) {
+    return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#000', color: '#fff', fontFamily: 'sans-serif' }}>
       <div style={{ width: '100%', maxWidth: 560, padding: 28, border: '1px solid #444', borderRadius: 16, background: '#111', boxSizing: 'border-box' }}>
-        <h2 style={{ marginTop: 0 }}>DD WORLD — Login / Firebase Error</h2>
+        <h2 style={{ marginTop: 0 }}>DD WORLD — Login / Supabase Error</h2>
         <p style={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{authError}</p>
-        <button
-          type="button"
-          onClick={() => void retryAuth()}
-          disabled={authChecking}
-          style={{ marginTop: 12, padding: '12px 20px', borderRadius: 10, border: 0, cursor: authChecking ? 'wait' : 'pointer' }}
-        >
-          {authChecking ? 'Retrying…' : 'Retry'}
-        </button>
+        <button type="button" onClick={() => void retryAuth()} disabled={authChecking} style={{ marginTop: 12, padding: '12px 20px', borderRadius: 10, border: 0, cursor: authChecking ? 'wait' : 'pointer' }}>{authChecking ? 'Retrying…' : 'Retry'}</button>
       </div>
-    </div>
-  ) : null;
+    </div>;
+  }
 
-  if (authFailureView) return authFailureView;
-
-  return (
-    <AuthContext.Provider value={{ currentUser, authError, retryAuth, login, loginAsUser, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ currentUser, authError, retryAuth, login, loginAsUser, logout }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
