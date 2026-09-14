@@ -1,6 +1,7 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import {
   getAuth,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   type User as FirebaseUser,
@@ -12,7 +13,7 @@ import { OWNER_AGENT_CODE, OWNER_EMAIL, OWNER_NAME } from '../config/owner';
 // Exact Firebase configuration from the DD WORLD web app in
 // Firebase project: dd-world-app-dushmsntha.
 const firebaseConfig = {
-  apiKey: 'AIzaSyB8ejwv1W5KYHUAbfGb7LoSV2C3DC_oQmE',
+  apiKey: 'AIzaSyB8ejwvl1W5KYHUAbfGb7LoSV2C3DC_oQmE',
   authDomain: 'dd-world-app-dushmsntha.firebaseapp.com',
   projectId: 'dd-world-app-dushmsntha',
   storageBucket: 'dd-world-app-dushmsntha.firebasestorage.app',
@@ -38,6 +39,14 @@ export const signInWithEmployeeCredentials = async (
 
   const credential = await signInWithEmailAndPassword(auth, cleanEmail, password);
   return credential.user;
+};
+
+/**
+ * Owner-only password recovery. Firebase sends the secure reset email;
+ * the app never stores or sends the Owner password itself.
+ */
+export const sendOwnerPasswordReset = async (): Promise<void> => {
+  await sendPasswordResetEmail(auth, OWNER_EMAIL);
 };
 
 /**
