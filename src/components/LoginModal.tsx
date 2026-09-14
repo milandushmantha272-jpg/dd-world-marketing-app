@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ArrowRight, LockKeyhole, ShieldCheck, UserRound, Users, BriefcaseBusiness, Radio } from 'lucide-react';
+import { ArrowRight, LockKeyhole, ShieldCheck, UserRound, Users, BriefcaseBusiness, Radio, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { UserRole } from '../types';
 import { DdWorldLogo } from './common/DdWorldLogo';
 import { safeStorage } from '../utils/safeStorage';
 import { OWNER_EMAIL } from '../config/owner';
+import { sendOwnerPasswordReset } from '../services/firebase';
 
 const blockedStatuses = new Set(['BLOCKED', 'SUSPENDED', 'EXITED', 'TEMPORARY_SUSPENDED', 'RESIGNED', 'TERMINATED', 'blocked']);
 const roleMeta: Record<UserRole, { label: string; icon: React.ElementType }> = {
@@ -18,16 +19,14 @@ export const LoginModal: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole>('owner');
   const [identifier, setIdentifier] = useState(''); const [password, setPassword] = useState('');
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
+  const [resetSent, setResetSent] = useState(false); const [resetBusy, setResetBusy] = useState(false);
 
   const submit = async (event: React.FormEvent) => {
-    event.preventDefault(); setError('');
+    event.preventDefault(); setError(''); setResetSent(false);
     const value = identifier.trim().toLowerCase();
     const cleanPassword = password.trim();
-    if (!value || !cleanPassword) { setError('Employee ID / Agent Code / Email සහ Firebase Password දෙකම ඇතුළත් කරන්න.'); return; }
+    if (!value || !cleanPassword) { setError('Employee ID / Agent Code / Email සහ Password දෙකම ඇතුළත් කරන්න.'); return; }
 
-    // Existing employee records are still used for fast local validation, but
-    // Owner email login is intentionally allowed to proceed to Firebase Auth
-    // even when the Firestore users collection has no matching document yet.
     const target = users.find((user) =>
       user.id.toLowerCase() === value ||
       user.agentCode?.trim().toLowerCase() === value ||
@@ -45,8 +44,6 @@ export const LoginModal: React.FC = () => {
 
     setBusy(true);
     try {
-      // Firebase Authentication is attempted first. For the configured Owner
-      // email this no longer depends on an old/local Firestore email record.
       await login(value === OWNER_EMAIL ? OWNER_EMAIL : (target?.id || value), cleanPassword, selectedRole);
       safeStorage.setItem('ddworld_last_login_id', target?.id || value);
     } catch (err: any) {
@@ -54,19 +51,31 @@ export const LoginModal: React.FC = () => {
     } finally { setBusy(false); }
   };
 
+  const resetOwnerPassword = async () => {
+    setError(''); setResetSent(false); setResetBusy(true);
+    try {
+      await sendOwnerPasswordReset();
+      setResetSent(true);
+    } catch (err: any) {
+      setError(err?.message || 'Owner password reset email එක යැවීමට නොහැකි විය.');
+    } finally { setResetBusy(false); }
+  };
+
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 p-4 backdrop-blur-md overflow-y-auto">
     <div className="w-full max-w-md rounded-3xl border border-red-500/30 bg-slate-900 p-6 shadow-2xl shadow-red-950/30 sm:p-8">
       <div className="mb-3 flex justify-center"><DdWorldLogo size="lg" showText={false} /></div>
       <div className="mb-6 text-center"><h1 className="text-2xl font-black text-white">DD WORLD MARKETING</h1><p className="mt-1 text-xs text-slate-400">Secure Firebase Authentication</p></div>
-      <div className="mb-5 flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-300"><ShieldCheck className="h-4 w-4" /> Firebase Auth Required</div>
+      <div className="mb-5 flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-300"><ShieldCheck className="h-4 w-4" /> Secure Authentication</div>
       <div className="mb-5 grid grid-cols-4 gap-1 rounded-xl bg-slate-950 p-1">
-        {(Object.keys(roleMeta) as UserRole[]).map((role) => { const Icon = roleMeta[role].icon; const selected = selectedRole === role; return <button key={role} type="button" onClick={() => { setSelectedRole(role); setError(''); }} className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-[10px] font-bold transition ${selected ? 'bg-red-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-label={`Login as ${roleMeta[role].label}`}><Icon className="h-4 w-4" />{roleMeta[role].label}</button>; })}
+        {(Object.keys(roleMeta) as UserRole[]).map((role) => { const Icon = roleMeta[role].icon; const selected = selectedRole === role; return <button key={role} type="button" onClick={() => { setSelectedRole(role); setError(''); setResetSent(false); }} className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-[10px] font-bold transition ${selected ? 'bg-red-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-label={`Login as ${roleMeta[role].label}`}><Icon className="h-4 w-4" />{roleMeta[role].label}</button>; })}
       </div>
-      {selectedRole === 'owner' && <div className="mb-4 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-100"><b>First-time Owner login:</b> use the configured Owner Firebase email and the Firebase password created in Firebase Authentication. If the Owner employee profile is missing, it will be securely bootstrapped after Firebase Auth succeeds.</div>}
+      {selectedRole === 'owner' && <div className="mb-4 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-100"><b>Owner:</b> use the registered Owner email and password. If you forget the password, use the secure email reset below.</div>}
       {selectedRole === 'dialog_officer' && <div className="mb-4 rounded-xl border border-purple-500/30 bg-purple-500/10 p-3 text-xs text-purple-100"><b>Dialog Officer:</b> active Owner-approved employee + Firebase Authentication required. Login opens the restricted Officer ↔ Owner work portal.</div>}
       <form onSubmit={submit} className="space-y-4">
         <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-300">Employee ID / Agent Code / Email</span><input value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-red-500" placeholder="Enter employee identifier" /></label>
-        <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-300">Firebase Password</span><div className="relative"><LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" /><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" className="w-full rounded-xl border border-slate-700 bg-slate-950 py-3 pl-10 pr-4 text-sm text-white outline-none focus:border-red-500" placeholder="Enter Firebase password" /></div></label>
+        <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-300">Password</span><div className="relative"><LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" /><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" className="w-full rounded-xl border border-slate-700 bg-slate-950 py-3 pl-10 pr-4 text-sm text-white outline-none focus:border-red-500" placeholder="Enter password" /></div></label>
+        {selectedRole === 'owner' && <button type="button" onClick={resetOwnerPassword} disabled={resetBusy} className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/10 px-4 py-2.5 text-xs font-bold text-blue-200 transition hover:bg-blue-500/20 disabled:opacity-60"><Mail className="h-4 w-4" />{resetBusy ? 'Sending secure email…' : 'Forgot Owner Password — Email Reset'}</button>}
+        {resetSent && <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-3 text-xs font-semibold text-emerald-200">Secure password reset email එක Owner registered email එකට යවා ඇත. Email එකෙන් password එක අලුතින් set කරලා නැවත login කරන්න.</div>}
         {error && <div className="rounded-xl border border-red-500/40 bg-red-950/40 p-3 text-xs font-semibold text-red-200">{error}</div>}
         <button type="submit" disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3.5 text-sm font-black text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60">{busy ? 'Authenticating…' : `Secure ${roleMeta[selectedRole].label} Login`}{!busy && <ArrowRight className="h-4 w-4" />}</button>
       </form>
