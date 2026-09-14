@@ -1,5 +1,5 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
-import { auth } from './firebase';
+import { supabase } from './supabase';
 
 const NATIVE_BACKEND_URL = 'https://ais-dev-x3vgvdkcnqcxy6kg52vg7i-814098050496.asia-east1.run.app';
 
@@ -9,7 +9,7 @@ export interface NativeGpsBridgePlugin {
     agentCode: string;
     teamId: string;
     trackingSessionId: string;
-    firebaseCustomToken: string;
+    supabaseAccessToken: string;
   }): Promise<{ status: string; message: string }>;
   stopTracking(): Promise<{ status: string; message: string }>;
   getTrackingStatus(): Promise<{
@@ -26,23 +26,12 @@ export const isNativePlatform = (): boolean => {
   return Capacitor.isNativePlatform() || (typeof window !== 'undefined' && (window as any).Capacitor?.isNative);
 };
 
-const exchangeFirebaseTokenForNativeSession = async (): Promise<string> => {
-  const currentUser = auth.currentUser;
-  if (!currentUser) throw new Error('Firebase Auth session is required before starting native GPS.');
-
-  const idToken = await currentUser.getIdToken(true);
-  const response = await fetch(`${NATIVE_BACKEND_URL}/api/native-auth/exchange`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${idToken}`,
-    },
-  });
-
-  if (!response.ok) throw new Error(`Native Firebase session exchange failed (${response.status}).`);
-  const payload = await response.json();
-  if (!payload?.customToken) throw new Error('Native Firebase session token was not returned.');
-  return String(payload.customToken);
+const getSupabaseAccessToken = async (): Promise<string> => {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw new Error(`Supabase session unavailable: ${error.message}`);
+  const token = data.session?.access_token;
+  if (!token) throw new Error('Authorized Supabase session is required before starting native GPS.');
+  return token;
 };
 
 export const startNativeForegroundGpsTracking = async (params: {
@@ -52,12 +41,12 @@ export const startNativeForegroundGpsTracking = async (params: {
   trackingSessionId: string;
 }) => {
   if (!isNativePlatform()) {
-    console.log('🌐 Web Environment Detected: Using PWA geolocation + Firestore persistence');
+    console.log('🌐 Web Environment Detected: Using PWA geolocation');
     return undefined;
   }
 
-  const firebaseCustomToken = await exchangeFirebaseTokenForNativeSession();
-  const result = await NativeGpsBridge.startTracking({ ...params, firebaseCustomToken });
+  const supabaseAccessToken = await getSupabaseAccessToken();
+  const result = await NativeGpsBridge.startTracking({ ...params, supabaseAccessToken });
   console.log('⚡ Secured Native Android Location Service Started:', result);
   return result;
 };
