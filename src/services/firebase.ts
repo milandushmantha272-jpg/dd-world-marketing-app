@@ -12,8 +12,12 @@ import { OWNER_AGENT_CODE, OWNER_EMAIL, OWNER_NAME } from '../config/owner';
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
+// The new Spark project uses the default Firestore database. Keep legacy
+// configs compatible without requiring firestoreDatabaseId in the JSON type.
 const databaseId =
-  firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
+  'firestoreDatabaseId' in firebaseConfig &&
+  typeof firebaseConfig.firestoreDatabaseId === 'string' &&
+  firebaseConfig.firestoreDatabaseId !== '(default)'
     ? firebaseConfig.firestoreDatabaseId
     : undefined;
 
