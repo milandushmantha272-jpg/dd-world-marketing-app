@@ -10,6 +10,15 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email_verified == true;
     }
 
+    // The configured Owner is identified directly from the verified Firebase
+    // Auth identity. This avoids depending on /users/{uid} existing before
+    // Owner bootstrap and prevents collection reads from failing while the
+    // Owner profile is being created for the first time.
+    function isOwner() {
+      return isAuthorized() &&
+             request.auth.token.email == 'milandushmantha272@gmail.com';
+    }
+
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
@@ -22,15 +31,6 @@ service cloud.firestore {
       return getUserData().teamId;
     }
 
-    function isOwner() {
-      return isSignedIn() &&
-             (getUserRole() == 'MASTER_LEADER' ||
-              getUserRole() == 'owner' ||
-              getUserData().id == 'owner-1');
-    }
-
-    // The only allowed self-created employee profile is the configured Owner
-    // bootstrap, and only after Firebase Auth has verified the exact Owner email.
     function isOwnerBootstrap(userId) {
       return isAuthorized() &&
              request.auth.uid == userId &&
@@ -45,11 +45,11 @@ service cloud.firestore {
     }
 
     function isActiveEmployee() {
-      let userData = getUserData();
       return isOwner() ||
-             (userData.status == 'active' &&
-              userData.employmentStatus == 'ACTIVE' &&
-              userData.idApprovalStatus == 'APPROVED');
+             (isAuthorized() &&
+              getUserData().status == 'active' &&
+              getUserData().employmentStatus == 'ACTIVE' &&
+              getUserData().idApprovalStatus == 'APPROVED');
     }
 
     function isTeamSupervisor() {
@@ -106,16 +106,13 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isSignedIn() &&
+      allow read: if isOwner() || (isSignedIn() &&
                      (request.auth.uid == userId ||
-                      (isTeamSupervisor() && isInSameTeam(resource.data.teamId)) ||
-                      isOwner());
+                      (isTeamSupervisor() && isInSameTeam(resource.data.teamId))));
 
-      // Normal employees can never self-create profiles. The sole exception is
-      // the verified configured Owner account on its first successful login.
-      allow create: if isOwnerBootstrap(userId);
+      allow create: if isOwnerBootstrap(userId) || isOwner();
 
-      allow update: if isSignedIn() &&
+      allow update: if isOwner() || (isSignedIn() &&
                        !isOwnerDoc(resource.data, userId) &&
                        !isOwnerDoc(request.resource.data, userId) &&
                        (request.auth.uid == userId || isTeamSupervisor()) &&
@@ -124,26 +121,25 @@ service cloud.firestore {
                        request.resource.data.email == resource.data.email &&
                        !('password' in request.resource.data) &&
                        !('tempPassword' in request.resource.data) &&
-                       !('pinCode' in request.resource.data);
+                       !('pinCode' in request.resource.data));
       allow delete: if isOwner() && !isOwnerDoc(resource.data, userId);
 
       match /activities/{activityId} {
-        allow read: if isSignedIn() && (request.auth.uid == userId || isTeamSupervisor());
+        allow read: if isOwner() || (isSignedIn() && (request.auth.uid == userId || isTeamSupervisor()));
         allow create: if false;
         allow update, delete: if false;
       }
 
       match /sessions/{sessionId} {
-        allow read: if isSignedIn() && request.auth.uid == userId;
-        allow create, update, delete: if isSignedIn() && request.auth.uid == userId;
+        allow read: if isOwner() || (isSignedIn() && request.auth.uid == userId);
+        allow create, update, delete: if isOwner() || (isSignedIn() && request.auth.uid == userId);
       }
     }
 
     match /sales/{saleId} {
-      allow read: if isSignedIn() &&
+      allow read: if isOwner() || (isSignedIn() &&
                      (request.auth.uid == resource.data.agentId ||
-                      (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
-                      isOwner());
+                      (isTeamSupervisor() && resource.data.teamId == getUserTeamId())));
       allow create: if isAuthorized() && isActiveEmployee() &&
                        request.resource.data.agentId == request.auth.uid &&
                        request.resource.data.amount > 0 &&
@@ -158,23 +154,22 @@ service cloud.firestore {
                        request.resource.data.verificationStatus == 'PENDING' &&
                        request.resource.data.fraudFlags == [] &&
                        request.resource.data.isLocationVerified == false;
-      allow update: if isSignedIn() &&
-                       (request.auth.uid == resource.data.agentId || isTeamSupervisor() || isOwner()) &&
+      allow update: if isOwner() || (isSignedIn() &&
+                       (request.auth.uid == resource.data.agentId || isTeamSupervisor()) &&
                        resource.data.agentId == request.resource.data.agentId &&
                        resource.data.amount == request.resource.data.amount &&
                        resource.data.productName == request.resource.data.productName &&
                        resource.data.timestamp == request.resource.data.timestamp &&
                        resource.data.latitude == request.resource.data.latitude &&
                        resource.data.longitude == request.resource.data.longitude &&
-                       (request.resource.data.verificationStatus in ['VERIFIED', 'REJECTED'] ? isTeamSupervisor() || isOwner() : true);
+                       (request.resource.data.verificationStatus in ['VERIFIED', 'REJECTED'] ? isTeamSupervisor() || isOwner() : true));
       allow delete: if isOwner();
     }
 
     match /location_records/{recordId} {
-      allow read: if isSignedIn() &&
+      allow read: if isOwner() || (isSignedIn() &&
                      (request.auth.uid == resource.data.userId ||
-                      (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
-                      isOwner());
+                      (isTeamSupervisor() && resource.data.teamId == getUserTeamId())));
       allow create: if isAuthorized() && isActiveEmployee() &&
                        request.resource.data.userId == request.auth.uid &&
                        isValidGPSCoordinates(request.resource.data.latitude, request.resource.data.longitude) &&
@@ -191,28 +186,26 @@ service cloud.firestore {
     }
 
     match /location_logs/{recordId} {
-      allow read: if isSignedIn() &&
+      allow read: if isOwner() || (isSignedIn() &&
                      (request.auth.uid == resource.data.userId ||
-                      (isTeamSupervisor() && resource.data.team_id == getUserTeamId()) ||
-                      isOwner());
+                      (isTeamSupervisor() && resource.data.team_id == getUserTeamId())));
       allow create: if false;
       allow update, delete: if false;
     }
 
     match /tracking_sessions/{sessionId} {
-      allow read: if isSignedIn() &&
+      allow read: if isOwner() || (isSignedIn() &&
                      (request.auth.uid == resource.data.userId ||
-                      (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
-                      isOwner());
+                      (isTeamSupervisor() && resource.data.teamId == getUserTeamId())));
       allow create: if isAuthorized() && isActiveEmployee() && request.resource.data.userId == request.auth.uid &&
                        isValidTimestamp(request.resource.data.startTime) &&
                        isValidDeviceSignature(request.resource.data.deviceId, request.resource.data.deviceSignature) &&
                        request.resource.data.status in ['ACTIVE', 'PAUSED', 'ENDED'] &&
                        request.resource.data.sessionType in ['FIELD', 'OFFICE', 'BREAK'];
-      allow update: if isSignedIn() && isActiveEmployee() && request.auth.uid == resource.data.userId &&
+      allow update: if isOwner() || (isSignedIn() && isActiveEmployee() && request.auth.uid == resource.data.userId &&
                        resource.data.userId == request.resource.data.userId && resource.data.deviceId == request.resource.data.deviceId &&
                        request.time.toMillis() - resource.data.startTime <= 300000 &&
-                       resource.data.status in ['ACTIVE', 'PAUSED'] && request.resource.data.status in ['ACTIVE', 'PAUSED', 'ENDED'];
+                       resource.data.status in ['ACTIVE', 'PAUSED'] && request.resource.data.status in ['ACTIVE', 'PAUSED', 'ENDED']);
       allow delete: if isOwner();
     }
 
@@ -247,7 +240,7 @@ service cloud.firestore {
     }
 
     match /employee_id_audits/{auditId} {
-      allow read: if isSignedIn() && (request.auth.uid == resource.data.userId || isTeamSupervisor() || isOwner());
+      allow read: if isOwner() || (isSignedIn() && (request.auth.uid == resource.data.userId || isTeamSupervisor()));
       allow create: if false;
       allow update, delete: if isOwner();
     }
@@ -258,17 +251,14 @@ service cloud.firestore {
     }
 
     match /sales_summaries/{summaryId} {
-      allow read: if isSignedIn() &&
+      allow read: if isOwner() || (isSignedIn() &&
                      (request.auth.uid == resource.data.userId ||
-                      (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
-                      isOwner());
+                      (isTeamSupervisor() && resource.data.teamId == getUserTeamId())));
       allow write: if false;
     }
 
-    // OWNER OVERRIDE: the verified/authorized Owner is the ultimate authority.
-    // This grants the Owner full read/write access to every current and future
-    // top-level collection and every nested subcollection. Employee-specific
-    // restrictions above remain in force for non-Owner users.
+    // Ultimate Owner override. A verified Firebase session for the configured
+    // Owner email can read/write every current/future collection and subcollection.
     match /{document=**} {
       allow read, write: if isOwner();
     }
