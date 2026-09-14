@@ -265,8 +265,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // OWNER OVERRIDE: the verified/authorized Owner is the ultimate authority.
+    // This grants the Owner full read/write access to every current and future
+    // top-level collection and every nested subcollection. Employee-specific
+    // restrictions above remain in force for non-Owner users.
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if isOwner();
     }
   }
 }
