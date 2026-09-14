@@ -5,6 +5,8 @@ import { supabase } from './supabase';
 const toAppUser = (row: Record<string, any>, authUserId: string): AppUser => ({
   ...row,
   id: row.id || authUserId,
+  name: row.name || '',
+  role: row.role || 'agent',
   firebaseUid: undefined,
   authUserId,
   teamId: row.team_id,
