@@ -27,7 +27,7 @@ jobs:
           cache: npm
 
       - name: Install Dependencies
-        run: npm ci --include=dev --no-audit --no-fund
+        run: npm install --include=dev --no-audit --no-fund
 
       - name: Verify local TypeScript compiler
         run: |
@@ -36,6 +36,14 @@ jobs:
 
       - name: TypeScript Check
         run: ./node_modules/.bin/tsc --noEmit
+
+      - name: Verify Supabase migration files
+        run: |
+          test -s src/services/supabase.ts
+          test -s src/services/supabaseAuth.ts
+          grep -q "gbszujosgslsjaiibasa.supabase.co" src/services/supabase.ts
+          grep -q "signInWithPassword" src/services/supabaseAuth.ts
+          grep -q "resetPasswordForEmail" src/services/supabaseAuth.ts
 
       - name: Production Server Security Guard
         run: |
@@ -47,23 +55,6 @@ jobs:
           grep -q "FIRESTORE_SYNC_WRITE_FAILED" server.secure.ts
           ! grep -q "res.json(cloudState)" server.secure.ts
           ! grep -q "let cloudState" server.secure.ts
-          ! grep -q "signInAnonymously" src/services/firebase.ts
-
-      - name: Verify Firebase deployment configuration
-        run: |
-          test -s firebase.json
-          test -s .firebaserc
-          grep -q '"rules": "firestore.rules"' firebase.json
-          grep -q 'dd-world-app-dushmantha' .firebaserc
-          test -s firestore.rules
-          grep -q "function isActiveEmployee()" firestore.rules
-
-      - name: Deploy Firestore Security Rules
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        run: |
-          test -n "$FIREBASE_TOKEN" || { echo "FIREBASE_TOKEN GitHub secret is required for Firebase rules deployment."; exit 1; }
-          npx --yes firebase-tools@latest deploy --only firestore:rules --project dd-world-app-dushmantha --token "$FIREBASE_TOKEN"
 
       - name: Build Web Application
         run: npm run build
@@ -99,10 +90,8 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$APKSIGNER" || exit 1
           "$APKSIGNER" verify --print-certs "$APK" | tee signing-certificate.txt
-
           SHA1="$(sed -n 's/^[[:space:]]*Signer #1 certificate SHA-1 digest:[[:space:]]*//p' signing-certificate.txt | head -n 1 | tr -d '[:space:]')"
           SHA256="$(sed -n 's/^[[:space:]]*Signer #1 certificate SHA-256 digest:[[:space:]]*//p' signing-certificate.txt | head -n 1 | tr -d '[:space:]')"
-
           if [[ "$SHA1" =~ ^([0-9A-Fa-f]{2}:){19}[0-9A-Fa-f]{2}$ ]] && [[ "$SHA256" =~ ^([0-9A-Fa-f]{2}:){31}[0-9A-Fa-f]{2}$ ]]; then
             printf 'SHA-1: %s\nSHA-256: %s\n' "$SHA1" "$SHA256" | tee signing-fingerprints.txt
           else
