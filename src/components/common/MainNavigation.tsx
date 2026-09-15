@@ -18,11 +18,11 @@ const activatePage = (item: NavItem) => {
 export const MainNavigation: React.FC = () => {
   const { currentUser } = useAuth();
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState('Dashboard');
+  const [active, setActive] = useState('Home');
 
   const items = useMemo<NavItem[]>(() => {
     if (currentUser?.role === 'owner') return [
-      { label: 'Dashboard', keywords: ['Dashboard', 'Overview'], icon: Home },
+      { label: 'Home', keywords: ['Owner Dashboard', 'Dashboard', 'Overview'], icon: Home },
       { label: 'Employees', keywords: ['Employees', 'Employee Status'], icon: Users },
       { label: 'Teams', keywords: ['Teams', 'Team'], icon: Users },
       { label: 'Sales', keywords: ['All Sales', 'Sales'], icon: BarChart3 },
@@ -37,7 +37,7 @@ export const MainNavigation: React.FC = () => {
       { label: 'Dialog Officer', keywords: ['Dialog Officer', 'Dialog Liaison'], icon: MessageCircle },
     ];
     if (currentUser?.role === 'team_leader') return [
-      { label: 'Home / Dashboard', keywords: ['Dashboard', 'Attendance'], icon: Home },
+      { label: 'Home', keywords: ['Team Leader Dashboard', 'Dashboard', 'Attendance'], icon: Home },
       { label: 'My Team', keywords: ['Team Agents', 'My Team', 'Team'], icon: Users },
       { label: 'Sales', keywords: ['Sales'], icon: BarChart3 },
       { label: 'Attendance', keywords: ['Attendance'], icon: CalendarCheck },
@@ -48,14 +48,14 @@ export const MainNavigation: React.FC = () => {
       { label: 'Messages', keywords: ['Company Messages', 'Messages', 'Chat'], icon: Inbox },
     ];
     if (currentUser?.role === 'dialog_officer') return [
-      { label: 'Dialog Officer Home', keywords: ['Dialog Officer Portal'], icon: Home },
+      { label: 'Home', keywords: ['Dialog Officer Portal', 'Dialog Officer Home'], icon: Home },
       { label: 'Owner Communication', keywords: ['Owner Communication'], icon: MessageCircle },
       { label: 'Reports / Notices', keywords: ['Reports, notices', 'report', 'notice'], icon: FileText },
       { label: 'Requests / Clarifications', keywords: ['request', 'clarification'], icon: Inbox },
       { label: 'Security', keywords: ['Security'], icon: ShieldCheck },
     ];
     return [
-      { label: 'Home / Dashboard', keywords: ['Dashboard', 'Attendance'], icon: Home },
+      { label: 'Home', keywords: ['Agent Dashboard', 'Dashboard', 'Attendance'], icon: Home },
       { label: 'Work & Attendance', keywords: ['Attendance', 'Work Area', 'Start Work'], icon: Briefcase },
       { label: 'Sales', keywords: ['Sales'], icon: BarChart3 },
       { label: 'GPS', keywords: ['GPS'], icon: MapPin },
@@ -77,18 +77,18 @@ export const MainNavigation: React.FC = () => {
   };
 
   const goHome = () => {
-    setActive(items[0]?.label || 'Dashboard');
+    const homeItem = items[0];
+    setActive(homeItem?.label || 'Home');
     setOpen(false);
-    window.dispatchEvent(new CustomEvent('ddworld:navigate', { detail: { page: 'home' } }));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (homeItem) activatePage(homeItem);
+    else window.dispatchEvent(new CustomEvent('ddworld:navigate', { detail: { page: 'home' } }));
   };
 
   return <>
     <div className="fixed bottom-3 left-1/2 z-[60] w-[calc(100%-1rem)] max-w-6xl -translate-x-1/2 rounded-2xl border border-slate-700 bg-slate-900/95 p-2 shadow-2xl backdrop-blur-xl">
       <div className="flex items-center gap-2">
-        <button onClick={goHome} className="shrink-0 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-black text-white hover:bg-emerald-500" aria-label="Home"><Home className="mr-1 inline h-4 w-4" />Home</button>
         <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none]">
-          {items.map((item) => { const Icon = item.icon; const selected = active === item.label; return <button key={item.label} onClick={() => choose(item)} className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2.5 text-[11px] font-bold transition active:scale-95 ${selected ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'}`} title={`Open ${item.label}`} aria-label={item.label}><Icon className="h-3.5 w-3.5" />{item.label}</button>; })}
+          {items.map((item) => { const Icon = item.icon; const selected = active === item.label; return <button key={item.label} onClick={() => choose(item)} className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2.5 text-[11px] font-bold transition active:scale-95 ${selected ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'}`} title={`Open ${item.label}`} aria-label={item.label}><Icon className="h-3.5 w-3.5" />{item.label}</button>; })}
         </div>
         <button onClick={() => setOpen((value) => !value)} className="shrink-0 rounded-xl bg-slate-800 px-3 py-2.5 text-xs font-black text-white hover:bg-slate-700" aria-label="Open full page menu">{open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
       </div>
@@ -97,7 +97,7 @@ export const MainNavigation: React.FC = () => {
     {open && <div className="fixed inset-0 z-[55] bg-slate-950/75 p-4 pb-24 backdrop-blur-sm" onClick={() => setOpen(false)}>
       <div className="mx-auto mt-auto max-h-[80vh] max-w-4xl overflow-y-auto rounded-3xl border border-slate-700 bg-slate-900 p-5 shadow-2xl sm:mt-[10vh]" onClick={(event) => event.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between"><div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">DD WORLD OFFICIAL PORTAL</p><h2 className="text-xl font-extrabold text-white">{currentUser.role === 'owner' ? 'Owner' : currentUser.role === 'team_leader' ? 'Team Leader' : currentUser.role === 'dialog_officer' ? 'Dialog Officer' : 'Agent'} Pages</h2><p className="mt-1 text-xs text-slate-400">Touch any page name to activate it.</p></div><button onClick={() => setOpen(false)} className="rounded-xl bg-slate-800 p-2 text-slate-300 hover:bg-slate-700" aria-label="Close menu"><X className="h-5 w-5" /></button></div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{items.map((item) => { const Icon = item.icon; const selected = active === item.label; return <button key={item.label} onClick={() => choose(item)} className={`min-h-24 rounded-2xl border p-4 text-left transition active:scale-[0.98] ${selected ? 'border-blue-400 bg-blue-600/20' : 'border-slate-700 bg-slate-800/80 hover:border-emerald-500/50 hover:bg-slate-700'}`}><div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-950/70 text-emerald-400"><Icon className="h-5 w-5" /></div><span className="block text-sm font-bold text-white">{item.label}</span><span className="text-[10px] text-slate-400">{selected ? 'ON / ACTIVE' : 'Touch to open →'}</span></button>; })}</div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{items.map((item) => { const Icon = item.icon; const selected = active === item.label; return <button key={item.label} onClick={() => choose(item)} className={`min-h-24 rounded-2xl border p-4 text-left transition active:scale-[0.98] ${selected ? 'border-emerald-400 bg-emerald-600/20' : 'border-slate-700 bg-slate-800/80 hover:border-emerald-500/50 hover:bg-slate-700'}`}><div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-950/70 text-emerald-400"><Icon className="h-5 w-5" /></div><span className="block text-sm font-bold text-white">{item.label}</span><span className="text-[10px] text-slate-400">{selected ? 'ON / ACTIVE' : 'Touch to open →'}</span></button>; })}</div>
       </div>
     </div>}
   </>;
