@@ -31,7 +31,7 @@ export const MainNavigation: React.FC = () => {
       { label: 'Attendance', keywords: ['Attendance'], icon: CalendarCheck },
       { label: 'GPS / Live Control', keywords: ['GPS', 'Live Control'], icon: MapPin },
       { label: 'Fraud & Security', keywords: ['Fraud', 'Security'], icon: ShieldCheck },
-      { label: 'Payments', keywords: ['Payment', 'Payments'], icon: Wallet },
+      { label: 'Commission / Payment', keywords: ['Commission / Payment', 'Commission', 'Payment', 'Payments'], icon: Wallet },
       { label: 'Reports', keywords: ['Reports', 'Report'], icon: FileText },
       { label: 'Daily Top 3', keywords: ['Daily Achievement', 'Top 3', 'Achievement'], icon: Trophy },
       { label: 'Company Settings', keywords: ['Company Settings', 'Company Brand'], icon: Building2 },
@@ -46,11 +46,12 @@ export const MainNavigation: React.FC = () => {
       { label: 'Attendance', keywords: ['Attendance'], icon: CalendarCheck },
       { label: 'GPS', keywords: ['GPS'], icon: MapPin },
       { label: 'Performance', keywords: ['Performance', 'Target'], icon: Target },
-      { label: 'Payments', keywords: ['Payment'], icon: Wallet },
+      { label: 'Commission / Payment', keywords: ['Commission / Payment', 'Commission', 'Payment'], icon: Wallet },
       { label: 'Reports', keywords: ['Reports', 'Report'], icon: FileText },
     ];
     if (currentUser?.role === 'dialog_officer') return [
       { label: 'Home', keywords: ['Dialog Officer Portal', 'Dialog Officer Home'], icon: Home },
+      { label: 'Commission / Payment', keywords: ['Commission / Payment', 'Commission', 'Payment'], icon: Wallet },
       { label: 'Owner Communication', keywords: ['Owner Communication'], icon: MessageCircle },
       { label: 'Reports / Notices', keywords: ['Reports, notices', 'report', 'notice'], icon: FileText },
       { label: 'Requests / Clarifications', keywords: ['request', 'clarification'], icon: Inbox },
@@ -64,7 +65,7 @@ export const MainNavigation: React.FC = () => {
       { label: 'Message Room', keywords: ['Company Messages', 'Messages', 'Inbox', 'Chat'], icon: Inbox },
       { label: 'GPS', keywords: ['GPS'], icon: MapPin },
       { label: 'Performance', keywords: ['Performance', 'Target'], icon: Target },
-      { label: 'Payments', keywords: ['Payment'], icon: Wallet },
+      { label: 'Commission / Payment', keywords: ['Commission / Payment', 'Commission', 'Payment'], icon: Wallet },
       { label: 'My ID', keywords: ['Digital ID', 'ID Card'], icon: UserRound },
       { label: 'Security', keywords: ['Security'], icon: ShieldCheck },
     ];
