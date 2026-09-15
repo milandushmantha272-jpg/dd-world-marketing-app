@@ -328,7 +328,7 @@ export const DigitalEmployeeIdCard: React.FC<DigitalEmployeeIdCardProps> = ({ us
                   />
                   <div>
                     <h3 className="text-[11px] font-black text-amber-400 tracking-wider">DD WORLD MARKETING</h3>
-                    <p className="text-[8px] text-slate-400 font-bold uppercase">Private Limited • Sri Lanka</p>
+                    <p className="text-[8px] text-slate-400 font-bold uppercase">Registered Business • Sri Lanka</p>
                   </div>
                 </div>
                 <ShieldCheck className={`w-5 h-5 ${isApproved ? 'text-emerald-400' : 'text-amber-400'}`} />
@@ -418,7 +418,7 @@ export const DigitalEmployeeIdCard: React.FC<DigitalEmployeeIdCardProps> = ({ us
             <div className="space-y-4 relative z-10 flex flex-col h-full justify-between text-center">
               <div className="border-b border-slate-800 pb-2">
                 <h4 className="text-xs font-black text-amber-400">OFFICIAL CORPORATE IDENTITY</h4>
-                <p className="text-[9px] text-slate-400">DD WORLD MARKETING PVT LIMITED</p>
+                <p className="text-[9px] text-slate-400">DD WORLD MARKETING • REGISTERED BUSINESS</p>
               </div>
 
               <div
@@ -439,21 +439,32 @@ export const DigitalEmployeeIdCard: React.FC<DigitalEmployeeIdCardProps> = ({ us
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-[10px] text-slate-400 text-left space-y-1">
-                <p className="text-amber-400 font-bold">• Authorized Field Partner for Dialog Axiata PLC (Govimithuru #616# &amp; Sayuru #828# Services).</p>
-                <p>• This Digital ID card is official property of DD World Marketing Pvt Limited.</p>
+              <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-[9px] text-slate-400 text-left space-y-1">
+                <p className="text-amber-400 font-bold">• Authorized Field Partner for Dialog Axiata PLC — Govimithuru #616# &amp; Sayuru #828# Services.</p>
+                <p>• This Digital ID is official property of DD WORLD MARKETING.</p>
                 <p>• Authorized for official field visits, merchant onboarding, and customer verification.</p>
-                <div className="pt-1 border-t border-slate-800/80 text-[9px] text-slate-400 space-y-0.5">
+                <div className="pt-1 border-t border-slate-800/80 text-[8.5px] text-slate-400 space-y-0.5">
                   <p>
-                    <span className="text-slate-500 font-bold uppercase">Official Hotline:</span>{' '}
-                    <span className="text-amber-300 font-mono font-bold">0767046094</span>
+                    <span className="text-slate-500 font-bold uppercase">DD WORLD MARKETING Contract / Hotline:</span>{' '}
+                    <span className="text-amber-300 font-mono font-black">0767046094</span>
                   </p>
                   <p>
-                    <span className="text-slate-500 font-bold uppercase">Corporate Email:</span>{' '}
-                    <span className="text-slate-300 font-mono">d.d.worldmarketing1234@gmail.com</span>
+                    <span className="text-slate-500 font-bold uppercase">Registration No:</span>{' '}
+                    <span className="text-slate-200 font-mono font-bold">WPCOLK/R/2024/00118</span>
                   </p>
-                  <p className="text-slate-500 text-[8.5px]">
-                    44/c, Galabodawatha, Niungama, Piliyandala
+                  <p>
+                    <span className="text-slate-500 font-bold uppercase">Commenced:</span>{' '}
+                    <span className="text-slate-300">13-02-2024</span>
+                    <span className="text-slate-500"> • </span>
+                    <span className="text-slate-500 font-bold uppercase">Capital:</span>{' '}
+                    <span className="text-slate-300">Rs. 50,000.00</span>
+                  </p>
+                  <p>
+                    <span className="text-slate-500 font-bold uppercase">Business:</span>{' '}
+                    <span className="text-slate-300">MARKETING OF TELECOMMUNICATIONS</span>
+                  </p>
+                  <p className="text-slate-500 text-[8px] leading-tight">
+                    44/C, Galabodawaththa, Niungama, Piliyandala
                   </p>
                 </div>
               </div>
