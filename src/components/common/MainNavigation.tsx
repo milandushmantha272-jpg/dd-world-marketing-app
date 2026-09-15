@@ -26,6 +26,7 @@ export const MainNavigation: React.FC = () => {
       { label: 'Employees', keywords: ['Employees', 'Employee Status'], icon: Users },
       { label: 'Teams', keywords: ['Teams', 'Team'], icon: Users },
       { label: 'Sales Activation', keywords: ['IVR Keypad', '#828#', '#616#', 'App Activation', 'Sales Activation'], icon: BarChart3 },
+      { label: 'Message Room', keywords: ['Company Messages', 'Messages', 'Chat'], icon: Inbox },
       { label: 'Sales Summary', keywords: ['Sales Summary', 'Daily / Weekly / Monthly Summaries', 'Executive Summaries'], icon: BarChart3 },
       { label: 'Attendance', keywords: ['Attendance'], icon: CalendarCheck },
       { label: 'GPS / Live Control', keywords: ['GPS', 'Live Control'], icon: MapPin },
@@ -34,7 +35,6 @@ export const MainNavigation: React.FC = () => {
       { label: 'Reports', keywords: ['Reports', 'Report'], icon: FileText },
       { label: 'Daily Top 3', keywords: ['Daily Achievement', 'Top 3', 'Achievement'], icon: Trophy },
       { label: 'Company Settings', keywords: ['Company Settings', 'Company Brand'], icon: Building2 },
-      { label: 'Messages', keywords: ['Company Messages', 'Messages', 'Chat'], icon: Inbox },
       { label: 'Dialog Officer', keywords: ['Dialog Officer', 'Dialog Liaison'], icon: MessageCircle },
     ];
     if (currentUser?.role === 'team_leader') return [
@@ -42,12 +42,12 @@ export const MainNavigation: React.FC = () => {
       { label: 'My Team', keywords: ['Team Agents', 'My Team', 'Team'], icon: Users },
       { label: 'Sales Activation', keywords: ['IVR Keypad', '#828#', '#616#', 'App Activation', 'Sales Activation'], icon: BarChart3 },
       { label: 'Sales Summary', keywords: ['Sales Summary', 'Daily / Weekly / Monthly Summaries', 'Executive Summaries'], icon: BarChart3 },
+      { label: 'Message Room', keywords: ['Company Messages', 'Messages', 'Chat'], icon: Inbox },
       { label: 'Attendance', keywords: ['Attendance'], icon: CalendarCheck },
       { label: 'GPS', keywords: ['GPS'], icon: MapPin },
       { label: 'Performance', keywords: ['Performance', 'Target'], icon: Target },
       { label: 'Payments', keywords: ['Payment'], icon: Wallet },
       { label: 'Reports', keywords: ['Reports', 'Report'], icon: FileText },
-      { label: 'Messages', keywords: ['Company Messages', 'Messages', 'Chat'], icon: Inbox },
     ];
     if (currentUser?.role === 'dialog_officer') return [
       { label: 'Home', keywords: ['Dialog Officer Portal', 'Dialog Officer Home'], icon: Home },
@@ -61,10 +61,10 @@ export const MainNavigation: React.FC = () => {
       { label: 'Work & Attendance', keywords: ['Attendance', 'Work Area', 'Start Work'], icon: Briefcase },
       { label: 'Sales Activation', keywords: ['IVR Keypad', '#828#', '#616#', 'App Activation', 'Sales Activation'], icon: BarChart3 },
       { label: 'Sales Summary', keywords: ['Sales Summary', 'Daily / Weekly / Monthly Summaries', 'Executive Summaries'], icon: BarChart3 },
+      { label: 'Message Room', keywords: ['Company Messages', 'Messages', 'Inbox', 'Chat'], icon: Inbox },
       { label: 'GPS', keywords: ['GPS'], icon: MapPin },
       { label: 'Performance', keywords: ['Performance', 'Target'], icon: Target },
       { label: 'Payments', keywords: ['Payment'], icon: Wallet },
-      { label: 'Inbox & Messages', keywords: ['Company Messages', 'Messages', 'Inbox', 'Chat'], icon: Inbox },
       { label: 'My ID', keywords: ['Digital ID', 'ID Card'], icon: UserRound },
       { label: 'Security', keywords: ['Security'], icon: ShieldCheck },
     ];
