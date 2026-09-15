@@ -82,7 +82,9 @@ class LocationTrackingService : Service() {
         agentCode = intent?.getStringExtra(EXTRA_AGENT_CODE) ?: getSavedPref("agentCode")
         teamId = intent?.getStringExtra(EXTRA_TEAM_ID) ?: getSavedPref("teamId")
         trackingSessionId = intent?.getStringExtra(EXTRA_SESSION_ID) ?: getSavedPref("trackingSessionId")
-        supabaseAccessToken = intent?.getStringExtra(EXTRA_SUPABASE_ACCESS_TOKEN) ?: getSavedPref("supabaseAccessToken")
+        // Never restore a Supabase access token from disk. A fresh authenticated
+        // session must explicitly provide the token when tracking starts.
+        supabaseAccessToken = intent?.getStringExtra(EXTRA_SUPABASE_ACCESS_TOKEN) ?: ""
 
         if (employeeId.isNotEmpty()) {
             savePref("employeeId", employeeId)
@@ -90,19 +92,20 @@ class LocationTrackingService : Service() {
             savePref("teamId", teamId)
             savePref("trackingSessionId", trackingSessionId)
         }
-        if (supabaseAccessToken.isNotEmpty()) savePref("supabaseAccessToken", supabaseAccessToken)
 
         startForeground(NOTIFICATION_ID, createForegroundNotification())
         isServiceRunning = true
         authenticateSupabaseAndStartTracking()
-        return START_STICKY
+        // Do not allow Android to resurrect a service without a fresh Supabase token.
+        return START_NOT_STICKY
     }
 
     private fun authenticateSupabaseAndStartTracking() {
         if (supabaseAccessToken.isEmpty()) {
-            Log.e(TAG, "No Supabase access token; refusing GPS uploads")
+            Log.e(TAG, "No fresh Supabase access token; refusing GPS uploads")
             authReady = false
             isServiceRunning = false
+            stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return
         }
@@ -269,7 +272,6 @@ class LocationTrackingService : Service() {
         isServiceRunning = false
         authReady = false
         supabaseAccessToken = ""
-        removeSavedPref("supabaseAccessToken")
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
         Log.d(TAG, "Native Location Tracking Service stopped cleanly")
@@ -288,8 +290,4 @@ class LocationTrackingService : Service() {
 
     private fun getSavedPref(key: String): String =
         getSharedPreferences("ddworld_native_gps", Context.MODE_PRIVATE).getString(key, "") ?: ""
-
-    private fun removeSavedPref(key: String) {
-        getSharedPreferences("ddworld_native_gps", Context.MODE_PRIVATE).edit().remove(key).apply()
-    }
 }
