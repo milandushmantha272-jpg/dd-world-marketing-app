@@ -14,6 +14,7 @@ import { AgentDashboard } from './components/agent/AgentDashboard';
 import { AttendancePage } from './components/common/AttendancePage';
 import { MessageRoomPage } from './components/common/MessageRoomPage';
 import CommissionPaymentPage from './components/common/CommissionPaymentPage';
+import { OwnerCommissionControl } from './components/owner/OwnerCommissionControl';
 import { CallNotificationModal } from './components/common/CallNotificationModal';
 import { ActiveCallOverlay } from './components/common/ActiveCallOverlay';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
@@ -109,6 +110,7 @@ const AppContent: React.FC = () => {
           {currentUser.role === 'team_leader' && <TeamLeaderDashboard />}
           {currentUser.role === 'agent' && <AgentDashboard />}
         </>}
+        {currentUser.role === 'owner' && <div className="mx-auto max-w-7xl px-4 md:px-6 pb-6"><OwnerCommissionControl /></div>}
         <WeeklySalesSheetWorkflow />
       </main>
       <DialogLiaisonHub />
