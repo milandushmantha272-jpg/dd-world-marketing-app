@@ -24,6 +24,7 @@ import { DialogOfficerPortal } from './components/common/DialogOfficerPortal';
 import { OwnerDialogOfficerMessenger } from './components/common/OwnerDialogOfficerMessenger';
 import { WeeklySalesSheetWorkflow } from './components/common/WeeklySalesSheetWorkflow';
 import { MainNavigation } from './components/common/MainNavigation';
+import { HomePage } from './components/common/HomePage';
 import { safeStorage } from './utils/safeStorage';
 
 const GlobalCallContainer: React.FC = () => {
@@ -48,15 +49,23 @@ const AppContent: React.FC = () => {
   const { dataError, retryData } = useData();
   const [updateNotice, setUpdateNotice] = React.useState<string | null>(null);
   const [standalonePage, setStandalonePage] = React.useState<string | null>(null);
+  const [showHome, setShowHome] = React.useState(true);
 
   React.useEffect(() => {
     const onNavigate = (event: Event) => {
       const page = (event as CustomEvent<{ page?: string }>).detail?.page || '';
-      if (page === 'Attendance' || page === 'Work & Attendance') setStandalonePage('Attendance');
-      else if (page === 'Message Room') setStandalonePage('Message Room');
-      else if (page === 'Commission / Payment') setStandalonePage('Commission / Payment');
+      if (page === 'Home') {
+        setStandalonePage(null);
+        setShowHome(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      setShowHome(false);
+      if (page === 'Attendance' || page === 'Work & Attendance' || page === 'Page 2 — Attendance') setStandalonePage('Attendance');
+      else if (page === 'Message Room' || page === 'Page 5 — Message Room') setStandalonePage('Message Room');
+      else if (page === 'Commission / Payment' || page === 'Page 7 — Commission / Payment') setStandalonePage('Commission / Payment');
       else if (page === 'Page 4 — Sales Summary / Reports') setStandalonePage('Sales Summary / Reports');
-      else if (page === 'Home') setStandalonePage(null);
+      else setStandalonePage(null);
     };
     window.addEventListener('ddworld:navigate', onNavigate);
     return () => window.removeEventListener('ddworld:navigate', onNavigate);
@@ -104,6 +113,7 @@ const AppContent: React.FC = () => {
       {currentUser.role === 'owner' && <div className="mx-auto max-w-7xl px-4 md:px-6 pb-6"><OwnerCommissionControl /></div>}
       <WeeklySalesSheetWorkflow />
     </main>
+    {showHome && !standalonePage && <div className="absolute inset-x-0 top-[72px] z-40 min-h-[calc(100vh-72px)] bg-slate-950"><HomePage /></div>}
     <DialogLiaisonHub />
     <OwnerDialogOfficerMessenger />
     <GlobalCallContainer />
