@@ -1,8 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { FileText, MessageCircle, Send, ShieldCheck, ClipboardList, AlertTriangle, HelpCircle } from 'lucide-react';
+import { FileText, MessageCircle, Send, ShieldCheck, ClipboardList, AlertTriangle, HelpCircle, Wallet, Users, BriefcaseBusiness } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { canSendInternalMessage } from '../../utils/messagePermissions';
+
+const DIALOG_OFFICERS = [
+  { name: 'Kavisha Preamathilak', responsibility: 'Sayuru', products: 'Sayuru', icon: BriefcaseBusiness },
+  { name: 'Praddeep Rajapaksha', responsibility: 'Govi Mithuru', products: 'Govi Mithuru', icon: BriefcaseBusiness },
+  { name: 'Malika Marasinghe', responsibility: 'Payment / Accounts Manager', products: 'Sayuru + Govi Mithuru', icon: Wallet },
+  { name: 'Mohomad Hadil', responsibility: 'Sayuru & Govi Mithuru Manager', products: 'Sayuru + Govi Mithuru', icon: Users },
+] as const;
 
 export const DialogOfficerPortal: React.FC = () => {
   const { currentUser } = useAuth();
@@ -12,7 +19,9 @@ export const DialogOfficerPortal: React.FC = () => {
 
   const conversation = useMemo(() => {
     if (!currentUser || !owner) return [];
-    return messages.filter((m) => (m.senderId === currentUser.id && m.receiverId === owner.id) || (m.senderId === owner.id && m.receiverId === currentUser.id)).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    return messages
+      .filter((m) => (m.senderId === currentUser.id && m.receiverId === owner.id) || (m.senderId === owner.id && m.receiverId === currentUser.id))
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   }, [messages, currentUser, owner]);
 
   if (!currentUser || currentUser.role !== 'dialog_officer') return null;
@@ -29,15 +38,22 @@ export const DialogOfficerPortal: React.FC = () => {
   return <div className="min-h-screen bg-slate-950 p-4 text-white md:p-8">
     <div className="mx-auto max-w-5xl">
       <header className="rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
-        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-400">DD WORLD MARKETING • DIALOG LIAISON</div>
+        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-400">DD WORLD MARKETING • DIALOG OFFICER APP</div>
         <h1 className="mt-1 text-2xl font-black">Dialog Officer Portal</h1>
-        <p className="mt-1 text-sm text-slate-400">Restricted Officer ↔ Owner channel. Dialog Officers do not access Agent/TL controls.</p>
+        <p className="mt-1 text-sm text-slate-400">Restricted Dialog Officer ↔ Owner channel. Agent and Team Leader direct access to Dialog Officers is not permitted.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl bg-slate-800 p-3"><div className="text-[10px] text-slate-400">Officer</div><div className="font-bold">{currentUser.name}</div></div>
-          <div className="rounded-2xl bg-slate-800 p-3"><div className="text-[10px] text-slate-400">Work role</div><div className="font-bold">{currentUser.designation || currentUser.jobPosition || 'Dialog Liaison Officer'}</div></div>
+          <div className="rounded-2xl bg-slate-800 p-3"><div className="text-[10px] text-slate-400">Responsibility</div><div className="font-bold">{DIALOG_OFFICERS.find((o) => o.name.toLowerCase() === currentUser.name.toLowerCase())?.responsibility || currentUser.designation || currentUser.jobPosition || 'Dialog Officer'}</div></div>
           <div className="rounded-2xl bg-slate-800 p-3"><div className="text-[10px] text-slate-400">Owner</div><div className="font-bold">{owner?.name || 'Owner'}</div></div>
         </div>
       </header>
+
+      <section className="mt-5 rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
+        <div className="mb-4 flex items-center justify-between"><div><h2 className="font-black">Authorized Dialog Management Team</h2><p className="text-xs text-slate-400">Current responsibility directory. Personnel changes can be managed by the Owner.</p></div><ShieldCheck className="h-5 w-5 text-emerald-400" /></div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {DIALOG_OFFICERS.map(({ name, responsibility, products, icon: Icon }) => <div key={name} className="rounded-2xl border border-slate-700 bg-slate-950/70 p-4"><div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 text-purple-300"><Icon className="h-5 w-5" /></div><div className="min-w-0"><div className="font-black">{name}</div><div className="mt-1 text-sm text-slate-300">{responsibility}</div><div className="mt-1 text-[11px] text-slate-500">Products: {products}</div></div></div></div>)}
+        </div>
+      </section>
 
       <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
