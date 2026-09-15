@@ -13,7 +13,7 @@ import { TeamLeaderDashboard } from './components/leader/TeamLeaderDashboard';
 import { AgentDashboard } from './components/agent/AgentDashboard';
 import { AttendancePage } from './components/common/AttendancePage';
 import { MessageRoomPage } from './components/common/MessageRoomPage';
-import { CommissionPaymentPage } from './components/common/CommissionPaymentPage';
+import CommissionPaymentPage from './components/common/CommissionPaymentPage';
 import { CallNotificationModal } from './components/common/CallNotificationModal';
 import { ActiveCallOverlay } from './components/common/ActiveCallOverlay';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
