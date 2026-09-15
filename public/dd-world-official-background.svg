@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06111f"/>
+      <stop offset="0.52" stop-color="#0a2035"/>
+      <stop offset="1" stop-color="#071a28"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="15%" cy="18%" r="55%"><stop offset="0" stop-color="#16a34a" stop-opacity=".22"/><stop offset="1" stop-color="#16a34a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="glow2" cx="88%" cy="82%" r="52%"><stop offset="0" stop-color="#0ea5e9" stop-opacity=".20"/><stop offset="1" stop-color="#0ea5e9" stop-opacity="0"/></radialGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#22c55e" stop-opacity="0"/><stop offset=".5" stop-color="#22c55e" stop-opacity=".35"/><stop offset="1" stop-color="#38bdf8" stop-opacity="0"/></linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="28"/></filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <rect width="1600" height="1000" fill="url(#glow1)"/>
+  <rect width="1600" height="1000" fill="url(#glow2)"/>
+  <g opacity=".08" stroke="#dbeafe" fill="none">
+    <path d="M-100 820 C280 520 470 1030 900 650 S1450 250 1740 80" stroke-width="2"/>
+    <path d="M-120 900 C300 600 520 1080 940 720 S1470 350 1710 140" stroke-width="1"/>
+    <path d="M50 0 L50 1000 M250 0 L250 1000 M450 0 L450 1000 M650 0 L650 1000 M850 0 L850 1000 M1050 0 L1050 1000 M1250 0 L1250 1000 M1450 0 L1450 1000"/>
+  </g>
+  <g filter="url(#blur)" opacity=".18"><circle cx="260" cy="190" r="85" fill="#22c55e"/><circle cx="1330" cy="780" r="100" fill="#38bdf8"/></g>
+  <rect y="0" width="1600" height="6" fill="url(#line)"/>
+</svg>
