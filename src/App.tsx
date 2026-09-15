@@ -13,6 +13,7 @@ import { TeamLeaderDashboard } from './components/leader/TeamLeaderDashboard';
 import { AgentDashboard } from './components/agent/AgentDashboard';
 import { AttendancePage } from './components/common/AttendancePage';
 import { MessageRoomPage } from './components/common/MessageRoomPage';
+import { CommissionPaymentPage } from './components/common/CommissionPaymentPage';
 import { CallNotificationModal } from './components/common/CallNotificationModal';
 import { ActiveCallOverlay } from './components/common/ActiveCallOverlay';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
@@ -51,6 +52,7 @@ const AppContent: React.FC = () => {
       const page = (event as CustomEvent<{ page?: string }>).detail?.page || '';
       if (page === 'Attendance' || page === 'Work & Attendance') setStandalonePage('Attendance');
       else if (page === 'Message Room') setStandalonePage('Message Room');
+      else if (page === 'Commission / Payment') setStandalonePage('Commission / Payment');
       else if (page === 'Home') setStandalonePage(null);
     };
     window.addEventListener('ddworld:navigate', onNavigate);
@@ -95,14 +97,14 @@ const AppContent: React.FC = () => {
     );
   }
 
-  if (currentUser.role === 'dialog_officer') return <><DialogOfficerPortal /><WeeklySalesSheetWorkflow /><OfflineIndicator /></>;
+  if (currentUser.role === 'dialog_officer' && standalonePage !== 'Commission / Payment') return <><DialogOfficerPortal /><WeeklySalesSheetWorkflow /><OfflineIndicator /></>;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans relative">
       <Navbar />
       {updateNotice && <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 text-white text-xs font-bold py-2 px-4 text-center shadow-lg flex items-center justify-center gap-2 animate-pulse border-b border-white/20 z-50"><span>{updateNotice}</span><button onClick={() => setUpdateNotice(null)} className="ml-2 text-white/80 hover:text-white text-sm font-extrabold">✕</button></div>}
       <main className="flex-1 pb-24">
-        {standalonePage === 'Attendance' ? <AttendancePage /> : standalonePage === 'Message Room' ? <MessageRoomPage /> : <>
+        {standalonePage === 'Attendance' ? <AttendancePage /> : standalonePage === 'Message Room' ? <MessageRoomPage /> : standalonePage === 'Commission / Payment' ? <CommissionPaymentPage /> : <>
           {currentUser.role === 'owner' && <OwnerDashboard />}
           {currentUser.role === 'team_leader' && <TeamLeaderDashboard />}
           {currentUser.role === 'agent' && <AgentDashboard />}
