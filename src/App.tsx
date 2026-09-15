@@ -11,6 +11,7 @@ import { LoginModal } from './components/LoginModal';
 import { OwnerDashboard } from './components/owner/OwnerDashboard';
 import { TeamLeaderDashboard } from './components/leader/TeamLeaderDashboard';
 import { AgentDashboard } from './components/agent/AgentDashboard';
+import { AttendancePage } from './components/common/AttendancePage';
 import { CallNotificationModal } from './components/common/CallNotificationModal';
 import { ActiveCallOverlay } from './components/common/ActiveCallOverlay';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
@@ -24,7 +25,6 @@ import { safeStorage } from './utils/safeStorage';
 const GlobalCallContainer: React.FC = () => {
   const { currentUser } = useAuth();
   const { activeCall, acceptCall, rejectCall, endCall } = useData();
-
   if (!activeCall || !currentUser) return null;
   if (activeCall.status === 'ringing') {
     const isReceiver = activeCall.receiverId === currentUser.id;
@@ -43,6 +43,17 @@ const AppContent: React.FC = () => {
   const { currentUser } = useAuth();
   const { dataError, retryData } = useData();
   const [updateNotice, setUpdateNotice] = React.useState<string | null>(null);
+  const [standalonePage, setStandalonePage] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const onNavigate = (event: Event) => {
+      const page = (event as CustomEvent<{ page?: string }>).detail?.page || '';
+      if (page === 'Attendance' || page === 'Work & Attendance') setStandalonePage('Attendance');
+      else if (page === 'Home') setStandalonePage(null);
+    };
+    window.addEventListener('ddworld:navigate', onNavigate);
+    return () => window.removeEventListener('ddworld:navigate', onNavigate);
+  }, []);
 
   React.useEffect(() => {
     try {
@@ -63,7 +74,7 @@ const AppContent: React.FC = () => {
 
   React.useEffect(() => {
     if (currentUser) {
-      if ('geolocation' in navigator) navigator.geolocation.getCurrentPosition((pos) => console.log('GPS Location permission auto-acquired:', pos.coords.latitude, pos.coords.longitude), (err) => console.warn('GPS Permission pending or denied:', err.message), { enableHighAccuracy: true, timeout: 5000 });
+      if ('geolocation' in navigator) navigator.geolocation.getCurrentPosition((pos) => console.log('GPS Location permission auto-acquired:', pos.coords.latitude, pos.coords.longitude), (err) => console.warn('GPS Permission pending or denied:', err.message), { enableHighAccuracy: true });
       if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
     }
   }, [currentUser]);
@@ -76,13 +87,7 @@ const AppContent: React.FC = () => {
         <div className="w-full max-w-lg rounded-2xl border border-red-500/30 bg-slate-900 p-6 shadow-2xl">
           <div className="text-2xl font-extrabold mb-2">DD WORLD data connection</div>
           <p className="text-sm text-slate-300 leading-6">{dataError}</p>
-          <button
-            type="button"
-            onClick={retryData}
-            className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 font-bold hover:bg-blue-500 active:scale-[0.99]"
-          >
-            Retry
-          </button>
+          <button type="button" onClick={retryData} className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 font-bold hover:bg-blue-500 active:scale-[0.99]">Retry</button>
         </div>
       </div>
     );
@@ -95,9 +100,11 @@ const AppContent: React.FC = () => {
       <Navbar />
       {updateNotice && <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 text-white text-xs font-bold py-2 px-4 text-center shadow-lg flex items-center justify-center gap-2 animate-pulse border-b border-white/20 z-50"><span>{updateNotice}</span><button onClick={() => setUpdateNotice(null)} className="ml-2 text-white/80 hover:text-white text-sm font-extrabold">✕</button></div>}
       <main className="flex-1 pb-24">
-        {currentUser.role === 'owner' && <OwnerDashboard />}
-        {currentUser.role === 'team_leader' && <TeamLeaderDashboard />}
-        {currentUser.role === 'agent' && <AgentDashboard />}
+        {standalonePage === 'Attendance' ? <AttendancePage /> : <>
+          {currentUser.role === 'owner' && <OwnerDashboard />}
+          {currentUser.role === 'team_leader' && <TeamLeaderDashboard />}
+          {currentUser.role === 'agent' && <AgentDashboard />}
+        </>}
         <WeeklySalesSheetWorkflow />
       </main>
       <DialogLiaisonHub />
