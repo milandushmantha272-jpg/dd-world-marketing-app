@@ -48,11 +48,13 @@ jobs:
       - name: Production Server Security Guard
         run: |
           test -s server.secure.ts
-          grep -q "verifyIdToken" server.secure.ts
-          grep -q "requireFirebaseUser" server.secure.ts
+          grep -q "supabase.auth.getUser" server.secure.ts
+          grep -q "requireSupabaseUser" server.secure.ts
           grep -q "requireActiveEmployee" server.secure.ts
           grep -q "FIRESTORE_SYNC_READ_FAILED" server.secure.ts
           grep -q "FIRESTORE_SYNC_WRITE_FAILED" server.secure.ts
+          ! grep -q "verifyIdToken" server.secure.ts
+          ! grep -q "requireFirebaseUser" server.secure.ts
           ! grep -q "res.json(cloudState)" server.secure.ts
           ! grep -q "let cloudState" server.secure.ts
 
