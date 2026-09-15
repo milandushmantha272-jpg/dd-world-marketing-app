@@ -28,109 +28,62 @@ export interface SalesSummaryBreakdown {
   monthlyQuantity: number;
 }
 
-/**
- * Calculates weekly & monthly summary for attendance records.
- */
+const isActiveSale = (record: any) => {
+  const status = String(record?.verificationStatus || record?.status || '').toLowerCase();
+  return ['active', 'verified', 'confirmed', 'completed'].includes(status);
+};
+
+/** Calculates weekly & monthly summary for attendance records. */
 export function getAttendanceSummary(
   records: Array<{ date?: string; timestamp?: string; status: string }>,
-  targetMonthYear?: string // e.g. "2026-08" or current month
+  targetMonthYear?: string
 ): AttendanceSummaryBreakdown {
   const now = new Date();
   const currentMonthStr = targetMonthYear || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-  let week1 = 0;
-  let week2 = 0;
-  let week3 = 0;
-  let week4 = 0;
-  let monthly = 0;
-  let total = 0;
-
+  let week1 = 0, week2 = 0, week3 = 0, week4 = 0, monthly = 0, total = 0;
   records.forEach((r) => {
     const rawDate = r.date || r.timestamp || '';
     if (!rawDate) return;
-
-    // Check if record falls in the target month (or include if date starts with currentMonthStr)
     const recordDateStr = rawDate.split('T')[0];
-    const isCurrentMonth = recordDateStr.startsWith(currentMonthStr) || !recordDateStr.includes('-');
-
-    if (isCurrentMonth) {
+    if (recordDateStr.startsWith(currentMonthStr) || !recordDateStr.includes('-')) {
       total++;
       const day = parseInt(recordDateStr.split('-')[2] || '1', 10);
       const isPresent = r.status === 'present' || r.status === 'half_day';
-
       if (isPresent) {
         monthly++;
-        if (day >= 1 && day <= 7) week1++;
-        else if (day >= 8 && day <= 14) week2++;
-        else if (day >= 15 && day <= 21) week3++;
+        if (day <= 7) week1++;
+        else if (day <= 14) week2++;
+        else if (day <= 21) week3++;
         else week4++;
       }
     }
   });
-
-  return {
-    week1Present: week1,
-    week2Present: week2,
-    week3Present: week3,
-    week4Present: week4,
-    monthlyPresent: monthly,
-    totalRecords: total,
-  };
+  return { week1Present: week1, week2Present: week2, week3Present: week3, week4Present: week4, monthlyPresent: monthly, totalRecords: total };
 }
 
-/**
- * Calculates weekly & monthly summary for sales records.
- */
+/** Calculates 4 calendar-week + monthly sales using only Active/Verified records. */
 export function getSalesSummary(
-  records: Array<{ date?: string; timestamp?: string; quantity?: number }>,
+  records: Array<{ date?: string; timestamp?: string; quantity?: number; status?: string; verificationStatus?: string }>,
   targetMonthYear?: string
 ): SalesSummaryBreakdown {
   const now = new Date();
   const currentMonthStr = targetMonthYear || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
   let w1Count = 0, w2Count = 0, w3Count = 0, w4Count = 0, mCount = 0;
   let w1Qty = 0, w2Qty = 0, w3Qty = 0, w4Qty = 0, mQty = 0;
-
   records.forEach((r) => {
+    if (!isActiveSale(r)) return;
     const rawDate = r.date || r.timestamp || '';
     if (!rawDate) return;
-
     const recordDateStr = rawDate.split('T')[0];
-    const isCurrentMonth = recordDateStr.startsWith(currentMonthStr) || !recordDateStr.includes('-');
-
-    if (isCurrentMonth) {
-      const day = parseInt(recordDateStr.split('-')[2] || '1', 10);
-      const qty = Number(r.quantity) || 1;
-
-      mCount++;
-      mQty += qty;
-
-      if (day >= 1 && day <= 7) {
-        w1Count++;
-        w1Qty += qty;
-      } else if (day >= 8 && day <= 14) {
-        w2Count++;
-        w2Qty += qty;
-      } else if (day >= 15 && day <= 21) {
-        w3Count++;
-        w3Qty += qty;
-      } else {
-        w4Count++;
-        w4Qty += qty;
-      }
-    }
+    if (!recordDateStr.startsWith(currentMonthStr) && recordDateStr.includes('-')) return;
+    const day = parseInt(recordDateStr.split('-')[2] || '1', 10);
+    const value = Number(r.quantity) || 1;
+    mCount++;
+    mQty += value;
+    if (day <= 7) { w1Count++; w1Qty += value; }
+    else if (day <= 14) { w2Count++; w2Qty += value; }
+    else if (day <= 21) { w3Count++; w3Qty += value; }
+    else { w4Count++; w4Qty += value; }
   });
-
-  return {
-    week1Count: w1Count,
-    week2Count: w2Count,
-    week3Count: w3Count,
-    week4Count: w4Count,
-    monthlyCount: mCount,
-    week1Quantity: w1Qty,
-    week2Quantity: w2Qty,
-    week3Quantity: w3Qty,
-    week4Quantity: w4Qty,
-    monthlyQuantity: mQty,
-  };
+  return { week1Count: w1Count, week2Count: w2Count, week3Count: w3Count, week4Count: w4Count, monthlyCount: mCount, week1Quantity: w1Qty, week2Quantity: w2Qty, week3Quantity: w3Qty, week4Quantity: w4Qty, monthlyQuantity: mQty };
 }
