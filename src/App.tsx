@@ -14,6 +14,7 @@ import { AgentDashboard } from './components/agent/AgentDashboard';
 import { AttendancePage } from './components/common/AttendancePage';
 import { MessageRoomPage } from './components/common/MessageRoomPage';
 import CommissionPaymentPage from './components/common/CommissionPaymentPage';
+import { SalesSummaryPage } from './components/common/SalesSummaryPage';
 import { OwnerCommissionControl } from './components/owner/OwnerCommissionControl';
 import { CallNotificationModal } from './components/common/CallNotificationModal';
 import { ActiveCallOverlay } from './components/common/ActiveCallOverlay';
@@ -54,6 +55,7 @@ const AppContent: React.FC = () => {
       if (page === 'Attendance' || page === 'Work & Attendance') setStandalonePage('Attendance');
       else if (page === 'Message Room') setStandalonePage('Message Room');
       else if (page === 'Commission / Payment') setStandalonePage('Commission / Payment');
+      else if (page === 'Page 4 — Sales Summary / Reports') setStandalonePage('Sales Summary / Reports');
       else if (page === 'Home') setStandalonePage(null);
     };
     window.addEventListener('ddworld:navigate', onNavigate);
@@ -86,42 +88,28 @@ const AppContent: React.FC = () => {
 
   if (!currentUser) return <LoginModal />;
 
-  if (dataError) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
-        <div className="w-full max-w-lg rounded-2xl border border-red-500/30 bg-slate-900 p-6 shadow-2xl">
-          <div className="text-2xl font-extrabold mb-2">DD WORLD data connection</div>
-          <p className="text-sm text-slate-300 leading-6">{dataError}</p>
-          <button type="button" onClick={retryData} className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 font-bold hover:bg-blue-500 active:scale-[0.99]">Retry</button>
-        </div>
-      </div>
-    );
-  }
+  if (dataError) return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6"><div className="w-full max-w-lg rounded-2xl border border-red-500/30 bg-slate-900 p-6 shadow-2xl"><div className="text-2xl font-extrabold mb-2">DD WORLD data connection</div><p className="text-sm text-slate-300 leading-6">{dataError}</p><button type="button" onClick={retryData} className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 font-bold hover:bg-blue-500 active:scale-[0.99]">Retry</button></div></div>;
 
   if (currentUser.role === 'dialog_officer' && standalonePage !== 'Commission / Payment') return <><DialogOfficerPortal /><WeeklySalesSheetWorkflow /><OfflineIndicator /></>;
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans relative">
-      <Navbar />
-      {updateNotice && <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 text-white text-xs font-bold py-2 px-4 text-center shadow-lg flex items-center justify-center gap-2 animate-pulse border-b border-white/20 z-50"><span>{updateNotice}</span><button onClick={() => setUpdateNotice(null)} className="ml-2 text-white/80 hover:text-white text-sm font-extrabold">✕</button></div>}
-      <main className="flex-1 pb-24">
-        {standalonePage === 'Attendance' ? <AttendancePage /> : standalonePage === 'Message Room' ? <MessageRoomPage /> : standalonePage === 'Commission / Payment' ? <CommissionPaymentPage /> : <>
-          {currentUser.role === 'owner' && <OwnerDashboard />}
-          {currentUser.role === 'team_leader' && <TeamLeaderDashboard />}
-          {currentUser.role === 'agent' && <AgentDashboard />}
-        </>}
-        {currentUser.role === 'owner' && <div className="mx-auto max-w-7xl px-4 md:px-6 pb-6"><OwnerCommissionControl /></div>}
-        <WeeklySalesSheetWorkflow />
-      </main>
-      <DialogLiaisonHub />
-      <OwnerDialogOfficerMessenger />
-      <GlobalCallContainer />
-      <MainNavigation />
-      <OfflineIndicator />
-    </div>
-  );
+  return <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans relative">
+    <Navbar />
+    {updateNotice && <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 text-white text-xs font-bold py-2 px-4 text-center shadow-lg flex items-center justify-center gap-2 animate-pulse border-b border-white/20 z-50"><span>{updateNotice}</span><button onClick={() => setUpdateNotice(null)} className="ml-2 text-white/80 hover:text-white text-sm font-extrabold">✕</button></div>}
+    <main className="flex-1 pb-24">
+      {standalonePage === 'Attendance' ? <AttendancePage /> : standalonePage === 'Message Room' ? <MessageRoomPage /> : standalonePage === 'Commission / Payment' ? <CommissionPaymentPage /> : standalonePage === 'Sales Summary / Reports' ? <SalesSummaryPage /> : <>
+        {currentUser.role === 'owner' && <OwnerDashboard />}
+        {currentUser.role === 'team_leader' && <TeamLeaderDashboard />}
+        {currentUser.role === 'agent' && <AgentDashboard />}
+      </>}
+      {currentUser.role === 'owner' && <div className="mx-auto max-w-7xl px-4 md:px-6 pb-6"><OwnerCommissionControl /></div>}
+      <WeeklySalesSheetWorkflow />
+    </main>
+    <DialogLiaisonHub />
+    <OwnerDialogOfficerMessenger />
+    <GlobalCallContainer />
+    <MainNavigation />
+    <OfflineIndicator />
+  </div>;
 };
 
-export default function App() {
-  return <DataProvider><AuthProvider><AppContent /></AuthProvider></DataProvider>;
-}
+export default function App() { return <DataProvider><AuthProvider><AppContent /></AuthProvider></DataProvider>; }
