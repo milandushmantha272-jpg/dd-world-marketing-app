@@ -20,7 +20,6 @@ import { CallNotificationModal } from './components/common/CallNotificationModal
 import { ActiveCallOverlay } from './components/common/ActiveCallOverlay';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
 import { DialogLiaisonHub } from './components/common/DialogLiaisonHub';
-import { DialogOfficerPortal } from './components/common/DialogOfficerPortal';
 import { OwnerDialogOfficerMessenger } from './components/common/OwnerDialogOfficerMessenger';
 import { WeeklySalesSheetWorkflow } from './components/common/WeeklySalesSheetWorkflow';
 import { MainNavigation } from './components/common/MainNavigation';
@@ -54,17 +53,12 @@ const AppContent: React.FC = () => {
   React.useEffect(() => {
     const onNavigate = (event: Event) => {
       const page = (event as CustomEvent<{ page?: string }>).detail?.page || '';
-      if (page === 'Home') {
-        setStandalonePage(null);
-        setShowHome(true);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
+      if (page === 'Home') { setStandalonePage(null); setShowHome(true); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
       setShowHome(false);
-      if (page === 'Attendance' || page === 'Work & Attendance' || page === 'Page 2 — Attendance') setStandalonePage('Attendance');
-      else if (page === 'Message Room' || page === 'Page 5 — Message Room') setStandalonePage('Message Room');
-      else if (page === 'Commission / Payment' || page === 'Page 7 — Commission / Payment') setStandalonePage('Commission / Payment');
+      if (page === 'Page 2 — Attendance' || page === 'Attendance' || page === 'Work & Attendance') setStandalonePage('Attendance');
       else if (page === 'Page 4 — Sales Summary / Reports') setStandalonePage('Sales Summary / Reports');
+      else if (page === 'Page 5 — Message Room') setStandalonePage('Message Room');
+      else if (page === 'Page 7 — Commission / Payment') setStandalonePage('Commission / Payment');
       else setStandalonePage(null);
     };
     window.addEventListener('ddworld:navigate', onNavigate);
@@ -73,39 +67,24 @@ const AppContent: React.FC = () => {
 
   React.useEffect(() => {
     try {
-      const APP_VERSION = '2026.8.07-v5.4';
+      const APP_VERSION = '2026.8.07-v5.5';
       const storedVersion = safeStorage.getItem('ddworld_platform_app_version');
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('ref') || urlParams.has('v') || urlParams.has('chat') || urlParams.has('open') || urlParams.has('old_link')) {
-        window.history.replaceState({}, document.title, window.location.pathname);
-        setUpdateNotice('Direct Web/Chat Landing අත්හිටුවා ඇත: DD WORLD Official Mobile App Portal එක වෙත යොමු කෙරිණි!');
-        setTimeout(() => setUpdateNotice(null), 6000);
-      } else if (storedVersion !== APP_VERSION) {
-        safeStorage.setItem('ddworld_platform_app_version', APP_VERSION);
-        setUpdateNotice('DD WORLD පද්ධතිය නවතම Mobile App (v5.4) එක සමඟ Synchronize විය!');
-        setTimeout(() => setUpdateNotice(null), 5000);
-      }
+      if (storedVersion !== APP_VERSION) { safeStorage.setItem('ddworld_platform_app_version', APP_VERSION); setUpdateNotice('DD WORLD Official App updated.'); setTimeout(() => setUpdateNotice(null), 3500); }
     } catch (e) { console.warn('App version check sync error:', e); }
   }, []);
 
   React.useEffect(() => {
-    if (currentUser) {
-      if ('geolocation' in navigator) navigator.geolocation.getCurrentPosition((pos) => console.log('GPS Location permission auto-acquired:', pos.coords.latitude, pos.coords.longitude), (err) => console.warn('GPS Permission pending or denied:', err.message), { enableHighAccuracy: true });
-      if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
-    }
+    if (currentUser && 'geolocation' in navigator) navigator.geolocation.getCurrentPosition((pos) => console.log('GPS location available:', pos.coords.latitude, pos.coords.longitude), (err) => console.warn('GPS permission pending or denied:', err.message), { enableHighAccuracy: true });
   }, [currentUser]);
 
   if (!currentUser) return <LoginModal />;
+  if (dataError) return <div className="dd-page-shell min-h-screen text-white flex items-center justify-center p-6"><div className="dd-card w-full max-w-lg p-6"><div className="text-2xl font-extrabold mb-2">DD WORLD data connection</div><p className="text-sm text-slate-300 leading-6">{dataError}</p><button type="button" onClick={retryData} className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 font-bold hover:bg-blue-500">Retry</button></div></div>;
 
-  if (dataError) return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6"><div className="w-full max-w-lg rounded-2xl border border-red-500/30 bg-slate-900 p-6 shadow-2xl"><div className="text-2xl font-extrabold mb-2">DD WORLD data connection</div><p className="text-sm text-slate-300 leading-6">{dataError}</p><button type="button" onClick={retryData} className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 font-bold hover:bg-blue-500 active:scale-[0.99]">Retry</button></div></div>;
-
-  if (currentUser.role === 'dialog_officer' && standalonePage !== 'Commission / Payment') return <><DialogOfficerPortal /><WeeklySalesSheetWorkflow /><OfflineIndicator /></>;
-
-  return <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans relative">
+  return <div className="min-h-screen bg-transparent text-slate-100 flex flex-col font-sans relative">
     <Navbar />
-    {updateNotice && <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 text-white text-xs font-bold py-2 px-4 text-center shadow-lg flex items-center justify-center gap-2 animate-pulse border-b border-white/20 z-50"><span>{updateNotice}</span><button onClick={() => setUpdateNotice(null)} className="ml-2 text-white/80 hover:text-white text-sm font-extrabold">✕</button></div>}
-    <main className="flex-1 pb-24">
-      {standalonePage === 'Attendance' ? <AttendancePage /> : standalonePage === 'Message Room' ? <MessageRoomPage /> : standalonePage === 'Commission / Payment' ? <CommissionPaymentPage /> : standalonePage === 'Sales Summary / Reports' ? <SalesSummaryPage /> : <>
+    {updateNotice && <div className="dd-header text-white text-xs font-bold py-2 px-4 text-center shadow-lg z-50">{updateNotice}</div>}
+    <main className="flex-1 pb-20">
+      {!standalonePage && showHome ? <HomePage /> : standalonePage === 'Attendance' ? <AttendancePage /> : standalonePage === 'Message Room' ? <MessageRoomPage /> : standalonePage === 'Commission / Payment' ? <CommissionPaymentPage /> : standalonePage === 'Sales Summary / Reports' ? <SalesSummaryPage /> : <>
         {currentUser.role === 'owner' && <OwnerDashboard />}
         {currentUser.role === 'team_leader' && <TeamLeaderDashboard />}
         {currentUser.role === 'agent' && <AgentDashboard />}
@@ -113,7 +92,6 @@ const AppContent: React.FC = () => {
       {currentUser.role === 'owner' && <div className="mx-auto max-w-7xl px-4 md:px-6 pb-6"><OwnerCommissionControl /></div>}
       <WeeklySalesSheetWorkflow />
     </main>
-    {showHome && !standalonePage && <div className="absolute inset-x-0 top-[72px] z-40 min-h-[calc(100vh-72px)] bg-slate-950"><HomePage /></div>}
     <DialogLiaisonHub />
     <OwnerDialogOfficerMessenger />
     <GlobalCallContainer />
