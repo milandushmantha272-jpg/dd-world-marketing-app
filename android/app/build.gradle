@@ -34,7 +34,6 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     implementation "com.google.android.gms:play-services-location:21.1.0"
     implementation "com.google.android.gms:play-services-auth:21.2.0"
-    implementation "com.google.firebase:firebase-auth:24.2.0"
     implementation "androidx.appcompat:appcompat:1.6.1"
     implementation "androidx.coordinatorlayout:coordinatorlayout:1.2.0"
     implementation "androidx.core:core-splashscreen:1.0.0"
@@ -46,15 +45,6 @@ dependencies {
 }
 
 apply from: 'capacitor.build.gradle'
-
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services.plugin not applied")
-}
 
 tasks.whenTaskAdded { task ->
     if (task.name.toLowerCase().contains("aabmetadata")) {
