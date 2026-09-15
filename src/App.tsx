@@ -12,6 +12,7 @@ import { OwnerDashboard } from './components/owner/OwnerDashboard';
 import { TeamLeaderDashboard } from './components/leader/TeamLeaderDashboard';
 import { AgentDashboard } from './components/agent/AgentDashboard';
 import { AttendancePage } from './components/common/AttendancePage';
+import { MessageRoomPage } from './components/common/MessageRoomPage';
 import { CallNotificationModal } from './components/common/CallNotificationModal';
 import { ActiveCallOverlay } from './components/common/ActiveCallOverlay';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
@@ -49,6 +50,7 @@ const AppContent: React.FC = () => {
     const onNavigate = (event: Event) => {
       const page = (event as CustomEvent<{ page?: string }>).detail?.page || '';
       if (page === 'Attendance' || page === 'Work & Attendance') setStandalonePage('Attendance');
+      else if (page === 'Message Room') setStandalonePage('Message Room');
       else if (page === 'Home') setStandalonePage(null);
     };
     window.addEventListener('ddworld:navigate', onNavigate);
@@ -100,7 +102,7 @@ const AppContent: React.FC = () => {
       <Navbar />
       {updateNotice && <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 text-white text-xs font-bold py-2 px-4 text-center shadow-lg flex items-center justify-center gap-2 animate-pulse border-b border-white/20 z-50"><span>{updateNotice}</span><button onClick={() => setUpdateNotice(null)} className="ml-2 text-white/80 hover:text-white text-sm font-extrabold">✕</button></div>}
       <main className="flex-1 pb-24">
-        {standalonePage === 'Attendance' ? <AttendancePage /> : <>
+        {standalonePage === 'Attendance' ? <AttendancePage /> : standalonePage === 'Message Room' ? <MessageRoomPage /> : <>
           {currentUser.role === 'owner' && <OwnerDashboard />}
           {currentUser.role === 'team_leader' && <TeamLeaderDashboard />}
           {currentUser.role === 'agent' && <AgentDashboard />}
