@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Menu, X, Briefcase, BarChart3, MapPin, Wallet, Inbox, UserRound, ShieldCheck, Users, CalendarCheck, FileText, Building2, MessageCircle, IdCard } from 'lucide-react';
+import { Menu, X, BarChart3, Wallet, Inbox, UserRound, ShieldCheck, Users, CalendarCheck, FileText, Building2, MessageCircle, IdCard } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 type NavItem = { label: string; keywords: string[]; icon: React.ElementType; description: string };
@@ -31,6 +31,7 @@ export const MainNavigation: React.FC = () => {
       { label: 'Page 7 — Commission / Payment', keywords: ['Commission / Payment', 'Commission', 'Payment', 'Payments'], icon: Wallet, description: 'Dialog final report, monthly commission and payment status.' },
       { label: 'Page 8 — Promotion Items', keywords: ['Promotion Items', 'Promotion', 'Dialog Liaison'], icon: Building2, description: 'Sayuru/Govi Mithuru promotion-item requests and consolidation.' },
       { label: 'Page 9 — New Agent Join (Requirements)', keywords: ['New Agent Join', 'Requirements', 'Join'], icon: Users, description: 'New-agent application, TL review, Owner approval and Dialog submission.' },
+      { label: 'Page 10 — Employee Performance & Integrity Policy', keywords: ['Employee Performance', 'Integrity Policy', 'Policy', 'Performance Policy'], icon: ShieldCheck, description: 'Mandatory performance target and official employee integrity policy.' },
     ];
 
     if (currentUser?.role === 'dialog_officer') return [
@@ -42,41 +43,44 @@ export const MainNavigation: React.FC = () => {
       { label: 'Page 6 — Security / Access', keywords: ['Security', 'Access'], icon: ShieldCheck, description: 'Authorized Dialog Officer access and security controls.' },
     ];
 
-    if (currentUser?.role === 'owner') return [
-      { ...common[0], description: 'Owner identity plus complete employee ID approval/signature management.' },
-      { ...common[1], description: 'All employee attendance, field-work time and GPS visibility.' },
-      { ...common[2], description: 'Full Sales Activation control for all teams/agents.' },
-      { ...common[3], description: 'Complete company sales summaries and executive reports.' },
-      { ...common[4], description: 'Company-wide official messages, meetings and communication.' },
-      { ...common[5], description: 'Review documents, approve/reject IDs and apply Owner signature.' },
-      { ...common[6], description: 'Dialog final report review, Owner additions, approvals and payment control.' },
-      { ...common[7], description: 'Promotion requests, consolidation and Dialog Officer communication.' },
-      { ...common[8], description: 'New Agent requirements, approval and Dialog submission.' },
-    ];
+    if (currentUser?.role === 'owner') return common.map((item, index) => ({ ...item, description: [
+      'Owner identity plus complete employee ID approval/signature management.',
+      'All employee attendance, field-work time and GPS visibility.',
+      'Full Sales Activation control for all teams/agents.',
+      'Complete company sales summaries and executive reports.',
+      'Company-wide official messages, meetings and communication.',
+      'Review documents, approve/reject IDs and apply Owner signature.',
+      'Dialog final report review, Owner additions, approvals and payment control.',
+      'Promotion requests, consolidation and Dialog Officer communication.',
+      'New Agent requirements, approval and Dialog submission.',
+      'Performance target and official Employee Performance & Integrity Policy access.'
+    ][index] }));
 
-    if (currentUser?.role === 'team_leader') return [
-      { ...common[0], description: 'Own official ID and team-member ID status visibility.' },
-      { ...common[1], description: 'Own + assigned team attendance and field-work monitoring.' },
-      { ...common[2], description: 'Own activation; view/manage team workflow without activating for another Agent.' },
-      { ...common[3], description: 'Own and assigned team sales summaries/reports.' },
-      { ...common[4], description: 'Owner/team communication and meeting notices.' },
-      { ...common[5], description: 'Own details and verified new-agent/document workflow to Owner.' },
-      { ...common[6], description: 'Team-wise Agent payment grouping, eZ Cash submission and status.' },
-      { ...common[7], description: 'Agent promotion requests, consolidation and Owner submission.' },
-      { ...common[8], description: 'Review new-agent requirements and send verified details to Owner.' },
-    ];
+    if (currentUser?.role === 'team_leader') return common.map((item, index) => ({ ...item, description: [
+      'Own official ID and team-member ID status visibility.',
+      'Own + assigned team attendance and field-work monitoring.',
+      'Own activation; view/manage team workflow without activating for another Agent.',
+      'Own and assigned team sales summaries/reports.',
+      'Owner/team communication and meeting notices.',
+      'Own details and verified new-agent/document workflow to Owner.',
+      'Team-wise Agent payment grouping, eZ Cash submission and status.',
+      'Agent promotion requests, consolidation and Owner submission.',
+      'Review new-agent requirements and send verified details to Owner.',
+      'Performance target and Employee Performance & Integrity Policy access.'
+    ][index] }));
 
-    return [
-      { ...common[0], description: 'Official approved DD WORLD MARKETING employee ID.' },
-      { ...common[1], description: 'Start/end field work, attendance status, timer and GPS.' },
-      { ...common[2], description: 'Own Sayuru/Govi Mithuru IVR or App activation.' },
-      { ...common[3], description: 'Own daily/weekly/monthly sales summary.' },
-      { ...common[4], description: 'Owner/Team Leader/company messages and meetings.' },
-      { ...common[5], description: 'Submit photo, reports, ID details and requirements to Owner.' },
-      { ...common[6], description: 'Own monthly App/IVR payment, confirmation and issue reporting.' },
-      { ...common[7], description: 'Submit Sayuru/Govi Mithuru promotion-item requirements to Team Leader.' },
-      { ...common[8], description: 'Submit new-agent requirements through Team Leader to Owner.' },
-    ];
+    return common.map((item, index) => ({ ...item, description: [
+      'Official approved DD WORLD MARKETING employee ID.',
+      'Start/end field work, attendance status, timer and GPS.',
+      'Own Sayuru/Govi Mithuru IVR or App activation.',
+      'Own daily/weekly/monthly sales summary.',
+      'Owner/Team Leader/company messages and meetings.',
+      'Submit photo, reports, ID details and requirements to Owner.',
+      'Own monthly App/IVR payment, confirmation and issue reporting.',
+      'Submit Sayuru/Govi Mithuru promotion-item requirements to Team Leader.',
+      'Submit new-agent requirements through Team Leader to Owner.',
+      'Read and accept the Employee Performance & Integrity Policy and review the 20×20=400 target.'
+    ][index] }));
   }, [currentUser?.role]);
 
   if (!currentUser) return null;
