@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { IdCard, CalendarCheck, BarChart3, FileText, MessageSquare, ClipboardList, Wallet, Shirt, UserPlus, ChevronRight, ShieldCheck } from 'lucide-react';
+import { IdCard, CalendarCheck, BarChart3, FileText, MessageSquare, ClipboardList, Wallet, Shirt, UserPlus, ChevronRight, ShieldCheck, Presentation } from 'lucide-react';
 import { DdWorldMarketingLogo } from './DdWorldMarketingLogo';
 
 type HomeItem = { label: string; description: string; icon: React.ElementType };
@@ -23,6 +23,7 @@ export const HomePage: React.FC = () => {
     { label: 'Page 7 — Commission / Payment', description: role === 'owner' ? 'Reports, commission and payment control' : role === 'team_leader' ? 'Team payment grouping and status' : 'Your monthly payment and issues', icon: Wallet },
     { label: 'Page 8 — Promotion Items', description: 'Promotion requests and team consolidation', icon: Shirt },
     { label: 'Page 9 — New Agent Join (Requirements)', description: 'New-agent requirements and approval', icon: UserPlus },
+    { label: 'Page 10 — Month-End Presentation', description: 'Auto Generate → Owner Review → Live Meeting → Team/Agent slides → Final Summary', icon: Presentation },
   ], [role]);
   if (!currentUser) return null;
   const roleName = role === 'owner' ? 'OWNER' : role === 'team_leader' ? 'TEAM LEADER' : 'AGENT';
@@ -50,7 +51,7 @@ export const HomePage: React.FC = () => {
             const Icon = item.icon;
             return <button key={item.label} type="button" onClick={() => openPage(item.label)} className="group relative min-h-[142px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-left shadow-lg backdrop-blur-md transition hover:-translate-y-0.5 hover:border-cyan-400/50 hover:bg-slate-900/85 active:scale-[.98] md:min-h-[156px] md:p-5" aria-label={item.label}>
               <div className="relative flex h-full flex-col">
-                <div className="flex items-start justify-between"><div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-400/15 bg-cyan-400/10 text-cyan-300"><Icon className="h-5 w-5" /></div><span className="text-[10px] font-black tracking-widest text-slate-500">0{index + 1}</span></div>
+                <div className="flex items-start justify-between"><div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-400/15 bg-cyan-400/10 text-cyan-300"><Icon className="h-5 w-5" /></div><span className="text-[10px] font-black tracking-widest text-slate-500">{String(index + 1).padStart(2, '0')}</span></div>
                 <div className="mt-auto pt-4"><div className="flex items-center justify-between gap-2"><span className="text-sm font-extrabold leading-5 text-white md:text-[15px]">{item.label}</span><ChevronRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:translate-x-1 group-hover:text-cyan-300" /></div><p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-slate-400 md:text-[11px]">{item.description}</p></div>
               </div>
             </button>;
