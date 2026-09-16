@@ -18,6 +18,7 @@ import { SalesSummaryPage } from './components/common/SalesSummaryPage';
 import { DigitalEmployeeIdCard } from './components/common/DigitalEmployeeIdCard';
 import { PersonalProfileKycPage } from './components/common/PersonalProfileKycPage';
 import { NewAgentJoinRequirementsPage } from './components/common/NewAgentJoinRequirementsPage';
+import { MonthEndPresentationPage } from './components/common/MonthEndPresentationPage';
 import { OwnerCommissionControl } from './components/owner/OwnerCommissionControl';
 import { CallNotificationModal } from './components/common/CallNotificationModal';
 import { ActiveCallOverlay } from './components/common/ActiveCallOverlay';
@@ -80,6 +81,7 @@ const AppContent: React.FC = () => {
       else if (page === 'Page 7 — Commission / Payment') setStandalonePage('Commission / Payment');
       else if (page === 'Page 8 — Promotion Items') setStandalonePage('Promotion Items');
       else if (page === 'Page 9 — New Agent Join (Requirements)') setStandalonePage('New Agent Join (Requirements)');
+      else if (page === 'Page 10 — Month-End Presentation') setStandalonePage('Month-End Presentation');
       else setStandalonePage(null);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -89,7 +91,7 @@ const AppContent: React.FC = () => {
 
   React.useEffect(() => {
     try {
-      const APP_VERSION = '2026.8.07-v5.6';
+      const APP_VERSION = '2026.8.07-v5.7';
       const storedVersion = safeStorage.getItem('ddworld_platform_app_version');
       if (storedVersion !== APP_VERSION) { safeStorage.setItem('ddworld_platform_app_version', APP_VERSION); setUpdateNotice('DD WORLD Official App updated.'); setTimeout(() => setUpdateNotice(null), 3500); }
     } catch (e) { console.warn('App version check sync error:', e); }
@@ -118,6 +120,7 @@ const AppContent: React.FC = () => {
         : standalonePage === 'Commission / Payment' ? <CommissionPaymentPage />
         : standalonePage === 'Promotion Items' ? <PromotionItemsPage />
         : standalonePage === 'New Agent Join (Requirements)' ? <NewAgentJoinRequirementsPage />
+        : standalonePage === 'Month-End Presentation' ? <MonthEndPresentationPage />
         : <>{currentUser.role === 'owner' && <OwnerDashboard />}{currentUser.role === 'team_leader' && <TeamLeaderDashboard />}{currentUser.role === 'agent' && <AgentDashboard />}</>}
       {currentUser.role === 'owner' && <div className="mx-auto max-w-7xl px-4 md:px-6 pb-6"><OwnerCommissionControl /></div>}
       <WeeklySalesSheetWorkflow />
