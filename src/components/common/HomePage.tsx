@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { IdCard, CalendarCheck, BarChart3, FileText, MessageSquare, ClipboardList, Wallet, Shirt, UserPlus, Home as HomeIcon, ChevronRight, ShieldCheck } from 'lucide-react';
+import { IdCard, CalendarCheck, BarChart3, FileText, MessageSquare, ClipboardList, Wallet, Shirt, UserPlus, ChevronRight, ShieldCheck } from 'lucide-react';
+import { DdWorldMarketingLogo } from './DdWorldMarketingLogo';
 
 type HomeItem = { label: string; description: string; icon: React.ElementType };
 
@@ -31,16 +32,16 @@ export const HomePage: React.FC = () => {
       <div className="mx-auto w-full max-w-7xl">
         <header className="dd-card relative overflow-hidden rounded-[26px] p-5 md:p-7">
           <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
-          <div className="relative flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-400 text-white shadow-lg"><HomeIcon className="h-7 w-7" /></div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <DdWorldMarketingLogo size="lg" showDetails={false} />
+              <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black tracking-[.16em] text-emerald-300"><ShieldCheck className="h-3 w-3" /> DD WORLD OFFICIAL</span>
                 <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-black tracking-wider text-slate-300">{roleName}</span>
               </div>
-              <h1 className="mt-2 truncate text-2xl font-black tracking-tight text-white md:text-3xl">Welcome, {currentUser.name}</h1>
-              <p className="mt-1 text-xs leading-5 text-slate-400">Official company portal • Select a page to continue.</p>
             </div>
+            <h1 className="mt-5 truncate text-2xl font-black tracking-tight text-white md:text-3xl">Welcome, {currentUser.name}</h1>
+            <p className="mt-1 text-xs leading-5 text-slate-400">DD WORLD MARKETING • Official company portal • Select a page to continue.</p>
           </div>
         </header>
 
