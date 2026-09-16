@@ -19,6 +19,7 @@ import { DigitalEmployeeIdCard } from './components/common/DigitalEmployeeIdCard
 import { PersonalProfileKycPage } from './components/common/PersonalProfileKycPage';
 import { NewAgentJoinRequirementsPage } from './components/common/NewAgentJoinRequirementsPage';
 import { MonthEndPresentationPage } from './components/common/MonthEndPresentationPage';
+import { NotificationCenter } from './components/common/NotificationCenter';
 import { OwnerCommissionControl } from './components/owner/OwnerCommissionControl';
 import { CallNotificationModal } from './components/common/CallNotificationModal';
 import { ActiveCallOverlay } from './components/common/ActiveCallOverlay';
@@ -91,7 +92,7 @@ const AppContent: React.FC = () => {
 
   React.useEffect(() => {
     try {
-      const APP_VERSION = '2026.8.07-v5.7';
+      const APP_VERSION = '2026.8.07-v5.8-notifications';
       const storedVersion = safeStorage.getItem('ddworld_platform_app_version');
       if (storedVersion !== APP_VERSION) { safeStorage.setItem('ddworld_platform_app_version', APP_VERSION); setUpdateNotice('DD WORLD Official App updated.'); setTimeout(() => setUpdateNotice(null), 3500); }
     } catch (e) { console.warn('App version check sync error:', e); }
@@ -108,6 +109,7 @@ const AppContent: React.FC = () => {
 
   return <div className="min-h-screen bg-transparent text-slate-100 flex flex-col font-sans relative">
     <Navbar />
+    <NotificationCenter />
     {updateNotice && <div className="dd-header text-white text-xs font-bold py-2 px-4 text-center shadow-lg z-50">{updateNotice}</div>}
     <main className="flex-1 pb-20">
       {!standalonePage && showHome ? <HomePage />
