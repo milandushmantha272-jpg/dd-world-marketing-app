@@ -15,6 +15,9 @@ import { AttendancePage } from './components/common/AttendancePage';
 import { MessageRoomPage } from './components/common/MessageRoomPage';
 import CommissionPaymentPage from './components/common/CommissionPaymentPage';
 import { SalesSummaryPage } from './components/common/SalesSummaryPage';
+import { DigitalEmployeeIdCard } from './components/common/DigitalEmployeeIdCard';
+import { PersonalProfileKycPage } from './components/common/PersonalProfileKycPage';
+import { NewAgentJoinRequirementsPage } from './components/common/NewAgentJoinRequirementsPage';
 import { OwnerCommissionControl } from './components/owner/OwnerCommissionControl';
 import { CallNotificationModal } from './components/common/CallNotificationModal';
 import { ActiveCallOverlay } from './components/common/ActiveCallOverlay';
@@ -25,6 +28,19 @@ import { WeeklySalesSheetWorkflow } from './components/common/WeeklySalesSheetWo
 import { MainNavigation } from './components/common/MainNavigation';
 import { HomePage } from './components/common/HomePage';
 import { safeStorage } from './utils/safeStorage';
+
+const PromotionItemsPage: React.FC = () => (
+  <section className="dd-page-shell min-h-screen px-4 py-5 md:px-6 md:py-8">
+    <div className="mx-auto w-full max-w-7xl">
+      <div className="dd-card rounded-[26px] p-5 md:p-7">
+        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300">DD WORLD OFFICIAL</div>
+        <h1 className="mt-2 text-2xl font-black text-white">Page 8 — Promotion Items</h1>
+        <p className="mt-2 text-sm leading-6 text-slate-300">Promotion requests are handled through the existing controlled workflow: Agent → Team Leader → Owner → Dialog.</p>
+      </div>
+      <div className="mt-5"><DialogLiaisonHub /></div>
+    </div>
+  </section>
+);
 
 const GlobalCallContainer: React.FC = () => {
   const { currentUser } = useAuth();
@@ -55,11 +71,17 @@ const AppContent: React.FC = () => {
       const page = (event as CustomEvent<{ page?: string }>).detail?.page || '';
       if (page === 'Home') { setStandalonePage(null); setShowHome(true); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
       setShowHome(false);
-      if (page === 'Page 2 — Attendance' || page === 'Attendance' || page === 'Work & Attendance') setStandalonePage('Attendance');
+      if (page === 'Page 1 — ID') setStandalonePage('ID');
+      else if (page === 'Page 2 — Attendance' || page === 'Attendance' || page === 'Work & Attendance') setStandalonePage('Attendance');
+      else if (page === 'Page 3 — Sales Activation') setStandalonePage('Sales Activation');
       else if (page === 'Page 4 — Sales Summary / Reports') setStandalonePage('Sales Summary / Reports');
       else if (page === 'Page 5 — Message Room') setStandalonePage('Message Room');
+      else if (page === 'Page 6 — Details Submit / ID Requirements') setStandalonePage('Details Submit / ID Requirements');
       else if (page === 'Page 7 — Commission / Payment') setStandalonePage('Commission / Payment');
+      else if (page === 'Page 8 — Promotion Items') setStandalonePage('Promotion Items');
+      else if (page === 'Page 9 — New Agent Join (Requirements)') setStandalonePage('New Agent Join (Requirements)');
       else setStandalonePage(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     window.addEventListener('ddworld:navigate', onNavigate);
     return () => window.removeEventListener('ddworld:navigate', onNavigate);
@@ -67,7 +89,7 @@ const AppContent: React.FC = () => {
 
   React.useEffect(() => {
     try {
-      const APP_VERSION = '2026.8.07-v5.5';
+      const APP_VERSION = '2026.8.07-v5.6';
       const storedVersion = safeStorage.getItem('ddworld_platform_app_version');
       if (storedVersion !== APP_VERSION) { safeStorage.setItem('ddworld_platform_app_version', APP_VERSION); setUpdateNotice('DD WORLD Official App updated.'); setTimeout(() => setUpdateNotice(null), 3500); }
     } catch (e) { console.warn('App version check sync error:', e); }
@@ -80,19 +102,27 @@ const AppContent: React.FC = () => {
   if (!currentUser) return <LoginModal />;
   if (dataError) return <div className="dd-page-shell min-h-screen text-white flex items-center justify-center p-6"><div className="dd-card w-full max-w-lg p-6"><div className="text-2xl font-extrabold mb-2">DD WORLD data connection</div><p className="text-sm text-slate-300 leading-6">{dataError}</p><button type="button" onClick={retryData} className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 font-bold hover:bg-blue-500">Retry</button></div></div>;
 
+  const isPromotionPage = standalonePage === 'Promotion Items';
+
   return <div className="min-h-screen bg-transparent text-slate-100 flex flex-col font-sans relative">
     <Navbar />
     {updateNotice && <div className="dd-header text-white text-xs font-bold py-2 px-4 text-center shadow-lg z-50">{updateNotice}</div>}
     <main className="flex-1 pb-20">
-      {!standalonePage && showHome ? <HomePage /> : standalonePage === 'Attendance' ? <AttendancePage /> : standalonePage === 'Message Room' ? <MessageRoomPage /> : standalonePage === 'Commission / Payment' ? <CommissionPaymentPage /> : standalonePage === 'Sales Summary / Reports' ? <SalesSummaryPage /> : <>
-        {currentUser.role === 'owner' && <OwnerDashboard />}
-        {currentUser.role === 'team_leader' && <TeamLeaderDashboard />}
-        {currentUser.role === 'agent' && <AgentDashboard />}
-      </>}
+      {!standalonePage && showHome ? <HomePage />
+        : standalonePage === 'ID' ? <div className="mx-auto w-full max-w-6xl px-4 py-6"><DigitalEmployeeIdCard /></div>
+        : standalonePage === 'Attendance' ? <AttendancePage />
+        : standalonePage === 'Sales Activation' ? <>{currentUser.role === 'owner' && <OwnerDashboard />}{currentUser.role === 'team_leader' && <TeamLeaderDashboard />}{currentUser.role === 'agent' && <AgentDashboard />}</>
+        : standalonePage === 'Sales Summary / Reports' ? <SalesSummaryPage />
+        : standalonePage === 'Message Room' ? <MessageRoomPage />
+        : standalonePage === 'Details Submit / ID Requirements' ? <div className="mx-auto w-full max-w-7xl px-4 py-6"><PersonalProfileKycPage /></div>
+        : standalonePage === 'Commission / Payment' ? <CommissionPaymentPage />
+        : standalonePage === 'Promotion Items' ? <PromotionItemsPage />
+        : standalonePage === 'New Agent Join (Requirements)' ? <NewAgentJoinRequirementsPage />
+        : <>{currentUser.role === 'owner' && <OwnerDashboard />}{currentUser.role === 'team_leader' && <TeamLeaderDashboard />}{currentUser.role === 'agent' && <AgentDashboard />}</>}
       {currentUser.role === 'owner' && <div className="mx-auto max-w-7xl px-4 md:px-6 pb-6"><OwnerCommissionControl /></div>}
       <WeeklySalesSheetWorkflow />
     </main>
-    <DialogLiaisonHub />
+    {!isPromotionPage && <DialogLiaisonHub />}
     <OwnerDialogOfficerMessenger />
     <GlobalCallContainer />
     <MainNavigation />
