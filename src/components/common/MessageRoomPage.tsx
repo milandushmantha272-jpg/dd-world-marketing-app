@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Bell, CheckCheck, MessageCircle, Send, Users, Video } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
-import { LiveMeetingRoom } from './LiveMeetingRoom';
+import { MonthEndPresentationPage } from './MonthEndPresentationPage';
 
 type Profile = { id: string; name: string; role: string; team_id?: string | null; auth_user_id?: string | null; status?: string };
 type Msg = { id: string; sender_id: string; receiver_id: string; message: string; timestamp: string; read: boolean; title?: string; category?: string };
@@ -75,7 +75,7 @@ export const MessageRoomPage: React.FC = () => {
       <button onClick={() => setTab('messages')} className={`rounded-xl p-3 text-xs font-black ${tab === 'messages' ? 'bg-emerald-600 text-white' : 'text-slate-400'}`}><MessageCircle className="mr-2 inline h-4 w-4" />Messages</button>
       <button onClick={() => setTab('meetings')} className={`rounded-xl p-3 text-xs font-black ${tab === 'meetings' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}><Video className="mr-2 inline h-4 w-4" />Live Meetings</button>
     </div>
-    {tab === 'meetings' ? <LiveMeetingRoom /> : <>
+    {tab === 'meetings' ? <MonthEndPresentationPage embedded /> : <>
       <div className="rounded-3xl border border-slate-800 bg-slate-900 p-5 space-y-4">
         <div className="flex items-center gap-2 text-sm font-black text-white"><Users className="h-4 w-4 text-emerald-400" />Authorized Contacts</div>
         <select value={receiver} onChange={e => setReceiver(e.target.value)} className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-white"><option value="">Select recipient...</option>{contacts.map(u => <option key={u.id} value={u.id}>{u.name} · {u.role.replace('_',' ')}</option>)}</select>
