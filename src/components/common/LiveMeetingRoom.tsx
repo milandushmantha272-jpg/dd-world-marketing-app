@@ -1,18 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Mic, MicOff, PhoneOff, Video, VideoOff, MonitorUp, Users, MessageSquare, Copy, Play, Square } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Video, VideoOff, MonitorUp, Users, MessageSquare, Copy, Play, Square, ChevronLeft, ChevronRight, Presentation } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 
 type Participant = { userId: string; name: string; role: string; team?: string | null };
 type ChatItem = { id: string; userId: string; name: string; text: string; at: string };
 
-type Props = { monthlyPresentation?: boolean };
-
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+export type PresentationSlideData = {
+  id: string;
+  eyebrow: string;
+  title: string;
+  subtitle?: string;
+  metrics: Array<{ label: string; value: string | number }>;
+  bullets?: string[];
 };
 
-export const LiveMeetingRoom: React.FC<Props> = ({ monthlyPresentation = false }) => {
+type Props = {
+  monthlyPresentation?: boolean;
+  presentationSlides?: PresentationSlideData[];
+};
+
+const ICE_SERVERS: RTCConfiguration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+export const LiveMeetingRoom: React.FC<Props> = ({ monthlyPresentation = false, presentationSlides = [] }) => {
   const { currentUser } = useAuth();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteRefs = useRef<Record<string, HTMLVideoElement | null>>({});
@@ -20,6 +30,7 @@ export const LiveMeetingRoom: React.FC<Props> = ({ monthlyPresentation = false }
   const streamRef = useRef<MediaStream | null>(null);
   const channelRef = useRef<any>(null);
   const participantsRef = useRef<Record<string, Participant>>({});
+  const ownerPresentationRef = useRef(false);
 
   const [me, setMe] = useState<Participant | null>(null);
   const [roomCode, setRoomCode] = useState('');
@@ -32,8 +43,12 @@ export const LiveMeetingRoom: React.FC<Props> = ({ monthlyPresentation = false }
   const [sharing, setSharing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [liveSlides, setLiveSlides] = useState<PresentationSlideData[]>(presentationSlides);
+  const [slideIndex, setSlideIndex] = useState(0);
 
   const isOwner = currentUser?.role === 'owner';
+
+  useEffect(() => setLiveSlides(presentationSlides), [presentationSlides]);
 
   useEffect(() => {
     let mounted = true;
@@ -59,10 +74,7 @@ export const LiveMeetingRoom: React.FC<Props> = ({ monthlyPresentation = false }
 
   const attachRemote = (userId: string, stream: MediaStream) => {
     const el = remoteRefs.current[userId];
-    if (el && el.srcObject !== stream) {
-      el.srcObject = stream;
-      void el.play().catch(() => undefined);
-    }
+    if (el && el.srcObject !== stream) { el.srcObject = stream; void el.play().catch(() => undefined); }
   };
 
   const sendSignal = async (event: string, to: string, payload: any) => {
@@ -71,22 +83,18 @@ export const LiveMeetingRoom: React.FC<Props> = ({ monthlyPresentation = false }
     await channel.send({ type: 'broadcast', event: 'webrtc', payload: { event, from: me.userId, to, payload } });
   };
 
+  const broadcastPresentation = async (index: number, slides: PresentationSlideData[] = liveSlides) => {
+    if (!channelRef.current || !isOwner || !monthlyPresentation) return;
+    await channelRef.current.send({ type: 'broadcast', event: 'presentation', payload: { type: 'state', index, slides } });
+  };
+
   const createPeer = (remote: Participant, initiator: boolean) => {
     if (!streamRef.current || peers.current[remote.userId]) return peers.current[remote.userId];
     const pc = new RTCPeerConnection(ICE_SERVERS);
     streamRef.current.getTracks().forEach(track => pc.addTrack(track, streamRef.current!));
-    pc.onicecandidate = e => {
-      if (e.candidate) void sendSignal('ice', remote.userId, e.candidate.toJSON());
-    };
-    pc.ontrack = e => {
-      const stream = e.streams[0];
-      if (stream) attachRemote(remote.userId, stream);
-    };
-    pc.onconnectionstatechange = () => {
-      if (['failed','closed','disconnected'].includes(pc.connectionState)) {
-        delete peers.current[remote.userId];
-      }
-    };
+    pc.onicecandidate = e => { if (e.candidate) void sendSignal('ice', remote.userId, e.candidate.toJSON()); };
+    pc.ontrack = e => { const stream = e.streams[0]; if (stream) attachRemote(remote.userId, stream); };
+    pc.onconnectionstatechange = () => { if (['failed','closed','disconnected'].includes(pc.connectionState)) delete peers.current[remote.userId]; };
     peers.current[remote.userId] = pc;
     if (initiator) {
       void pc.createOffer().then(offer => pc.setLocalDescription(offer)).then(() => {
@@ -113,26 +121,30 @@ export const LiveMeetingRoom: React.FC<Props> = ({ monthlyPresentation = false }
         await pc.setLocalDescription(answer);
         const desc = pc.localDescription;
         if (desc) await sendSignal('answer', remoteId, desc);
-      } else if (payload.event === 'answer') {
-        await pc.setRemoteDescription(payload.payload);
-      } else if (payload.event === 'ice') {
-        await pc.addIceCandidate(payload.payload);
-      }
-    } catch { /* connection can recover when a new peer joins */ }
+      } else if (payload.event === 'answer') await pc.setRemoteDescription(payload.payload);
+      else if (payload.event === 'ice') await pc.addIceCandidate(payload.payload);
+    } catch { /* a later peer sync can recover the connection */ }
   };
 
   const syncParticipants = (state: Record<string, any[]>) => {
     const list: Participant[] = Object.values(state).flat().map((p: any) => ({ userId: p.userId, name: p.name, role: p.role, team: p.team || null })).filter(p => p.userId);
     participantsRef.current = Object.fromEntries(list.map(p => [p.userId, p]));
     setParticipants(list);
-    list.forEach(p => {
-      if (p.userId !== me?.userId && me && me.userId < p.userId) createPeer(p, true);
-    });
+    list.forEach(p => { if (p.userId !== me?.userId && me && me.userId < p.userId) createPeer(p, true); });
+  };
+
+  const handlePresentation = async ({ payload }: any) => {
+    if (!payload) return;
+    if (payload.type === 'request' && isOwner) { await broadcastPresentation(slideIndex, liveSlides); return; }
+    if (payload.type === 'state' && !isOwner) {
+      if (Array.isArray(payload.slides)) setLiveSlides(payload.slides);
+      if (Number.isFinite(payload.index)) setSlideIndex(Math.max(0, Number(payload.index)));
+    }
   };
 
   const startMeeting = async () => {
     if (!me || !isOwner || busy) return;
-    setBusy(true); setNotice(null);
+    setBusy(true); setNotice(null); ownerPresentationRef.current = monthlyPresentation;
     try {
       const code = `DD-${crypto.randomUUID().replace(/-/g,'').slice(0,10).toUpperCase()}`;
       const { data, error } = await supabase.from('live_meeting_rooms').insert({
@@ -144,16 +156,14 @@ export const LiveMeetingRoom: React.FC<Props> = ({ monthlyPresentation = false }
         starts_at: new Date().toISOString(),
       }).select('id,room_code,title,status').single();
       if (error) throw error;
-      setActiveRoom(data);
-      setRoomCode(data.room_code);
+      setActiveRoom(data); setRoomCode(data.room_code);
       await joinRoom(data.room_code, data.title);
-    } catch (e: any) {
-      setNotice(e?.message || 'Meeting could not be started.');
-    } finally { setBusy(false); }
+    } catch (e: any) { setNotice(e?.message || 'Meeting could not be started.'); }
+    finally { setBusy(false); }
   };
 
   const joinRoom = async (codeInput?: string, title = 'DD WORLD Live Meeting') => {
-    if (!me || busy) return;
+    if (!me) return;
     const code = (codeInput || roomCode).trim().toUpperCase();
     if (!code) { setNotice('Enter the meeting code.'); return; }
     setBusy(true); setNotice(null);
@@ -165,15 +175,21 @@ export const LiveMeetingRoom: React.FC<Props> = ({ monthlyPresentation = false }
       streamRef.current = stream;
       if (localVideoRef.current) { localVideoRef.current.srcObject = stream; await localVideoRef.current.play().catch(() => undefined); }
       const channel = supabase.channel(`dd-world-live-meeting:${code}`, { config: { presence: { key: me.userId } } });
-      channel.on('presence', { event: 'sync' }, () => syncParticipants(channel.presenceState())).on('presence', { event: 'join' }, () => syncParticipants(channel.presenceState())).on('presence', { event: 'leave' }, () => syncParticipants(channel.presenceState())).on('broadcast', { event: 'webrtc' }, handleSignal).on('broadcast', { event: 'chat' }, ({ payload }: any) => {
-        if (payload?.userId !== me.userId) setChat(prev => [...prev, payload]);
-      });
+      channel
+        .on('presence', { event: 'sync' }, () => syncParticipants(channel.presenceState()))
+        .on('presence', { event: 'join' }, () => syncParticipants(channel.presenceState()))
+        .on('presence', { event: 'leave' }, () => syncParticipants(channel.presenceState()))
+        .on('broadcast', { event: 'webrtc' }, handleSignal)
+        .on('broadcast', { event: 'chat' }, ({ payload }: any) => { if (payload?.userId !== me.userId) setChat(prev => [...prev, payload]); })
+        .on('broadcast', { event: 'presentation' }, handlePresentation);
       const status = await channel.subscribe();
       if (status !== 'SUBSCRIBED') throw new Error('Live meeting connection failed.');
       channelRef.current = channel;
       await channel.track({ userId: me.userId, name: me.name, role: me.role, team: me.team, joinedAt: new Date().toISOString() });
-      setActiveRoom(room); setRoomCode(code); setNotice(`${title} • Live`);
-      setTimeout(() => setNotice(null), 3000);
+      syncParticipants(channel.presenceState());
+      if (monthlyPresentation && !isOwner) await channel.send({ type: 'broadcast', event: 'presentation', payload: { type: 'request', from: me.userId } });
+      if (monthlyPresentation && isOwner) setTimeout(() => void broadcastPresentation(slideIndex, presentationSlides), 250);
+      setActiveRoom(room); setRoomCode(code); setNotice(`${title} • Live`); setTimeout(() => setNotice(null), 3000);
     } catch (e: any) {
       streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null;
       setNotice(e?.message || 'Camera/microphone permission is required.');
@@ -195,12 +211,19 @@ export const LiveMeetingRoom: React.FC<Props> = ({ monthlyPresentation = false }
     await leaveMeeting();
   };
 
+  const setPresentationSlide = async (nextIndex: number) => {
+    if (!isOwner || !liveSlides.length) return;
+    const safe = Math.min(Math.max(nextIndex, 0), liveSlides.length - 1);
+    setSlideIndex(safe);
+    await broadcastPresentation(safe, liveSlides);
+  };
+
   const toggleMic = () => { const track = streamRef.current?.getAudioTracks()[0]; if (!track) return; track.enabled = micOff; setMicOff(!micOff); };
   const toggleVideo = () => { const track = streamRef.current?.getVideoTracks()[0]; if (!track) return; track.enabled = videoOff; setVideoOff(!videoOff); };
   const shareScreen = async () => {
     if (!streamRef.current) return;
-    if (sharing) { const camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); const next = camera.getVideoTracks()[0]; const old = streamRef.current.getVideoTracks()[0]; Object.values(peers.current).forEach(pc => { const sender = pc.getSenders().find(s => s.track?.kind === 'video'); if (sender) void sender.replaceTrack(next); }); old?.stop(); streamRef.current.removeTrack(old); streamRef.current.addTrack(next); if (localVideoRef.current) localVideoRef.current.srcObject = streamRef.current; setSharing(false); return; }
-    const screen = await navigator.mediaDevices.getDisplayMedia({ video: true }); const next = screen.getVideoTracks()[0]; const old = streamRef.current.getVideoTracks()[0]; Object.values(peers.current).forEach(pc => { const sender = pc.getSenders().find(s => s.track?.kind === 'video'); if (sender) void sender.replaceTrack(next); }); next.onended = () => { setSharing(false); }; old?.stop(); streamRef.current.removeTrack(old); streamRef.current.addTrack(next); if (localVideoRef.current) localVideoRef.current.srcObject = streamRef.current; setSharing(true);
+    if (sharing) { const camera = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); const next = camera.getVideoTracks()[0]; const old = streamRef.current.getVideoTracks()[0]; Object.values(peers.current).forEach(pc => { const sender = pc.getSenders().find(s => s.track?.kind === 'video'); if (sender) void sender.replaceTrack(next); }); old?.stop(); if (old) streamRef.current.removeTrack(old); streamRef.current.addTrack(next); if (localVideoRef.current) localVideoRef.current.srcObject = streamRef.current; setSharing(false); return; }
+    const screen = await navigator.mediaDevices.getDisplayMedia({ video: true }); const next = screen.getVideoTracks()[0]; const old = streamRef.current.getVideoTracks()[0]; Object.values(peers.current).forEach(pc => { const sender = pc.getSenders().find(s => s.track?.kind === 'video'); if (sender) void sender.replaceTrack(next); }); next.onended = () => setSharing(false); old?.stop(); if (old) streamRef.current.removeTrack(old); streamRef.current.addTrack(next); if (localVideoRef.current) localVideoRef.current.srcObject = streamRef.current; setSharing(true);
   };
 
   const sendChat = async () => {
@@ -209,6 +232,7 @@ export const LiveMeetingRoom: React.FC<Props> = ({ monthlyPresentation = false }
     await channelRef.current.send({ type: 'broadcast', event: 'chat', payload: item }); setChat(prev => [...prev, item]); setChatText('');
   };
 
+  const currentSlide = liveSlides[slideIndex];
   if (!currentUser || !me) return <div className="p-6 text-sm text-slate-400">Loading live meeting…</div>;
 
   return <div className="space-y-5 rounded-3xl border border-indigo-500/20 bg-slate-950 p-4 md:p-6">
@@ -221,6 +245,7 @@ export const LiveMeetingRoom: React.FC<Props> = ({ monthlyPresentation = false }
       </div>
     </div>
     {notice && <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs font-bold text-indigo-200">{notice}</div>}
+    {activeRoom && monthlyPresentation && currentSlide && <section className="overflow-hidden rounded-3xl border border-cyan-400/30 bg-gradient-to-br from-slate-900 via-indigo-950/60 to-slate-950 p-5 md:p-7"><div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.2em] text-cyan-300"><Presentation className="h-4 w-4" />LIVE PRESENTATION • {slideIndex + 1}/{liveSlides.length}</div>{isOwner && <div className="flex gap-2"><button disabled={slideIndex===0} onClick={() => void setPresentationSlide(slideIndex-1)} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-black text-white disabled:opacity-30"><ChevronLeft className="inline h-4 w-4" /></button><button disabled={slideIndex===liveSlides.length-1} onClick={() => void setPresentationSlide(slideIndex+1)} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-black text-white disabled:opacity-30"><ChevronRight className="inline h-4 w-4" /></button></div>}</div><div className="mt-5 text-[10px] font-black uppercase tracking-[.18em] text-emerald-300">{currentSlide.eyebrow}</div><h3 className="mt-2 text-2xl font-black text-white md:text-4xl">{currentSlide.title}</h3>{currentSlide.subtitle && <p className="mt-2 max-w-3xl text-sm text-slate-300">{currentSlide.subtitle}</p>}<div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">{currentSlide.metrics.map(m => <div key={m.label} className="rounded-2xl border border-white/10 bg-black/20 p-4"><div className="text-[10px] font-black uppercase text-slate-500">{m.label}</div><div className="mt-1 text-2xl font-black text-white">{m.value}</div></div>)}</div>{currentSlide.bullets?.length ? <div className="mt-5 grid gap-2 md:grid-cols-2">{currentSlide.bullets.map(b => <div key={b} className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-xs text-slate-300">• {b}</div>)}</div> : null}</section>}
     {!activeRoom ? <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center text-xs text-slate-400">{isOwner ? 'Owner can start a protected live room. Share the meeting code through Message Room.' : 'Enter the meeting code provided by Owner and join the live room.'}</div> : <>
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3"><div className="flex items-center gap-2 text-xs font-black text-white"><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-400" />LIVE • {activeRoom.title} • {roomCode}</div><span className="text-xs text-slate-400"><Users className="mr-1 inline h-4 w-4" />{participants.length} online</span></div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
