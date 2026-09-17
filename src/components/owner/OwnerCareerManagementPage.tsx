@@ -80,7 +80,6 @@ export const OwnerCareerManagementPage: React.FC = () => {
 
   useEffect(() => {
     if (!selected) return;
-    setSalaryAmount(clean(selected.base_salary));
     setDesignation(clean(selected.designation || selected.job_position));
     setManagerId(clean(selected.reports_to_user_id));
     const existing = reviews.find((r) => r.employee_id === selected.id && r.review_period === period);
@@ -100,7 +99,11 @@ export const OwnerCareerManagementPage: React.FC = () => {
       setNotes(clean(existing.notes));
     } else {
       setScores({ field_sales_score: 0, dialog_usage_score: 0, revenue_score: 0, customer_handling_score: 0, company_discipline_score: 0 });
-      setSalaryPercent(''); setSalaryAction('NO_CHANGE'); setPromotionEligible(false); setNotes('');
+      setSalaryAmount('');
+      setSalaryPercent('');
+      setSalaryAction('NO_CHANGE');
+      setPromotionEligible(false);
+      setNotes('');
     }
   }, [selectedEmployeeId, period, reviews, selected]);
 
@@ -109,12 +112,13 @@ export const OwnerCareerManagementPage: React.FC = () => {
     setBusy(true); setError(''); setSuccess('');
     try {
       const reviewDate = new Date().toISOString().slice(0, 10);
+      const increaseAmount = Math.max(0, Number(salaryAmount) || 0);
       const payload = {
         employee_id: selected.id,
         review_period: period,
         review_date: reviewDate,
         ...scores,
-        salary_increase_amount: Math.max(0, Number(salaryAmount) || 0),
+        salary_increase_amount: increaseAmount,
         salary_increase_percent: Math.max(0, Number(salaryPercent) || 0),
         salary_action: salaryAction,
         promotion_eligible: promotionEligible,
@@ -129,7 +133,7 @@ export const OwnerCareerManagementPage: React.FC = () => {
       if (period === 'ONE_TO_SIX_MONTHS') userPatch.next_salary_review_at = addMonths(selected.created_at, 6);
       if (period === 'SIX_MONTHS') userPatch.next_salary_review_at = addMonths(selected.created_at, 12);
       if (period === 'ONE_YEAR') userPatch.next_salary_review_at = addMonths(selected.created_at, 24);
-      if (salaryAction === 'INCREASE' && Number(salaryAmount) > 0) userPatch.base_salary = Math.max(0, Number(selected.base_salary || 0) + Number(salaryAmount));
+      if (salaryAction === 'INCREASE' && increaseAmount > 0) userPatch.base_salary = Math.max(0, Number(selected.base_salary || 0) + increaseAmount);
       if (salaryAction === 'INCREASE') userPatch.salary_effective_from = reviewDate;
       if (period === 'TWO_YEARS' && promotionEligible && selected.role === 'agent') userPatch.career_stage = 'TL_ELIGIBILITY_REVIEWED';
       const { error: updateError } = await supabase.from('users').update(userPatch).eq('id', selected.id);
@@ -215,7 +219,7 @@ export const OwnerCareerManagementPage: React.FC = () => {
 
       <section className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
         <div className="flex items-center gap-2 text-sm font-black text-white"><ClipboardCheck className="h-4 w-4 text-emerald-300"/> Owner decision</div>
-        <div className="mt-4 grid gap-4 md:grid-cols-4"><label><span className="text-[10px] font-black uppercase text-slate-500">Salary increase (Rs.)</span><input value={salaryAmount} onChange={(e) => setSalaryAmount(e.target.value)} inputMode="decimal" className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-white" /></label><label><span className="text-[10px] font-black uppercase text-slate-500">Salary increase (%)</span><input value={salaryPercent} onChange={(e) => setSalaryPercent(e.target.value)} inputMode="decimal" className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-white" /></label><label><span className="text-[10px] font-black uppercase text-slate-500">Salary action</span><select value={salaryAction} onChange={(e) => setSalaryAction(e.target.value as any)} className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-white"><option value="NO_CHANGE">No change</option><option value="INCREASE">Increase</option><option value="HOLD">Hold</option><option value="DEFERRED">Deferred</option></select></label><label><span className="text-[10px] font-black uppercase text-slate-500">Designation</span><input value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="Agent / Team Leader / Team Manager" className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-white" /></label></div>
+        <div className="mt-4 grid gap-4 md:grid-cols-4"><label><span className="text-[10px] font-black uppercase text-slate-500">Salary increase (Rs.)</span><input value={salaryAmount} onChange={(e) => setSalaryAmount(e.target.value)} inputMode="decimal" placeholder="Enter only the increase" className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-white" /></label><label><span className="text-[10px] font-black uppercase text-slate-500">Salary increase (%)</span><input value={salaryPercent} onChange={(e) => setSalaryPercent(e.target.value)} inputMode="decimal" placeholder="Optional" className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-white" /></label><label><span className="text-[10px] font-black uppercase text-slate-500">Salary action</span><select value={salaryAction} onChange={(e) => setSalaryAction(e.target.value as any)} className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-white"><option value="NO_CHANGE">No change</option><option value="INCREASE">Increase</option><option value="HOLD">Hold</option><option value="DEFERRED">Deferred</option></select></label><label><span className="text-[10px] font-black uppercase text-slate-500">Designation</span><input value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="Agent / Team Leader / Team Manager" className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-white" /></label></div>
         <label className="mt-4 flex items-center gap-3 text-sm text-white"><input type="checkbox" checked={promotionEligible} onChange={(e) => setPromotionEligible(e.target.checked)} /> Promotion eligibility approved</label>
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Owner review notes" className="mt-4 min-h-24 w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-white" />
         <button type="button" disabled={busy || !selected} onClick={() => void saveReview()} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white disabled:opacity-50"><CheckCircle2 className="h-4 w-4"/> Save career review</button>
