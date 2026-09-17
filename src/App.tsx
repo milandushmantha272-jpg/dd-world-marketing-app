@@ -30,6 +30,7 @@ import { WeeklySalesSheetWorkflow } from './components/common/WeeklySalesSheetWo
 import { MainNavigation } from './components/common/MainNavigation';
 import { HomePage } from './components/common/HomePage';
 import { DataRetentionCenter } from './components/owner/DataRetentionCenter';
+import { OwnerCareerManagementPage } from './components/owner/OwnerCareerManagementPage';
 import { safeStorage } from './utils/safeStorage';
 
 const PromotionItemsPage: React.FC = () => (
@@ -85,6 +86,7 @@ const AppContent: React.FC = () => {
       else if (page === 'Page 9 — New Agent Join (Requirements)') setStandalonePage('New Agent Join (Requirements)');
       else if (page === 'Page 10 — Month-End Presentation') setStandalonePage('Month-End Presentation');
       else if (page === 'Owner — Data Retention & History') setStandalonePage('Data Retention & History');
+      else if (page === 'Owner — Career & Team Management') setStandalonePage('Career & Team Management');
       else setStandalonePage(null);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -126,6 +128,7 @@ const AppContent: React.FC = () => {
         : standalonePage === 'New Agent Join (Requirements)' ? <NewAgentJoinRequirementsPage />
         : standalonePage === 'Month-End Presentation' ? <MonthEndPresentationPage />
         : standalonePage === 'Data Retention & History' ? <DataRetentionCenter />
+        : standalonePage === 'Career & Team Management' ? <OwnerCareerManagementPage />
         : <>{currentUser.role === 'owner' && <OwnerDashboard />}{currentUser.role === 'team_leader' && <TeamLeaderDashboard />}{currentUser.role === 'agent' && <AgentDashboard />}</>}
       {currentUser.role === 'owner' && <div className="mx-auto max-w-7xl px-4 md:px-6 pb-6"><OwnerCommissionControl /></div>}
       <WeeklySalesSheetWorkflow />
