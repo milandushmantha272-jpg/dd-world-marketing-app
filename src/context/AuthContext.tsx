@@ -92,6 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
     const authorizedProfile: User = { ...(localProfile || {}), ...profile, id: profile.id };
     setCurrentUser(authorizedProfile);
+    setAuthError(null);
     safeStorage.setItem('ddworld_current_user_v2', JSON.stringify(authorizedProfile));
 
     if (localProfile && localProfile.role !== 'owner') {
@@ -109,9 +110,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthChecking(true);
     setAuthError(null);
     try {
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data.user) throw error || new Error('Supabase login session එක නොමැත.');
-      await establishAuthorizedSession(data.user);
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      if (!data.session?.user) {
+        // No session is the normal logged-out state, not an authorization error.
+        clearSession();
+        return;
+      }
+      await establishAuthorizedSession(data.session.user);
     } catch (error) {
       clearSession();
       setAuthError(formatAuthError(error));
@@ -122,10 +128,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+
+    // Supabase may legitimately have no session on a fresh/logged-out app.
+    // Do not call getUser() in that state because it returns HTTP 400
+    // AuthSessionMissingError and would incorrectly replace the login screen
+    // with an authorization-error screen.
     void (async () => {
       try {
-        const { data } = await supabase.auth.getUser();
-        if (mounted && data.user) await establishAuthorizedSession(data.user);
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (!mounted) return;
+        if (data.session?.user) {
+          await establishAuthorizedSession(data.session.user);
+        } else {
+          clearSession();
+          setAuthError(null);
+        }
       } catch (error) {
         if (mounted) {
           clearSession();
@@ -136,17 +154,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     })();
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user) {
+    // Keep this callback synchronous. Supabase warns against making async
+    // Supabase calls directly inside onAuthStateChange because it can deadlock
+    // the auth client. Login/profile loading is handled by login() and the
+    // initial getSession() check above; this listener only clears local state
+    // when the session actually disappears.
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
         clearSession();
+        setAuthError(null);
         setAuthChecking(false);
-        return;
       }
-      void establishAuthorizedSession(session.user).catch((error) => {
-        clearSession();
-        setAuthError(formatAuthError(error));
-        void signOutSupabase().catch(() => undefined);
-      }).finally(() => setAuthChecking(false));
     });
 
     return () => {
@@ -204,6 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     clearSession();
+    setAuthError(null);
     try { await signOutSupabase(); } catch (error) { console.warn('Supabase sign-out warning:', error); }
   };
 
