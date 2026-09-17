@@ -30,15 +30,38 @@ const isApprovedActiveEmployee = (user: User) => {
   return status === 'active' && employment === 'ACTIVE' && approval === 'APPROVED';
 };
 
+type SupabaseLikeError = {
+  code?: unknown;
+  message?: unknown;
+  details?: unknown;
+  hint?: unknown;
+  status?: unknown;
+};
+
 const formatAuthError = (error: unknown): string => {
-  const code = typeof error === 'object' && error !== null && 'code' in error
-    ? String((error as { code?: unknown }).code || '')
-    : '';
-  const raw = error instanceof Error ? error.message : String(error || 'Unknown error');
-  if (code === 'invalid_credentials') return 'Email හෝ password වැරදියි.';
-  if (code === 'email_not_confirmed') return 'Email verification සම්පූර්ණ කළ පසු පමණක් login විය හැක.';
-  if (/network|fetch/i.test(raw)) return 'Supabase connection එක ලබාගත නොහැක. Internet connection එක පරීක්ෂා කර Retry කරන්න.';
-  return `Login authorization failed: ${raw}`;
+  const isRecord = typeof error === 'object' && error !== null;
+  const structured = isRecord ? error as SupabaseLikeError : null;
+  const code = structured?.code ? String(structured.code) : '';
+  const message = structured?.message ? String(structured.message) : '';
+  const details = structured?.details ? String(structured.details) : '';
+  const hint = structured?.hint ? String(structured.hint) : '';
+  const status = structured?.status ? String(structured.status) : '';
+  const raw = error instanceof Error
+    ? error.message
+    : message || (isRecord ? JSON.stringify(error) : String(error || 'Unknown error'));
+
+  if (code === 'invalid_credentials' || /invalid login credentials|invalid credentials/i.test(raw)) {
+    return 'Email හෝ password වැරදියි.';
+  }
+  if (code === 'email_not_confirmed' || /email not confirmed/i.test(raw)) {
+    return 'Email verification සම්පූර්ණ කළ පසු පමණක් login විය හැක.';
+  }
+  if (/network|fetch|failed to fetch|timeout/i.test(raw)) {
+    return 'Supabase connection එක ලබාගත නොහැක. Internet connection එක පරීක්ෂා කර Retry කරන්න.';
+  }
+
+  const extra = [details, hint, status ? `HTTP ${status}` : ''].filter(Boolean).join(' | ');
+  return extra ? `Login authorization failed: ${raw} — ${extra}` : `Login authorization failed: ${raw}`;
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
