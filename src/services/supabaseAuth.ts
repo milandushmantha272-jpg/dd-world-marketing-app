@@ -25,16 +25,12 @@ export async function signInWithEmployeeCredentials(email: string, password: str
 }
 
 export async function getAuthenticatedEmployeeProfile(authUserId: string): Promise<AppUser> {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('auth_user_id', authUserId)
-    .maybeSingle();
-
+  const { data, error } = await supabase.rpc('get_my_employee_profile');
   if (error) throw error;
-  if (!data) throw new Error('මෙම Supabase account එකට Owner-approved employee profile එකක් නොමැත.');
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error('මෙම Supabase account එකට Owner-approved employee profile එකක් නොමැත.');
 
-  const profile = toAppUser(data, authUserId);
+  const profile = toAppUser(row as Record<string, any>, authUserId);
   const employment = String(profile.employmentStatus || '').toUpperCase();
   const status = String(profile.status || '').toLowerCase();
   const approval = String(profile.idApprovalStatus || '').toUpperCase();
