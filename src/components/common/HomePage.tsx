@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { IdCard, CalendarCheck, BarChart3, FileText, MessageSquare, ClipboardList, Wallet, Shirt, UserPlus, ChevronRight, ShieldCheck, Presentation, Database, Award } from 'lucide-react';
 import { DdWorldMarketingLogo } from './DdWorldMarketingLogo';
 
