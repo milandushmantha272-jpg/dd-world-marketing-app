@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { IdCard, CalendarCheck, BarChart3, FileText, MessageSquare, ClipboardList, Wallet, Shirt, UserPlus, ChevronRight, ShieldCheck, Presentation, Database } from 'lucide-react';
+import { IdCard, CalendarCheck, BarChart3, FileText, MessageSquare, ClipboardList, Wallet, Shirt, UserPlus, ChevronRight, ShieldCheck, Presentation, Database, Award } from 'lucide-react';
 import { DdWorldMarketingLogo } from './DdWorldMarketingLogo';
 
 type HomeItem = { label: string; description: string; icon: React.ElementType; ownerOnly?: boolean };
@@ -24,7 +23,10 @@ export const HomePage: React.FC = () => {
     { label: 'Page 8 — Promotion Items', description: 'Promotion requests and team consolidation', icon: Shirt },
     { label: 'Page 9 — New Agent Join (Requirements)', description: 'New-agent requirements and approval', icon: UserPlus },
     { label: 'Page 10 — Month-End Presentation', description: 'Auto Generate → Owner Review → Live Meeting → Team/Agent slides → Final Summary', icon: Presentation },
-    ...(role === 'owner' ? [{ label: 'Owner — Data Retention & History', description: '3-month detail → 12-month monthly summary → annual summary', icon: Database, ownerOnly: true }] : []),
+    ...(role === 'owner' ? [
+      { label: 'Owner — Data Retention & History', description: '3-month detail → 12-month monthly summary → annual summary', icon: Database, ownerOnly: true },
+      { label: 'Owner — Career & Team Management', description: '1–6 month → 6 month → 1 year reviews → 2 year Team Leader path', icon: Award, ownerOnly: true },
+    ] : []),
   ], [role]);
   if (!currentUser) return null;
   const roleName = role === 'owner' ? 'OWNER' : role === 'team_leader' ? 'TEAM LEADER' : 'AGENT';
