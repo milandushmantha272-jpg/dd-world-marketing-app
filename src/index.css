@@ -1,28 +1,28 @@
 @import "tailwindcss";
 
-/* DD WORLD MARKETING — Official Corporate Design System */
+/* DD WORLD MARKETING — Light Corporate Design System */
 :root {
-  --dd-navy-950: #06111f;
-  --dd-navy-900: #0a1b2e;
-  --dd-navy-800: #102a43;
+  --dd-navy-950: #f8fafc;
+  --dd-navy-900: #ffffff;
+  --dd-navy-800: #e2e8f0;
   --dd-blue-700: #155eef;
   --dd-blue-600: #2563eb;
   --dd-cyan-500: #06b6d4;
   --dd-green-600: #16803c;
   --dd-amber-500: #d97706;
   --dd-red-600: #c62828;
-  --dd-surface-dark: rgba(8, 25, 42, 0.94);
-  --dd-surface-dark-strong: rgba(6, 17, 31, 0.97);
-  --dd-border: rgba(148, 163, 184, 0.18);
-  --dd-shadow: 0 12px 32px rgba(2, 8, 23, 0.28);
+  --dd-surface-dark: rgba(255, 255, 255, 0.98);
+  --dd-surface-dark-strong: #ffffff;
+  --dd-border: rgba(15, 23, 42, 0.10);
+  --dd-shadow: 0 10px 28px rgba(15, 23, 42, 0.10);
   --dd-radius: 16px;
 }
 
 html {
   min-width: 320px;
   min-height: 100%;
-  background: #06111f;
-  color-scheme: dark;
+  background: #f8fafc;
+  color-scheme: light;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -30,8 +30,8 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #06111f url('/dd-world-official-background.svg') center top / cover fixed no-repeat;
-  color: #f8fafc;
+  background: #f8fafc;
+  color: #0f172a;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
@@ -39,66 +39,62 @@ body {
   overscroll-behavior-y: none;
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(3, 12, 23, 0.16), rgba(3, 12, 23, 0.42));
-}
+body::before { display: none; }
 
-#root {
-  min-height: 100vh;
-  background: transparent;
-}
+#root { min-height: 100vh; background: transparent; }
 
-button,
-a,
-input,
-select,
-textarea { -webkit-tap-highlight-color: transparent; }
-button,
-a { touch-action: manipulation; }
-button:focus-visible,
-a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible {
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--dd-cyan-500);
   outline-offset: 2px;
 }
-::selection { background: rgba(37, 99, 235, 0.35); color: #fff; }
+::selection { background: rgba(37, 99, 235, 0.18); color: #0f172a; }
 
-/* Shared surfaces: pages inherit one consistent official background while content stays readable. */
 .dd-page-shell {
-  background: linear-gradient(180deg, rgba(6, 17, 31, 0.80), rgba(6, 17, 31, 0.90));
-  backdrop-filter: blur(3px);
+  background: #f8fafc;
+  backdrop-filter: none;
 }
 .dd-card {
-  background: var(--dd-surface-dark);
+  background: #ffffff;
   border: 1px solid var(--dd-border);
   border-radius: var(--dd-radius);
   box-shadow: var(--dd-shadow);
-  backdrop-filter: blur(8px);
+  backdrop-filter: none;
 }
 .dd-card-light {
-  background: rgba(255, 255, 255, 0.97);
+  background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: var(--dd-radius);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.10);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
 }
 .dd-header {
-  background: rgba(7, 17, 31, 0.94);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(255, 255, 255, 0.97);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.10);
   backdrop-filter: blur(12px);
 }
 .dd-gradient-brand { background: linear-gradient(135deg, #155eef, #0ea5e9 55%, #16a34a); }
-.dd-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(148, 163, 184, 0.35) transparent; }
+.dd-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(100, 116, 139, 0.35) transparent; }
 .dd-scrollbar::-webkit-scrollbar { width: 7px; height: 7px; }
 .dd-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.dd-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.35); border-radius: 999px; }
+.dd-scrollbar::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.35); border-radius: 999px; }
+
+/* Theme bridge: soften legacy dark utility classes without changing functionality or the DD WORLD logo. */
+[class*="bg-slate-950"], [class*="bg-slate-900"], [class*="bg-slate-800"] {
+  background-color: #ffffff !important;
+}
+[class*="bg-slate-950\/"], [class*="bg-slate-900\/"], [class*="bg-slate-800\/"] {
+  background-color: rgba(255,255,255,0.96) !important;
+}
+[class*="text-slate-100"], [class*="text-slate-200"] { color: #0f172a !important; }
+[class*="text-slate-300"], [class*="text-slate-400"] { color: #475569 !important; }
+[class*="text-slate-500"] { color: #64748b !important; }
+[class*="border-slate-800"], [class*="border-slate-700"], [class*="border-slate-600"] {
+  border-color: rgba(15, 23, 42, 0.10) !important;
+}
 
 @media (max-width: 640px) {
   button, [role="button"] { min-height: 44px; }
-  body { background-attachment: scroll; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
