@@ -42,7 +42,7 @@ export const IvrAndAppActivationsHub: React.FC<IvrAndAppActivationsHubProps> = (
       // Page 3 scope: Owner = all; Team Leader = own team; Agent = own records.
       if (currentUser.role === 'agent' && s.agentId !== currentUser.id) return false;
       if (
-        currentUser.role === 'team_leader' &&
+        (currentUser.role === 'team_leader' || currentUser.role === 'junior_team_leader') &&
         s.teamId !== currentUser.teamId &&
         s.agentId !== currentUser.id
       ) return false;
@@ -129,9 +129,9 @@ export const IvrAndAppActivationsHub: React.FC<IvrAndAppActivationsHubProps> = (
   }, [sales, todayStr]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* HEADER */}
-      <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-4 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-black text-amber-400 uppercase tracking-wider">
             <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
