@@ -17,6 +17,7 @@ interface AuthContextType {
   retryAuth: () => Promise<void>;
   login: (userOrId: User | string, password?: string, expectedRole?: UserRole) => Promise<void>;
   loginAsUser: (userOrId: User | string, password?: string) => Promise<void>;
+  loginWithoutCredentials: (role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -222,6 +223,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginAsUser = async (userOrId: User | string, password?: string) => login(userOrId, password);
+  // Temporary UI-testing mode: creates a local in-app session without Supabase credentials.
+  // Disable this before any production release.
+  const loginWithoutCredentials = async (role: UserRole) => {
+    setAuthError(null);
+    setAuthChecking(true);
+    try {
+      const target = users.find((u) => u.role === role && isApprovedActiveEmployee(u));
+      const demoUser: User = target ? { ...target } : ({
+        id: 'test-' + role,
+        name: role === 'team_leader' ? 'Test Team Leader' : role === 'junior_team_leader' ? 'Test Junior Team Leader' : role === 'agent' ? 'Test Agent' : 'Test Owner',
+        email: 'test.' + role + '@ddworld.local',
+        role,
+        status: 'active',
+        employmentStatus: 'ACTIVE',
+        idApprovalStatus: 'APPROVED',
+      } as User);
+      setCurrentUser(demoUser);
+      setAuthError(null);
+      safeStorage.setItem('ddworld_current_user_v2', JSON.stringify(demoUser));
+    } finally {
+      setAuthChecking(false);
+    }
+  };
+
 
   const logout = async () => {
     const trackedUser = currentUser;
@@ -243,7 +268,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </div>;
   }
 
-  return <AuthContext.Provider value={{ currentUser, authError, retryAuth, login, loginAsUser, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ currentUser, authError, retryAuth, login, loginAsUser, loginWithoutCredentials, logout }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
