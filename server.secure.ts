@@ -79,7 +79,7 @@ const isOwnerRequest = (res: express.Response): boolean => {
 };
 const isSupervisorRequest = (res: express.Response): boolean => {
   const p = res.locals.employeeProfile || {};
-  return isOwnerRequest(res) || p.role === 'team_leader' || p.role === 'TEAM_SUPERVISOR';
+  return isOwnerRequest(res) || p.role === 'team_leader' || p.role === 'junior_team_leader' || p.role === 'TEAM_SUPERVISOR';
 };
 
 const validateGpsRecord = (r: any) => {
