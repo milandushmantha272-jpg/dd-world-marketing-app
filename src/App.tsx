@@ -75,7 +75,7 @@ const AppContent: React.FC = () => {
   React.useEffect(() => {
     const onNavigate = (event: Event) => {
       const page = (event as CustomEvent<{ page?: string }>).detail?.page || '';
-      if (page === 'Home') { setStandalonePage(null); setShowHome(true); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+      if (page === 'Home') { setStandalonePage(null); setShowHome(true); window.scrollTo({ top: 0, behavior: 'auto' }); return; }
       setShowHome(false);
       if (page === 'Page 1 — ID') setStandalonePage('ID');
       else if (page === 'Page 2 — Attendance' || page === 'Attendance' || page === 'Work & Attendance') setStandalonePage('Attendance');
@@ -90,7 +90,7 @@ const AppContent: React.FC = () => {
       else if (page === 'Owner — Data Retention & History') setStandalonePage('Data Retention & History');
       else if (page === 'Owner — Career & Team Management') setStandalonePage('Career & Team Management');
       else setStandalonePage(null);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'auto' });
     };
     window.addEventListener('ddworld:navigate', onNavigate);
     return () => window.removeEventListener('ddworld:navigate', onNavigate);
