@@ -211,7 +211,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       clearSession();
-      setAuthError(formatAuthError(error));
+      const formatted = formatAuthError(error);
+      // Credential failures are shown by LoginModal; keep the login form visible
+      // instead of replacing it with the global authorization error screen.
+      if (!/Email හෝ password වැරදියි\./i.test(formatted)) setAuthError(formatted);
       throw error;
     } finally {
       setAuthChecking(false);
