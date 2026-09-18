@@ -31,7 +31,7 @@ export const HomePage: React.FC = () => {
   ], [role]);
 
   if (!currentUser) return null;
-  const roleName = role === 'owner' ? 'OWNER' : role === 'team_leader' ? 'TEAM LEADER' : 'AGENT';
+  const roleName = role === 'owner' ? 'OWNER' : role === 'team_leader' ? 'TEAM LEADER' : role === 'junior_team_leader' ? 'JUNIOR TEAM LEADER' : 'AGENT';
 
   return (
     <section className="dd-page-shell min-h-[calc(100vh-72px)] px-4 py-5 md:px-6 md:py-8">
@@ -51,18 +51,18 @@ export const HomePage: React.FC = () => {
           </div>
         </header>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4">
+        <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:mt-5 md:gap-4">
           {items.map((item, index) => {
             const Icon = item.icon;
-            return <button key={item.label} type="button" onClick={() => openPage(item.label)} className="group relative min-h-[142px] overflow-hidden rounded-2xl border border-white/10 bg-slate-900 p-4 text-left shadow-lg transition active:scale-[.99]" aria-label={item.label}>
+            return <button key={item.label} type="button" onClick={() => openPage(item.label)} className="group relative min-h-[128px] overflow-hidden rounded-2xl border border-white/10 bg-slate-900 p-3.5 text-left shadow-lg transition active:scale-[.99] sm:min-h-[142px] sm:p-4" aria-label={item.label}>
               <div className="relative flex h-full flex-col">
                 <div className="flex items-start justify-between">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-400/20 bg-red-500/10 text-red-300"><Icon className="h-5 w-5" /></div>
                   <span className="text-[10px] font-black tracking-widest text-slate-500">{String(index + 1).padStart(2, '0')}</span>
                 </div>
                 <div className="mt-auto pt-4">
-                  <div className="flex items-center justify-between gap-2"><span className="text-sm font-extrabold leading-5 text-white md:text-[15px]">{item.label}</span><ChevronRight className="h-4 w-4 shrink-0 text-slate-500" /></div>
-                  <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-slate-400 md:text-[11px]">{item.description}</p>
+                  <div className="flex items-center justify-between gap-2"><span className="text-[13px] font-extrabold leading-5 text-white sm:text-sm md:text-[15px]">{item.label}</span><ChevronRight className="h-4 w-4 shrink-0 text-slate-500" /></div>
+                  <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-slate-400 sm:mt-1.5 md:text-[11px]">{item.description}</p>
                 </div>
               </div>
             </button>;
