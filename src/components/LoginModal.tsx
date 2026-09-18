@@ -18,7 +18,7 @@ const roleMeta: Record<Exclude<UserRole, 'dialog_officer'>, { label: string; ico
 type LoginRole = Exclude<UserRole, 'dialog_officer'>;
 
 export const LoginModal: React.FC = () => {
-  const { login } = useAuth();
+  const { login, loginWithoutCredentials } = useAuth();
   const { users } = useData();
   const [selectedRole, setSelectedRole] = useState<LoginRole>('owner');
   const [identifier, setIdentifier] = useState('');
@@ -123,6 +123,8 @@ export const LoginModal: React.FC = () => {
             })}
           </div>
 
+          <button type="button" onClick={() => void loginWithoutCredentials(selectedRole)} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-xs font-black text-amber-200 transition hover:bg-amber-400/15">🧪 TEST MODE — Login without username / password</button>
+
           <form onSubmit={submit} className="mt-5 space-y-4">
             <label className="block">
               <span className="mb-1.5 block text-xs font-bold text-slate-300">Employee ID / Agent Code / Email</span>
@@ -151,7 +153,8 @@ export const LoginModal: React.FC = () => {
             </button>
           </form>
 
-          <div className="mt-5 text-center text-[10px] leading-5 text-slate-500">DD WORLD official employee access • Supabase Auth • database security policies</div>
+          <div className="mt-4 rounded-xl border border-amber-400/15 bg-amber-400/5 px-3 py-2 text-center text-[9px] font-semibold leading-4 text-amber-200/80">TEST MODE is temporary for final app checking. Disable it before production release.</div>
+          <div className="mt-3 text-center text-[10px] leading-5 text-slate-500">DD WORLD official employee access • Supabase Auth • database security policies</div>
         </div>
       </div>
     </div>
