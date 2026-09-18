@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Home, BarChart3, CalendarCheck, MessageSquare, MoreHorizontal, FileText, User, Wallet, UserPlus, Presentation, X } from 'lucide-react';
+import { Home, BarChart3, CalendarCheck, MessageSquare, MoreHorizontal, FileText, User, Wallet, UserPlus, Presentation, X, UserCog } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const navigate = (page: string) => {
   window.dispatchEvent(new CustomEvent('ddworld:navigate', { detail: { page } }));
@@ -7,6 +8,7 @@ const navigate = (page: string) => {
 };
 
 export const MainNavigation: React.FC = () => {
+  const { currentUser } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
 
   const items = [
@@ -22,6 +24,7 @@ export const MainNavigation: React.FC = () => {
     { label: 'Payment', icon: Wallet, page: 'Page 7 — Commission / Payment' },
     { label: 'New Agent', icon: UserPlus, page: 'Page 9 — New Agent Join (Requirements)' },
     { label: 'Month End', icon: Presentation, page: 'Page 10 — Month-End Presentation' },
+    ...(currentUser?.role === 'owner' ? [{ label: 'User Access', icon: UserCog, page: 'Owner — User & Access Control' }] : []),
   ];
 
   return (
@@ -30,9 +33,7 @@ export const MainNavigation: React.FC = () => {
         <div className="fixed inset-x-2 bottom-[78px] z-[70] rounded-2xl border border-white/10 bg-slate-950 p-2 shadow-2xl sm:hidden">
           <div className="mb-1 flex items-center justify-between px-2 py-1">
             <span className="text-[10px] font-black uppercase tracking-[.18em] text-slate-400">More DD WORLD</span>
-            <button type="button" onClick={() => setMoreOpen(false)} className="!min-h-9 h-9 w-9 rounded-lg p-1 text-slate-400" aria-label="Close menu">
-              <X className="mx-auto h-4 w-4" />
-            </button>
+            <button type="button" onClick={() => setMoreOpen(false)} className="!min-h-9 h-9 w-9 rounded-lg p-1 text-slate-400" aria-label="Close menu"><X className="mx-auto h-4 w-4" /></button>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {moreItems.map(({ label, icon: Icon, page }) => (
