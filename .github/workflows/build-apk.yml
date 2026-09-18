@@ -120,3 +120,5 @@ jobs:
             signing-certificate.txt
             signing-fingerprints.txt
           if-no-files-found: error
+
+# Fresh APK build trigger
