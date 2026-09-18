@@ -50,8 +50,6 @@ export async function bootstrapOwnerProfileIfMissing(authUser: { id: string; ema
   const email = authUser.email?.trim().toLowerCase() || '';
   if (email !== OWNER_EMAIL) return null;
 
-  // First try the auth_user_id. If the Owner employee row was pre-created
-  // before the Supabase Auth account existed, claim that row by its email.
   const { data: byAuthId, error: authLookupError } = await supabase
     .from('users')
     .select('*')
@@ -103,11 +101,6 @@ export async function bootstrapOwnerProfileIfMissing(authUser: { id: string; ema
 }
 
 export async function sendOwnerPasswordReset(): Promise<void> {
-  // Android must return from the email into the installed app. Using
-  // window.location.origin here produces the Capacitor WebView origin
-  // (localhost), which is not a real address the email client can open.
-  // Supabase supports custom mobile deep-link redirect URLs when they are
-  // registered in Authentication → URL Configuration.
   const redirectTo = Capacitor.isNativePlatform()
     ? 'com.ddworld.marketing.app://reset-password'
     : (typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined);
@@ -116,6 +109,26 @@ export async function sendOwnerPasswordReset(): Promise<void> {
     redirectTo,
   });
   if (error) throw error;
+}
+
+export type OwnerUserAdminPayload = {
+  action: 'list' | 'create' | 'update' | 'set_status' | 'delete';
+  id?: string;
+  name?: string;
+  email?: string;
+  password?: string;
+  role?: 'agent' | 'team_leader' | 'junior_team_leader';
+  phone?: string;
+  agentCode?: string;
+  teamId?: string | null;
+  status?: 'ACTIVE' | 'BLOCKED' | 'SUSPENDED' | 'INACTIVE';
+};
+
+export async function ownerUserAdmin<T = any>(payload: OwnerUserAdminPayload): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('owner-user-admin', { body: payload });
+  if (error) throw error;
+  if (data?.error) throw new Error(String(data.error));
+  return data as T;
 }
 
 export async function signOutSupabase(): Promise<void> {
