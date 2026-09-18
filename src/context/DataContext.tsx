@@ -22,7 +22,7 @@ const EMPTY_TARGETS: MonthlyProductTargets = {};
 
 const mapRow = (row: any, teamMap: Map<string, any>) => {
   const team = row.team_id ? teamMap.get(row.team_id) : undefined;
-  return { ...row, id: row.id, firebaseUid: undefined, authUserId: row.auth_user_id, agentCode: row.agent_code, teamId: row.team_id, teamName: team?.name || row.team_name, teamLeaderId: team?.leader_id || row.team_leader_id, employmentStatus: row.employment_status, idApprovalStatus: row.id_approval_status, createdAt: row.created_at, joinedDate: row.created_at?.slice?.(0, 10) };
+  return { ...row, id: row.id, firebaseUid: undefined, authUserId: row.auth_user_id, agentCode: row.agent_code, teamId: row.team_id, teamName: team?.name || row.team_name, teamLeaderId: team?.leader_id || row.team_leader_id, employmentStatus: row.employment_status, idApprovalStatus: row.id_approval_status, isLoggedIn: Boolean(row.is_logged_in), isAppDownloaded: Boolean(row.is_app_downloaded), lastLoginAt: row.last_login_at, appVersion: row.app_version, createdAt: row.created_at, joinedDate: row.created_at?.slice?.(0, 10) };
 };
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -112,7 +112,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteAgent = (id:string) => deleteUser(id);
   const changeUserTeam = async (id:string,teamId:string|null) => {try{await ownerGuard();const {error}=await supabase.from('users').update({team_id:teamId}).eq('id',id).neq('role','owner');if(error)throw error;await refreshCore();const team=teamId?teams.find((t:any)=>t.id===teamId):null;return {success:true,message:team?`Moved to ${team.name}.`:'Team assignment removed.'};}catch(error:any){return {success:false,message:error?.message || 'Unable to change team.'};}};
   const changeUserRole = async (id:string,role:UserRole) => {try{await ownerGuard();if(id==='owner-1'||role==='owner')throw new Error('Owner role is protected.');const {error}=await supabase.from('users').update({role}).eq('id',id);if(error)throw error;await refreshCore();return {success:true,message:`Role changed to ${role}.`};}catch(error:any){return {success:false,message:error?.message || 'Unable to change role.'};}};
-  const updateUserAppStatus = async (id:string,patch:any) => {try{await ownerGuard();const dbPatch:any={};if('isLoggedIn' in patch)dbPatch.status=patch.isLoggedIn?'active':'inactive';if(Object.keys(dbPatch).length){const {error}=await supabase.from('users').update(dbPatch).eq('id',id).neq('role','owner');if(error)throw error;await refreshCore();}}catch(error:any){setDataError(error?.message || 'Unable to update account status.');}};
+  const updateUserAppStatus = async (id:string,patch:any) => {try{await ownerGuard();const dbPatch:any={};if('isLoggedIn' in patch)dbPatch.is_logged_in=Boolean(patch.isLoggedIn);if('isAppDownloaded' in patch)dbPatch.is_app_downloaded=Boolean(patch.isAppDownloaded);if('lastLoginAt' in patch)dbPatch.last_login_at=patch.lastLoginAt || null;if('appVersion' in patch)dbPatch.app_version=patch.appVersion || null;if(Object.keys(dbPatch).length){const {error}=await supabase.from('users').update(dbPatch).eq('id',id).neq('role','owner');if(error)throw error;await refreshCore();}}catch(error:any){setDataError(error?.message || 'Unable to update app/login tracking.');}};
 
   const addProductSale = async (input:any) => {
     try {
