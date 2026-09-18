@@ -25,7 +25,7 @@ export const DD_WORLD_SALES_POLICY = {
       channels: ['IVR', 'APP_ACTIVATION'] as const,
     },
   },
-  eligibleRoles: ['agent', 'team_leader'] as const,
+  eligibleRoles: ['agent', 'team_leader', 'junior_team_leader'] as const,
 } as const;
 
 export const monthlyProductTarget = DD_WORLD_SALES_POLICY.workingDaysTarget * DD_WORLD_SALES_POLICY.dailyProductTarget;
