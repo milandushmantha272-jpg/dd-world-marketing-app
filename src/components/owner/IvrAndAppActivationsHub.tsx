@@ -39,6 +39,14 @@ export const IvrAndAppActivationsHub: React.FC<IvrAndAppActivationsHubProps> = (
   // Filter sales for IVR and App activations
   const relevantSales = useMemo(() => {
     return sales.filter((s) => {
+      // Page 3 scope: Owner = all; Team Leader = own team; Agent = own records.
+      if (currentUser.role === 'agent' && s.agentId !== currentUser.id) return false;
+      if (
+        currentUser.role === 'team_leader' &&
+        s.teamId !== currentUser.teamId &&
+        s.agentId !== currentUser.id
+      ) return false;
+
       // Must be related to IVR or APP, or Govimithuru/Sayuru
       const isIvrOrApp =
         s.channel === 'IVR' ||
