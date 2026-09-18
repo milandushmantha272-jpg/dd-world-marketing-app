@@ -11,6 +11,7 @@ import { LoginModal } from './components/LoginModal';
 import { OwnerDashboard } from './components/owner/OwnerDashboard';
 import { TeamLeaderDashboard } from './components/leader/TeamLeaderDashboard';
 import { AgentDashboard } from './components/agent/AgentDashboard';
+import { IvrAndAppActivationsHub } from './components/owner/IvrAndAppActivationsHub';
 import { AttendancePage } from './components/common/AttendancePage';
 import { MessageRoomPage } from './components/common/MessageRoomPage';
 import CommissionPaymentPage from './components/common/CommissionPaymentPage';
@@ -120,7 +121,7 @@ const AppContent: React.FC = () => {
       {!standalonePage && showHome ? <HomePage />
         : standalonePage === 'ID' ? <div className="mx-auto w-full max-w-6xl px-4 py-6"><DigitalEmployeeIdCard /></div>
         : standalonePage === 'Attendance' ? <AttendancePage />
-        : standalonePage === 'Sales Activation' ? <>{currentUser.role === 'owner' && <OwnerDashboard />}{currentUser.role === 'team_leader' && <TeamLeaderDashboard />}{currentUser.role === 'agent' && <AgentDashboard />}</>
+        : standalonePage === 'Sales Activation' ? <IvrAndAppActivationsHub currentUser={currentUser} />
         : standalonePage === 'Sales Summary / Reports' ? <SalesSummaryPage />
         : standalonePage === 'Message Room' ? <MessageRoomPage />
         : standalonePage === 'Details Submit / ID Requirements' ? <div className="mx-auto w-full max-w-7xl px-4 py-6"><PersonalProfileKycPage /></div>
