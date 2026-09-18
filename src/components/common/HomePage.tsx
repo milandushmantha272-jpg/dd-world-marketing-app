@@ -7,7 +7,7 @@ type HomeItem = { label: string; description: string; icon: React.ElementType; o
 
 const openPage = (label: string) => {
   window.dispatchEvent(new CustomEvent('ddworld:navigate', { detail: { page: label } }));
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'auto' });
 };
 
 export const HomePage: React.FC = () => {
@@ -29,6 +29,7 @@ export const HomePage: React.FC = () => {
       { label: 'Owner — Career & Team Management', description: '1–6 month → 6 month → 1 year reviews → 2 year Team Leader path', icon: Award, ownerOnly: true },
     ] : []),
   ], [role]);
+
   if (!currentUser) return null;
   const roleName = role === 'owner' ? 'OWNER' : role === 'team_leader' ? 'TEAM LEADER' : 'AGENT';
 
@@ -36,12 +37,12 @@ export const HomePage: React.FC = () => {
     <section className="dd-page-shell min-h-[calc(100vh-72px)] px-4 py-5 md:px-6 md:py-8">
       <div className="mx-auto w-full max-w-7xl">
         <header className="dd-card relative overflow-hidden rounded-[26px] p-5 md:p-7">
-          <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
+          <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-red-500/10" />
           <div className="relative">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <DdWorldMarketingLogo size="lg" showDetails={false} />
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black tracking-[.16em] text-emerald-300"><ShieldCheck className="h-3 w-3" /> DD WORLD OFFICIAL</span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-red-400/30 bg-red-500/10 px-2.5 py-1 text-[10px] font-black tracking-[.16em] text-red-300"><ShieldCheck className="h-3 w-3" /> DD WORLD OFFICIAL</span>
                 <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-black tracking-wider text-slate-300">{roleName}</span>
               </div>
             </div>
@@ -53,10 +54,16 @@ export const HomePage: React.FC = () => {
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4">
           {items.map((item, index) => {
             const Icon = item.icon;
-            return <button key={item.label} type="button" onClick={() => openPage(item.label)} className="group relative min-h-[142px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-left shadow-lg backdrop-blur-md transition hover:-translate-y-0.5 hover:border-cyan-400/50 hover:bg-slate-900/85 active:scale-[.98]" aria-label={item.label}>
+            return <button key={item.label} type="button" onClick={() => openPage(item.label)} className="group relative min-h-[142px] overflow-hidden rounded-2xl border border-white/10 bg-slate-900 p-4 text-left shadow-lg transition active:scale-[.99]" aria-label={item.label}>
               <div className="relative flex h-full flex-col">
-                <div className="flex items-start justify-between"><div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-400/15 bg-cyan-400/10 text-cyan-300"><Icon className="h-5 w-5" /></div><span className="text-[10px] font-black tracking-widest text-slate-500">{String(index + 1).padStart(2, '0')}</span></div>
-                <div className="mt-auto pt-4"><div className="flex items-center justify-between gap-2"><span className="text-sm font-extrabold leading-5 text-white md:text-[15px]">{item.label}</span><ChevronRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:translate-x-1 group-hover:text-cyan-300" /></div><p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-slate-400 md:text-[11px]">{item.description}</p></div>
+                <div className="flex items-start justify-between">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-400/20 bg-red-500/10 text-red-300"><Icon className="h-5 w-5" /></div>
+                  <span className="text-[10px] font-black tracking-widest text-slate-500">{String(index + 1).padStart(2, '0')}</span>
+                </div>
+                <div className="mt-auto pt-4">
+                  <div className="flex items-center justify-between gap-2"><span className="text-sm font-extrabold leading-5 text-white md:text-[15px]">{item.label}</span><ChevronRight className="h-4 w-4 shrink-0 text-slate-500" /></div>
+                  <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-slate-400 md:text-[11px]">{item.description}</p>
+                </div>
               </div>
             </button>;
           })}
