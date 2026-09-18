@@ -33,7 +33,7 @@ export const LoginModal: React.FC = () => {
     setError('');
     setResetSent(false);
     const value = identifier.trim().toLowerCase();
-    const cleanPassword = password.trim();
+    // Preserve the exact password; whitespace can be part of a valid password.
     if (!value || !cleanPassword) {
       setError('Employee ID / Agent Code / Email සහ Password දෙකම ඇතුළත් කරන්න.');
       return;
@@ -64,7 +64,7 @@ export const LoginModal: React.FC = () => {
 
     setBusy(true);
     try {
-      await login(target?.email?.trim().toLowerCase() || value, cleanPassword, selectedRole);
+      await login(target?.email?.trim().toLowerCase() || value, password, selectedRole);
       safeStorage.setItem('ddworld_last_login_id', target?.id || value);
     } catch (err: any) {
       setError(err?.message || 'Secure authentication අසාර්ථකයි.');
