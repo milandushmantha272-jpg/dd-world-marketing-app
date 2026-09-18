@@ -37,8 +37,8 @@ export const MessageRoomPage: React.FC = () => {
   const contacts = useMemo(() => {
     if (!me) return [];
     if (me.role === 'owner') return users.filter(u => u.id !== me.id && ['active', 'pending'].includes(u.status || 'active'));
-    if (me.role === 'team_leader') return users.filter(u => u.id !== me.id && (u.role === 'owner' || u.team_id === me.team_id));
-    const teamLeaderIds = users.filter(u => u.role === 'team_leader' && u.team_id === me.team_id).map(u => u.id);
+    if (me.role === 'team_leader' || me.role === 'junior_team_leader') return users.filter(u => u.id !== me.id && (u.role === 'owner' || u.team_id === me.team_id));
+    const teamLeaderIds = users.filter(u => (u.role === 'team_leader' || u.role === 'junior_team_leader') && u.team_id === me.team_id).map(u => u.id);
     return users.filter(u => u.id !== me.id && (u.role === 'owner' || teamLeaderIds.includes(u.id)));
   }, [me, users]);
   const visible = messages.filter(m => me && (m.sender_id === me.id || m.receiver_id === me.id));
@@ -53,7 +53,7 @@ export const MessageRoomPage: React.FC = () => {
   if (!currentUser) return null;
   return <div className="space-y-5 p-3 md:p-5">
     <div className="rounded-3xl border border-emerald-500/20 bg-gradient-to-r from-slate-900 via-indigo-950/60 to-slate-900 p-5 shadow-xl"><div className="flex items-center gap-3"><MessageCircle className="h-7 w-7 text-emerald-400" /><div><p className="text-[10px] font-black uppercase tracking-[.2em] text-emerald-400">PAGE 5 · OFFICIAL</p><h1 className="text-xl font-black text-white">DD WORLD Message Room</h1><p className="text-xs text-slate-400">Messages + live meetings + role-based training in one place.</p></div></div></div>
-    <div className="grid grid-cols-3 gap-2 rounded-2xl bg-slate-900 p-2">
+    <div className="grid grid-cols-1 gap-1.5 rounded-2xl bg-slate-900 p-1.5 sm:grid-cols-3 sm:p-2">
       <button onClick={() => setTab('messages')} className={`rounded-xl p-3 text-xs font-black ${tab === 'messages' ? 'bg-emerald-600 text-white' : 'text-slate-400'}`}><MessageCircle className="mr-2 inline h-4 w-4" />Messages</button>
       <button onClick={() => setTab('meetings')} className={`rounded-xl p-3 text-xs font-black ${tab === 'meetings' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}><Video className="mr-2 inline h-4 w-4" />Live Meetings</button>
       <button onClick={() => setTab('training')} className={`rounded-xl p-3 text-xs font-black ${tab === 'training' ? 'bg-amber-600 text-white' : 'text-slate-400'}`}><BookOpen className="mr-2 inline h-4 w-4" />Training</button>
