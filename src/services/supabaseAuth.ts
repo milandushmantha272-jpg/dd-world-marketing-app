@@ -121,7 +121,7 @@ export type OwnerUserAdminPayload = {
   phone?: string;
   agentCode?: string;
   teamId?: string | null;
-  status?: 'ACTIVE' | 'BLOCKED' | 'SUSPENDED' | 'INACTIVE';
+  status?: 'ACTIVE' | 'BLOCKED' | 'SUSPENDED' | 'INACTIVE' | 'EXITED';
 };
 
 export async function ownerUserAdmin<T = any>(payload: OwnerUserAdminPayload): Promise<T> {
