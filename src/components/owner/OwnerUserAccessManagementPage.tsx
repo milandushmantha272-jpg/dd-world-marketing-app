@@ -123,7 +123,7 @@ export const OwnerUserAccessManagementPage: React.FC = () => {
     }, 'Username / profile / password updated successfully.');
   };
 
-  const setStatus = async (u: ManagedUser, status: 'ACTIVE' | 'BLOCKED' | 'SUSPENDED' | 'INACTIVE') => {
+  const setStatus = async (u: ManagedUser, status: 'ACTIVE' | 'BLOCKED' | 'SUSPENDED' | 'INACTIVE' | 'EXITED') => {
     await run({ action: 'set_status', id: u.id, status }, `${u.name} → ${status} completed.`);
   };
 
@@ -224,7 +224,7 @@ export const OwnerUserAccessManagementPage: React.FC = () => {
                   <button type="button" onClick={() => void setStatus(u, 'ACTIVE')} disabled={busy || status === 'ACTIVE'} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs font-black text-emerald-200 disabled:opacity-40"><CheckCircle2 className="h-4 w-4" /> Active</button>
                   <button type="button" onClick={() => void setStatus(u, 'SUSPENDED')} disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs font-black text-amber-200"><LockKeyhole className="h-4 w-4" /> Suspend</button>
                   <button type="button" onClick={() => void setStatus(u, 'BLOCKED')} disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 text-xs font-black text-rose-200"><Ban className="h-4 w-4" /> Block</button>
-                  <button type="button" onClick={() => void setStatus(u, 'INACTIVE')} disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-black text-slate-300"><WifiOff className="h-4 w-4" /> Login Off</button>
+                  <button type="button" onClick={() => void setStatus(u, 'INACTIVE')} disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 text-xs font-black text-slate-300"><WifiOff className="h-4 w-4" /> Login Off</button><button type="button" onClick={() => void setStatus(u, 'EXITED')} disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-orange-500/30 bg-orange-500/10 text-xs font-black text-orange-200"><LockKeyhole className="h-4 w-4" /> Exit</button>
                   <button type="button" onClick={() => void deleteAccount(u)} disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-500/30 bg-rose-950/30 text-xs font-black text-rose-200"><Trash2 className="h-4 w-4" /> Delete</button>
                 </div>
               </article>
