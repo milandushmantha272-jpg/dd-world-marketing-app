@@ -326,7 +326,7 @@ export const AllSalesView: React.FC = () => {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 gap-2 text-xs">
             <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 space-y-1">
               <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
                 🌾 ගොවිමිතුරු
@@ -471,7 +471,7 @@ export const AllSalesView: React.FC = () => {
             </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 pt-1">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 gap-2 pt-1">
             {top3Agents.map((item, index) => {
               const badges = ['🥇 1st Place', '🥈 2nd Place', '🥉 3rd Place'];
               const colors = [
