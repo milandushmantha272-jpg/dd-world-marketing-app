@@ -41,7 +41,7 @@ export const DialogLiaisonHub: React.FC = () => {
   const [officers, setOfficers] = useState(readOfficers);
 
   const isOwner = currentUser?.role === 'owner';
-  const isLeader = currentUser?.role === 'team_leader';
+  const isLeader = currentUser?.role === 'team_leader' || currentUser?.role === 'junior_team_leader';
   const isAgent = currentUser?.role === 'agent';
   const team = teams.find((t) => t.id === currentUser?.teamId);
   const myTeamAgents = useMemo(
@@ -74,7 +74,7 @@ export const DialogLiaisonHub: React.FC = () => {
       senderRole: 'agent',
       receiverId: myLeader.id,
       receiverName: myLeader.name,
-      receiverRole: 'team_leader',
+      receiverRole: (myLeader.role === 'junior_team_leader' ? 'junior_team_leader' : 'team_leader'),
       content: lines.join('\n'),
     });
     setSent(true);
@@ -90,7 +90,7 @@ export const DialogLiaisonHub: React.FC = () => {
     }));
     const lines = [
       `MONTHLY ${product.toUpperCase()} T-SHIRT & PROMOTION REQUEST`,
-      `Team Leader: ${currentUser.name}`,
+      `Team Leader: ${currentUser.name} (${currentUser.role === 'junior_team_leader' ? 'Junior Team Leader' : 'Team Leader'})`,
       `Team Leader Code: ${currentUser.agentCode || '-'}`,
       `Team Leader Phone: ${currentUser.mobile || currentUser.phone || '-'}`,
       `Team: ${team.name}`,
@@ -105,7 +105,7 @@ export const DialogLiaisonHub: React.FC = () => {
     sendMessage({
       senderId: currentUser.id,
       senderName: currentUser.name,
-      senderRole: 'team_leader',
+      senderRole: currentUser.role,
       receiverId: owner.id,
       receiverName: owner.name,
       receiverRole: 'owner',
