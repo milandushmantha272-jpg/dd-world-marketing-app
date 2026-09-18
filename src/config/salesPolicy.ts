@@ -38,7 +38,7 @@ export function isCountableVerifiedSale(sale: ProductSale): boolean {
 }
 
 export function isFieldSeller(role?: UserRole): boolean {
-  return role === 'agent' || role === 'team_leader';
+  return role === 'agent' || role === 'team_leader' || role === 'junior_team_leader';
 }
 
 export function getProductSales(sales: ProductSale[], product: 'sayuru' | 'govimithuru'): ProductSale[] {
