@@ -122,7 +122,7 @@ export const Navbar: React.FC = () => {
           <button type="button" onClick={logout} className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300" aria-label="Logout" title="Logout"><LogOut className="h-4 w-4" /></button>
         </div>
       </div>
-      <header className="hidden bg-slate-900/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 text-slate-100 shadow-lg sm:block"> backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 text-slate-100 shadow-lg">
+      <header className="hidden bg-slate-900/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 text-slate-100 shadow-lg sm:block">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Logo & Title */}
         <div className="flex items-center gap-3">
