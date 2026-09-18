@@ -19,7 +19,13 @@ Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return json({ error: 'POST required.' }, 405);
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const secretKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SECRET_KEY');
+  let secretKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SECRET_KEY');
+  if (!secretKey) {
+    try {
+      const secretKeys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}');
+      secretKey = Object.values(secretKeys)[0] as string | undefined;
+    } catch (_) { /* fall through to configuration error */ }
+  }
   if (!supabaseUrl || !secretKey) return json({ error: 'Server authentication is not configured.' }, 500);
 
   const admin = createClient(supabaseUrl, secretKey, {
