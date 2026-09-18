@@ -11,6 +11,7 @@ const blockedStatuses = new Set(['BLOCKED', 'SUSPENDED', 'EXITED', 'TEMPORARY_SU
 const roleMeta: Record<Exclude<UserRole, 'dialog_officer'>, { label: string; icon: React.ElementType }> = {
   owner: { label: 'Owner', icon: UserRound },
   team_leader: { label: 'Team Leader', icon: Users },
+  junior_team_leader: { label: 'Junior Team Leader', icon: Users },
   agent: { label: 'Agent', icon: BriefcaseBusiness },
 };
 
@@ -104,7 +105,7 @@ export const LoginModal: React.FC = () => {
             <ShieldCheck className="h-4 w-4" /> Owner-controlled secure authentication
           </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-1.5 rounded-2xl border border-white/10 bg-black/20 p-1.5">
+          <div className="mt-4 grid grid-cols-2 gap-1.5 rounded-2xl sm:grid-cols-4 border border-white/10 bg-black/20 p-1.5">
             {(Object.keys(roleMeta) as LoginRole[]).map((role) => {
               const Icon = roleMeta[role].icon;
               const selected = selectedRole === role;
