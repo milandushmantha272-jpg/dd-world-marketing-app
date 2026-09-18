@@ -49,7 +49,7 @@ export const OwnerUserAccessManagementPage: React.FC = () => {
     setBusy(true); setError(''); setMessage('');
     try {
       const result = await ownerUserAdmin<{ users: ManagedUser[] }>({ action: 'list' });
-      setAuthRows(result.users || []);
+      setAuthRows((result.users || []).map((u: ManagedUser) => ({ ...u, isLoggedIn: Boolean(u.is_logged_in), isAppDownloaded: Boolean(u.is_app_downloaded), lastLoginAt: u.last_login_at || null, authLastSignInAt: u.auth_last_sign_in_at || null })));
       await retryData();
     } catch (e: any) {
       setError(e?.message || 'Unable to load Owner account management data.');
@@ -198,7 +198,7 @@ export const OwnerUserAccessManagementPage: React.FC = () => {
           {mergedUsers.map((u: ManagedUser) => {
             const online = Boolean(u.isLoggedIn);
             const status = statusLabel(u);
-            const lastLogin = u.auth_last_sign_in_at || u.lastLoginAt || u.last_login_at;
+            const lastLogin = u.authLastSignInAt || u.lastLoginAt || u.last_login_at;
             return (
               <article key={u.id} className="rounded-3xl border border-slate-800 bg-slate-900 p-4 shadow-xl">
                 <div className="flex items-start justify-between gap-3">
