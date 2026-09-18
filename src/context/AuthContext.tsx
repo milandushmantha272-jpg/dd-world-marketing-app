@@ -95,12 +95,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthError(null);
     safeStorage.setItem('ddworld_current_user_v2', JSON.stringify(authorizedProfile));
 
-    if (localProfile && localProfile.role !== 'owner') {
-      updateUserAppStatus(localProfile.id, {
+    if (profile.role !== 'owner') {
+      void updateUserAppStatus(profile.id, {
         isAppDownloaded: true,
         isLoggedIn: true,
         lastLoginAt: new Date().toISOString(),
-        appVersion: 'v5.4',
+        appVersion: 'v5.8',
       });
     }
     return authorizedProfile;
@@ -224,6 +224,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginAsUser = async (userOrId: User | string, password?: string) => login(userOrId, password);
 
   const logout = async () => {
+    const trackedUser = currentUser;
+    if (trackedUser && trackedUser.role !== 'owner') {
+      try { await updateUserAppStatus(trackedUser.id, { isLoggedIn: false }); } catch (error) { console.warn('Login presence update warning:', error); }
+    }
     clearSession();
     setAuthError(null);
     try { await signOutSupabase(); } catch (error) { console.warn('Supabase sign-out warning:', error); }
