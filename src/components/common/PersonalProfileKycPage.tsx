@@ -497,12 +497,12 @@ export const PersonalProfileKycPage: React.FC = () => {
                   Close
                 </button>
               </div>
-              <div className="p-4 bg-slate-950 rounded-2xl max-h-[60vh] overflow-auto flex flex-col items-center justify-center">
+              <div className="p-4 bg-slate-950 rounded-2xl max-min-h-[420px] h-[62vh] sm:h-[60vh] overflow-auto flex flex-col items-center justify-center">
                 {viewingDoc.content.startsWith('data:image') ? (
                   <img
                     src={viewingDoc.content}
                     alt={viewingDoc.title}
-                    className="max-h-[50vh] rounded-xl object-contain"
+                    className="max-min-h-[360px] h-[58vh] sm:h-[50vh] rounded-xl object-contain"
                   />
                 ) : (
                   <div className="text-center p-6 space-y-3">
@@ -526,7 +526,7 @@ export const PersonalProfileKycPage: React.FC = () => {
           </div>
 
           {/* FRONT OF ID CARD */}
-          <div className="relative w-full max-w-xs h-[460px] rounded-3xl bg-gradient-to-b from-slate-950 via-blue-950 to-slate-950 border-2 border-blue-500/50 shadow-2xl p-5 flex flex-col justify-between overflow-hidden">
+          <div className="relative w-full max-w-xs min-h-[360px] h-[58vh] sm:h-[460px] rounded-3xl bg-gradient-to-b from-slate-950 via-blue-950 to-slate-950 border-2 border-blue-500/50 shadow-2xl p-5 flex flex-col justify-between overflow-hidden">
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/10 rounded-full blur-2xl"></div>
 
             {/* Card Header */}
