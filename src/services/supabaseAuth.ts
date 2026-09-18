@@ -1,5 +1,6 @@
 import type { User as AppUser } from '../types';
 import { OWNER_AGENT_CODE, OWNER_EMAIL, OWNER_NAME } from '../config/owner';
+import { Capacitor } from '@capacitor/core';
 import { supabase } from './supabase';
 
 const toAppUser = (row: Record<string, any>, authUserId: string): AppUser => ({
@@ -102,8 +103,17 @@ export async function bootstrapOwnerProfileIfMissing(authUser: { id: string; ema
 }
 
 export async function sendOwnerPasswordReset(): Promise<void> {
+  // Android must return from the email into the installed app. Using
+  // window.location.origin here produces the Capacitor WebView origin
+  // (localhost), which is not a real address the email client can open.
+  // Supabase supports custom mobile deep-link redirect URLs when they are
+  // registered in Authentication → URL Configuration.
+  const redirectTo = Capacitor.isNativePlatform()
+    ? 'com.ddworld.marketing.app://reset-password'
+    : (typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined);
+
   const { error } = await supabase.auth.resetPasswordForEmail(OWNER_EMAIL, {
-    redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined,
+    redirectTo,
   });
   if (error) throw error;
 }
