@@ -19,6 +19,7 @@ import { PWAInstallButton } from './common/PWAInstallButton';
 export const Navbar: React.FC = () => {
   const { currentUser, logout, loginAsUser } = useAuth();
   const { users, verifications, sales, attendance, teams } = useData();
+  const [copiedLink, setCopiedLink] = useState(false);
   const [demoMenuOpen, setDemoMenuOpen] = useState(false);
   const [kycModalOpen, setKycModalOpen] = useState(false);
   const [idCardOpen, setIdCardOpen] = useState(false);
@@ -66,7 +67,6 @@ export const Navbar: React.FC = () => {
 
   const myVerif = verifications.find((v) => v.userId === currentUser.id);
 
-  const [copiedLink, setCopiedLink] = useState(false);
 
   const handleCopyLink = () => {
     navigator.clipboard?.writeText(directAppUrl);
@@ -88,6 +88,13 @@ export const Navbar: React.FC = () => {
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30">
             <Users className="w-3.5 h-3.5 text-blue-400" />
             Team Leader ({currentUser.teamName || 'Team Leader'})
+          </span>
+        );
+      case 'junior_team_leader':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-violet-500/15 text-violet-300 border border-violet-500/30">
+            <Users className="w-3.5 h-3.5 text-violet-400" />
+            Junior Team Leader ({currentUser.teamName || 'Junior Team Leader'})
           </span>
         );
       case 'agent':
