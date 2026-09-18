@@ -1,4 +1,4 @@
-/**
+/** 
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -32,6 +32,7 @@ import { MainNavigation } from './components/common/MainNavigation';
 import { HomePage } from './components/common/HomePage';
 import { DataRetentionCenter } from './components/owner/DataRetentionCenter';
 import { OwnerCareerManagementPage } from './components/owner/OwnerCareerManagementPage';
+import { OwnerUserAccessManagementPage } from './components/owner/OwnerUserAccessManagementPage';
 import { safeStorage } from './utils/safeStorage';
 import { ResetPasswordPage } from './components/ResetPasswordPage';
 
@@ -89,6 +90,7 @@ const AppContent: React.FC = () => {
       else if (page === 'Page 10 — Month-End Presentation') setStandalonePage('Month-End Presentation');
       else if (page === 'Owner — Data Retention & History') setStandalonePage('Data Retention & History');
       else if (page === 'Owner — Career & Team Management') setStandalonePage('Career & Team Management');
+      else if (page === 'Owner — User & Access Control') setStandalonePage('User & Access Control');
       else setStandalonePage(null);
       window.scrollTo({ top: 0, behavior: 'auto' });
     };
@@ -127,10 +129,11 @@ const AppContent: React.FC = () => {
         : standalonePage === 'Details Submit / ID Requirements' ? <div className="mx-auto w-full max-w-7xl px-4 py-6"><PersonalProfileKycPage /></div>
         : standalonePage === 'Commission / Payment' ? <CommissionPaymentPage />
         : standalonePage === 'Promotion Items' ? <PromotionItemsPage />
-        : standalonePage === 'New Agent Join (Requirements)' ? <NewAgentJoinRequirementsPage />
+        : standalonePage === 'NewAgentJoinRequirementsPage' ? <NewAgentJoinRequirementsPage />
         : standalonePage === 'Month-End Presentation' ? <MonthEndPresentationPage />
         : standalonePage === 'Data Retention & History' ? <DataRetentionCenter />
         : standalonePage === 'Career & Team Management' ? <OwnerCareerManagementPage />
+        : standalonePage === 'User & Access Control' ? <OwnerUserAccessManagementPage />
         : <>{currentUser.role === 'owner' && <OwnerDashboard />}{(currentUser.role === 'team_leader' || currentUser.role === 'junior_team_leader') && <TeamLeaderDashboard />}{currentUser.role === 'agent' && <AgentDashboard />}</>}
       {currentUser.role === 'owner' && <div className="mx-auto max-w-7xl px-4 md:px-6 pb-6"><OwnerCommissionControl /></div>}
       <WeeklySalesSheetWorkflow />
