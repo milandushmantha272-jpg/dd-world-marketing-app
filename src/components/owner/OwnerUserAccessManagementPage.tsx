@@ -15,6 +15,7 @@ const statusLabel = (u: ManagedUser) => {
   if (status === 'blocked') return 'BLOCKED';
   if (status === 'suspended') return 'SUSPENDED';
   if (status === 'inactive') return 'LOGIN OFF';
+  if (status === 'exited') return 'EXITED';
   return 'ACTIVE';
 };
 
