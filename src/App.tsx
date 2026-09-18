@@ -32,6 +32,7 @@ import { HomePage } from './components/common/HomePage';
 import { DataRetentionCenter } from './components/owner/DataRetentionCenter';
 import { OwnerCareerManagementPage } from './components/owner/OwnerCareerManagementPage';
 import { safeStorage } from './utils/safeStorage';
+import { ResetPasswordPage } from './components/ResetPasswordPage';
 
 const PromotionItemsPage: React.FC = () => (
   <section className="dd-page-shell min-h-screen px-4 py-5 md:px-6 md:py-8">
@@ -141,4 +142,7 @@ const AppContent: React.FC = () => {
   </div>;
 };
 
-export default function App() { return <DataProvider><AuthProvider><AppContent /></AuthProvider></DataProvider>; }
+export default function App() {
+  if (typeof window !== 'undefined' && window.location.pathname === '/reset-password') return <ResetPasswordPage />;
+  return <DataProvider><AuthProvider><AppContent /></AuthProvider></DataProvider>;
+}
