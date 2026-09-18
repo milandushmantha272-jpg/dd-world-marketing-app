@@ -47,7 +47,7 @@ export const NewAgentJoinRequirementsPage: React.FC = () => {
           <div><div className="flex items-center gap-2 text-cyan-300"><CheckCircle2 className="h-4 w-4" /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Final Page — Policy Acceptance</span></div><h2 className="mt-1 text-lg font-black">Employee Performance &amp; Integrity Policy Acceptance</h2><p className="mt-1 text-xs text-slate-300">Jotform policy form is included here as the final section of Page 9.</p></div>
           <a href={POLICY_FORM_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2 text-xs font-black text-slate-950 hover:bg-cyan-400">Open Policy Form <ExternalLink className="h-4 w-4" /></a>
         </div>
-        <div className="bg-slate-100 p-2"><iframe title="Employee Performance & Integrity Policy Acceptance Form" src={POLICY_FORM_URL} className="h-[900px] w-full rounded-2xl border border-slate-200 bg-white" loading="lazy" allow="camera; microphone; geolocation" /></div>
+        <div className="bg-slate-100 p-2"><iframe title="Employee Performance & Integrity Policy Acceptance Form" src={POLICY_FORM_URL} className="min-h-[520px] h-[70vh] sm:h-[900px] w-full rounded-2xl border border-slate-200 bg-white" loading="lazy" allow="camera; microphone; geolocation" /></div>
       </section>
     </div>
   );
