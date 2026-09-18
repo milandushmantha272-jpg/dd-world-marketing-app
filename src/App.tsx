@@ -131,7 +131,7 @@ const AppContent: React.FC = () => {
         : standalonePage === 'Month-End Presentation' ? <MonthEndPresentationPage />
         : standalonePage === 'Data Retention & History' ? <DataRetentionCenter />
         : standalonePage === 'Career & Team Management' ? <OwnerCareerManagementPage />
-        : <>{currentUser.role === 'owner' && <OwnerDashboard />}{currentUser.role === 'team_leader' && <TeamLeaderDashboard />}{currentUser.role === 'agent' && <AgentDashboard />}</>}
+        : <>{currentUser.role === 'owner' && <OwnerDashboard />}{(currentUser.role === 'team_leader' || currentUser.role === 'junior_team_leader') && <TeamLeaderDashboard />}{currentUser.role === 'agent' && <AgentDashboard />}</>}
       {currentUser.role === 'owner' && <div className="mx-auto max-w-7xl px-4 md:px-6 pb-6"><OwnerCommissionControl /></div>}
       <WeeklySalesSheetWorkflow />
     </main>
