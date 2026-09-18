@@ -34,7 +34,7 @@ export const LoginModal: React.FC = () => {
     setResetSent(false);
     const value = identifier.trim().toLowerCase();
     // Preserve the exact password; whitespace can be part of a valid password.
-    if (!value || !cleanPassword) {
+    if (!value || !password) {
       setError('Employee ID / Agent Code / Email සහ Password දෙකම ඇතුළත් කරන්න.');
       return;
     }
