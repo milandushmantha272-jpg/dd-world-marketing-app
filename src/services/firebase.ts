@@ -101,7 +101,8 @@ export const getAuthenticatedEmployeeProfile = async (
   }
 
   const role = data.role;
-  if (role !== 'owner' && role !== 'team_leader' && role !== 'agent' && role !== 'dialog_officer') {
+  const validRoles = new Set<User['role']>(['owner', 'team_leader', 'junior_team_leader', 'agent', 'dialog_officer']);
+  if (!role || !validRoles.has(role as User['role'])) {
     throw new Error('Employee profile එකේ valid RBAC role එකක් නොමැත.');
   }
 
@@ -110,7 +111,7 @@ export const getAuthenticatedEmployeeProfile = async (
     id: uid,
     firebaseUid: uid,
     email: firebaseUser.email || data.email,
-    role,
+    role: role as User['role'],
   };
 };
 
