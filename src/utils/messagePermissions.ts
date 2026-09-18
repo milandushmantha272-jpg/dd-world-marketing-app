@@ -10,16 +10,16 @@ export const canSendInternalMessage = (
   receiverRole: UserRole
 ): boolean => {
   if (senderRole === 'owner') {
-    return receiverRole === 'dialog_officer' || receiverRole === 'team_leader' || receiverRole === 'agent';
+    return receiverRole === 'dialog_officer' || receiverRole === 'team_leader' || receiverRole === 'junior_team_leader' || receiverRole === 'agent';
   }
   if (senderRole === 'dialog_officer') {
     return receiverRole === 'owner';
   }
-  if (senderRole === 'team_leader') {
-    return receiverRole === 'owner' || receiverRole === 'agent';
+  if (senderRole === 'team_leader' || senderRole === 'junior_team_leader') {
+    return receiverRole === 'owner' || receiverRole === 'agent' || receiverRole === 'team_leader' || receiverRole === 'junior_team_leader';
   }
   if (senderRole === 'agent') {
-    return receiverRole === 'team_leader';
+    return receiverRole === 'team_leader' || receiverRole === 'junior_team_leader';
   }
   return false;
 };
