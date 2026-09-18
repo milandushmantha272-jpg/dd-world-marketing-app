@@ -167,12 +167,12 @@ Deno.serve(async (req: Request) => {
 
       const authPatch = status === 'ACTIVE' ? { ban_duration: 'none' } : { ban_duration: '876000h' };
       const profilePatch = status === 'ACTIVE'
-        ? { status: 'active', employment_status: 'ACTIVE', id_approval_status: 'APPROVED' }
+        ? { status: 'active', employment_status: 'ACTIVE', id_approval_status: 'APPROVED', is_logged_in: false }
         : status === 'BLOCKED'
-          ? { status: 'blocked', employment_status: 'INACTIVE', id_approval_status: 'REJECTED' }
+          ? { status: 'blocked', employment_status: 'INACTIVE', id_approval_status: 'REJECTED', is_logged_in: false }
           : status === 'SUSPENDED'
-            ? { status: 'suspended', employment_status: 'SUSPENDED', id_approval_status: 'APPROVED' }
-            : { status: 'inactive', employment_status: 'INACTIVE', id_approval_status: 'APPROVED' };
+            ? { status: 'suspended', employment_status: 'SUSPENDED', id_approval_status: 'APPROVED', is_logged_in: false }
+            : { status: 'inactive', employment_status: 'INACTIVE', id_approval_status: 'APPROVED', is_logged_in: false };
 
       const { error: authUpdateError } = await admin.auth.admin.updateUserById(authUserId, authPatch);
       if (authUpdateError) throw authUpdateError;
