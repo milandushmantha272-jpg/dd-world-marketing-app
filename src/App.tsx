@@ -129,7 +129,7 @@ const AppContent: React.FC = () => {
         : standalonePage === 'Details Submit / ID Requirements' ? <div className="mx-auto w-full max-w-7xl px-4 py-6"><PersonalProfileKycPage /></div>
         : standalonePage === 'Commission / Payment' ? <CommissionPaymentPage />
         : standalonePage === 'Promotion Items' ? <PromotionItemsPage />
-        : standalonePage === 'NewAgentJoinRequirementsPage' ? <NewAgentJoinRequirementsPage />
+        : standalonePage === 'New Agent Join (Requirements)' ? <NewAgentJoinRequirementsPage />
         : standalonePage === 'Month-End Presentation' ? <MonthEndPresentationPage />
         : standalonePage === 'Data Retention & History' ? <DataRetentionCenter />
         : standalonePage === 'Career & Team Management' ? <OwnerCareerManagementPage />
