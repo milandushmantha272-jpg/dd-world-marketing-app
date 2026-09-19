@@ -109,7 +109,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
           const lng = pos.coords.longitude;
           const district = currentUser.location?.district || currentUser.assignedDistrict || 'Colombo';
 
-          updateUserGps(currentUser.id, { latitude: lat, longitude: lng, district, source: 'GPS' });
+          void updateUserGps(currentUser.id, { latitude: lat, longitude: lng, district, source: 'GPS' });
 
           await finalizeIvrDial(productType, productName, lat, lng, district);
         },
@@ -138,6 +138,8 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
     lng: number | undefined,
     district: string
   ) => {
+    const is616 = productName.includes('#616#');
+    const is828 = productName.includes('#828#');
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
     // 1. Add Sale to DataContext & Firestore
@@ -229,7 +231,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
       customerMobile: undefined,
       amount: 0,
       notes: `Play Store App Share (${shareChannel}) - Pending customer installation/activation confirmation.`,
-      location: `${district} (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+      location: lat != null && lng != null ? `${district} (${lat.toFixed(4)}, ${lng.toFixed(4)})` : district,
       latitude: lat,
       longitude: lng,
       district,
