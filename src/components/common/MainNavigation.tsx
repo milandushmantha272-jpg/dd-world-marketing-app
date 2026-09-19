@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, BarChart3, CalendarCheck, MessageSquare, MoreHorizontal, FileText, User, Wallet, UserPlus, Presentation, X, UserCog } from 'lucide-react';
+import { Home, BarChart3, CalendarCheck, MessageSquare, MoreHorizontal, FileText, User, Wallet, UserPlus, Presentation, X, UserCog, Phone } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const navigate = (page: string) => {
@@ -14,7 +14,7 @@ export const MainNavigation: React.FC = () => {
   const items = [
     { label: 'Home', icon: Home, page: 'Home' },
     { label: 'Sales', icon: BarChart3, page: 'Page 3 — Sales Activation' },
-    { label: 'Attendance', icon: CalendarCheck, page: 'Page 2 — Attendance' },
+    { label: 'Dial Pad', icon: Phone, page: 'Page 11 — Real Dial Pad' },
     { label: 'Messages', icon: MessageSquare, page: 'Page 5 — Message Room' },
   ];
 
@@ -22,6 +22,7 @@ export const MainNavigation: React.FC = () => {
     { label: 'Reports', icon: FileText, page: 'Page 4 — Sales Summary / Reports' },
     { label: 'My Details', icon: User, page: 'Page 6 — Details Submit / ID Requirements' },
     { label: 'Payment', icon: Wallet, page: 'Page 7 — Commission / Payment' },
+    { label: 'Attendance', icon: CalendarCheck, page: 'Page 2 — Attendance' },
     { label: 'New Agent', icon: UserPlus, page: 'Page 9 — New Agent Join (Requirements)' },
     { label: 'Month End', icon: Presentation, page: 'Page 10 — Month-End Presentation' },
     ...(currentUser?.role === 'owner' ? [{ label: 'User Access', icon: UserCog, page: 'Owner — User & Access Control' }] : []),
