@@ -202,7 +202,7 @@ export const AgentDashboard: React.FC = () => {
       {activeTab === 'work_area' && <DayStartWorkAreaModal onClose={() => setActiveTab('attendance')} />}
       {activeTab === 'leaderboard' && <GamifiedLeaderboard />}
       {activeTab === 'meetings' && <VirtualMeetingHub />}
-      {activeTab === 'ivr_keypad' && <IvrKeypadAndAppShareModal currentUser={currentUser} isOpen={true} onClose={() => setActiveTab('sales')} />}
+      {activeTab === 'ivr_keypad' && <IvrKeypadAndAppShareModal currentUser={currentUser} isOpen={true} embedded onClose={() => setActiveTab('sales')} />}
       <IvrKeypadAndAppShareModal currentUser={currentUser} isOpen={showKeypadModal} onClose={() => setShowKeypadModal(false)} />
       <UniversalSmartLinkModal isOpen={showSmartLinkModal} onClose={() => setShowSmartLinkModal(false)} />
       <InAppWebViewModal isOpen={showWebViewModal} onClose={() => setShowWebViewModal(false)} defaultChannel={webViewChannel} />
