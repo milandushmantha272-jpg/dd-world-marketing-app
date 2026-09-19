@@ -112,6 +112,36 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteAgent = (id:string) => deleteUser(id);
   const changeUserTeam = async (id:string,teamId:string|null) => {try{await ownerGuard();const {error}=await supabase.from('users').update({team_id:teamId}).eq('id',id).neq('role','owner');if(error)throw error;await refreshCore();const team=teamId?teams.find((t:any)=>t.id===teamId):null;return {success:true,message:team?`Moved to ${team.name}.`:'Team assignment removed.'};}catch(error:any){return {success:false,message:error?.message || 'Unable to change team.'};}};
   const changeUserRole = async (id:string,role:UserRole) => {try{await ownerGuard();if(id==='owner-1'||role==='owner')throw new Error('Owner role is protected.');const {error}=await supabase.from('users').update({role}).eq('id',id);if(error)throw error;await refreshCore();return {success:true,message:`Role changed to ${role}.`};}catch(error:any){return {success:false,message:error?.message || 'Unable to change role.'};}};
+  const updateUserGps = async (id:string, patch:any) => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const authUserId = session.session?.user?.id || '';
+      const authEmail = String(session.session?.user?.email || '').trim().toLowerCase();
+      if (!authUserId) throw new Error('Authentication required.');
+      if (authEmail !== 'milandushmantha272@gmail.com') {
+        const { data: self, error: selfError } = await supabase
+          .from('users')
+          .select('id,auth_user_id')
+          .eq('auth_user_id', authUserId)
+          .maybeSingle();
+        if (selfError) throw selfError;
+        if (!self || self.id !== id) throw new Error('Only the Owner or the employee themselves can update GPS.');
+      }
+      const dbPatch:any = {};
+      if (patch?.latitude != null) dbPatch.latitude = Number(patch.latitude);
+      if (patch?.longitude != null) dbPatch.longitude = Number(patch.longitude);
+      if (patch?.district) dbPatch.district = patch.district;
+      if (patch?.accuracy != null) dbPatch.gps_accuracy = Number(patch.accuracy);
+      if (Object.keys(dbPatch).length) {
+        const { error } = await supabase.from('users').update(dbPatch).eq('id', id);
+        if (error) throw error;
+        await refreshCore();
+      }
+    } catch (error:any) {
+      console.warn('GPS update:', error?.message || error);
+    }
+  };
+
   const updateUserAppStatus = async (id:string,patch:any) => {try{const {data:session}=await supabase.auth.getSession();const authEmail=String(session.session?.user?.email || '').trim().toLowerCase();if(authEmail !== 'milandushmantha272@gmail.com'){const {data:self,error:selfError}=await supabase.from('users').select('id,auth_user_id,role').eq('auth_user_id',session.session?.user?.id || '').maybeSingle();if(selfError)throw selfError;if(!self || self.id !== id)throw new Error('Only the Owner or the employee themselves can update app/login tracking.');}const dbPatch:any={};if('isLoggedIn' in patch)dbPatch.is_logged_in=Boolean(patch.isLoggedIn);if('isAppDownloaded' in patch)dbPatch.is_app_downloaded=Boolean(patch.isAppDownloaded);if('lastLoginAt' in patch)dbPatch.last_login_at=patch.lastLoginAt || null;if('appVersion' in patch)dbPatch.app_version=patch.appVersion || null;if(Object.keys(dbPatch).length){const {error}=await supabase.from('users').update(dbPatch).eq('id',id);if(error)throw error;await refreshCore();}}catch(error:any){console.warn('App/login tracking update:',error?.message || error);}};
 
   const addProductSale = async (input:any) => {
@@ -178,7 +208,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value:any = {
     users,teams,attendance,sales,ivrEntries,leaves,messages,meetings,securityAlerts,coldArchives,knowledge,verifications,monthlyTargets,teamTargets,agentTargets,companyWeeklyReports,vaultFiles,marketingPosts,webAiMessages,systemDoctorLogs,smsLogs,activeCall,locationLogs,locationConfig,motivationBanners,companyMessages,dialogPerformanceRecords,trainingProgress,quizResults,workAreas,employeeIdAuditLogs,dataError,retryData,sendMessage,
     addVaultFile:async()=>{},deleteVaultFile:async()=>{},addMarketingPost:async()=>{},deleteMarketingPost:async()=>{},sendWebAiMessage:async()=>{},runSystemDoctorAutoHeal:async()=>{},getDailyJobRoleReports:async()=>[],
-    addAgent,addTeamLeader,updateAgentCode,deleteAgent,updateEmploymentStatus,deleteUser,changeUserTeam,changeUserRole,
+    addAgent,addTeamLeader,updateAgentCode,deleteAgent,updateEmploymentStatus,deleteUser,changeUserTeam,changeUserRole,updateUserGps,
     updateLeaveStatus:async()=>{},createMeeting:async()=>{},cancelMeeting:async()=>{},addProductSale,updateProductSaleVerification,startCall:async()=>{},updateUserAppStatus,acceptCall:async()=>{},rejectCall:async()=>{},endCall:async()=>{}
   };
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
