@@ -1027,6 +1027,7 @@ export const TeamLeaderDashboard: React.FC = () => {
         <IvrKeypadAndAppShareModal
           currentUser={currentUser}
           isOpen={true}
+          embedded
           onClose={() => setActiveTab('sales')}
         />
       )}
