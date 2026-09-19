@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, BarChart3, CalendarCheck, MessageSquare, MoreHorizontal, FileText, User, Wallet, UserPlus, Presentation, X, UserCog, Phone } from 'lucide-react';
+import { Home, BarChart3, CalendarCheck, MessageSquare, MoreHorizontal, FileText, User, Wallet, UserPlus, Presentation, X, UserCog } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const navigate = (page: string) => {
@@ -14,7 +14,6 @@ export const MainNavigation: React.FC = () => {
   const items = [
     { label: 'Home', icon: Home, page: 'Home' },
     { label: 'Sales', icon: BarChart3, page: 'Page 3 — Sales Activation' },
-    { label: 'Dial Pad', icon: Phone, page: 'Page 11 — Real Dial Pad' },
     { label: 'Messages', icon: MessageSquare, page: 'Page 5 — Message Room' },
   ];
 
@@ -47,7 +46,7 @@ export const MainNavigation: React.FC = () => {
         </div>
       )}
 
-      <nav className="fixed inset-x-2 bottom-[calc(8px+env(safe-area-inset-bottom))] z-[60] mx-auto grid max-w-md grid-cols-5 gap-1 rounded-2xl border border-white/10 bg-slate-950/95 p-1.5 shadow-2xl sm:inset-x-auto sm:bottom-4 sm:flex sm:max-w-none sm:gap-2 sm:rounded-2xl sm:p-2">
+      <nav className="fixed inset-x-2 bottom-[calc(8px+env(safe-area-inset-bottom))] z-[60] mx-auto grid max-w-md grid-cols-4 gap-1 rounded-2xl border border-white/10 bg-slate-950/95 p-1.5 shadow-2xl sm:inset-x-auto sm:bottom-4 sm:flex sm:max-w-none sm:gap-2 sm:rounded-2xl sm:p-2">
         {items.map(({ label, icon: Icon, page }) => (
           <button key={label} type="button" onClick={() => navigate(page)} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 text-[9px] font-black text-slate-300 active:bg-slate-800 sm:flex-row sm:gap-2 sm:px-4 sm:text-xs" aria-label={label}>
             <Icon className="h-4 w-4 text-red-300" />
