@@ -6,11 +6,25 @@ export interface NativeUssdBridgePlugin {
 
 const NativeUssdBridge = registerPlugin<NativeUssdBridgePlugin>('NativeUssdBridge');
 
-export const dialNativeUssd = async (code: '#616#' | '#828#') => {
-  if (!Capacitor.isNativePlatform()) {
-    const encoded = encodeURIComponent(code);
-    window.location.href = `tel:${encoded}`;
-    return { status: 'DIALER_FALLBACK', message: 'Native Android USSD bridge is unavailable on web.' };
+export type SupportedDialString = string;
+
+export const dialNativeUssd = async (code: SupportedDialString) => {
+  const dialString = code.trim();
+  const isApprovedUssd = dialString === '#616#' || dialString === '#828#';
+  const isValidDialString = /^[0-9*#+(),;N -]{1,32}$/.test(dialString);
+
+  if (!isValidDialString || (!isApprovedUssd && dialString.length === 0)) {
+    throw new Error('Invalid dial string');
   }
-  return NativeUssdBridge.dialUssd({ code });
+
+  if (!Capacitor.isNativePlatform()) {
+    const encoded = encodeURIComponent(dialString);
+    window.location.href = `tel:${encoded}`;
+    return {
+      status: 'DIALER_FALLBACK',
+      message: 'Native Android bridge is unavailable on web.',
+    };
+  }
+
+  return NativeUssdBridge.dialUssd({ code: dialString });
 };
