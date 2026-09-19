@@ -111,7 +111,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
 
           updateUserGps(currentUser.id, { latitude: lat, longitude: lng, district, source: 'GPS' });
 
-          finalizeIvrDial(productType, productName, lat, lng, district);
+          await finalizeIvrDial(productType, productName, lat, lng, district);
         },
         (err) => {
           console.warn('GPS prompt error, fallback to profile location:', err);
@@ -119,7 +119,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
           const lng = currentUser.location?.longitude;
           const district = currentUser.location?.district || currentUser.assignedDistrict || 'Colombo';
 
-          finalizeIvrDial(productType, productName, lat, lng, district);
+          await finalizeIvrDial(productType, productName, lat, lng, district);
         },
         { enableHighAccuracy: true, timeout: 5000 }
       );
@@ -127,11 +127,11 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
       const lat = currentUser.location?.latitude;
       const lng = currentUser.location?.longitude;
       const district = currentUser.location?.district || currentUser.assignedDistrict || 'Colombo';
-      finalizeIvrDial(productType, productName, lat, lng, district);
+      await finalizeIvrDial(productType, productName, lat, lng, district);
     }
   };
 
-  const finalizeIvrDial = (
+  const finalizeIvrDial = async (
     productType: 'ගොවිමිතුරු' | 'සයුරු' | 'අනෙකුත්',
     productName: string,
     lat: number | undefined,
