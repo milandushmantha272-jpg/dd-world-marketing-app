@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { User } from '../../types';
 import { useData } from '../../context/DataContext';
+import { dialNativeUssd } from '../../services/nativeUssdBridge';
 
 interface IvrKeypadAndAppShareModalProps {
   currentUser: User;
@@ -78,7 +79,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
   };
 
   // Execute IVR Call & Auto-Log Sale with GPS
-  const handleExecuteDial = () => {
+  const handleExecuteDial = async () => {
     if (!dialDisplay || dialDisplay.trim() === '') {
       alert('කරුණාකර Dial කිරීමට කේතයක් හෝ අංකයක් ඇතුළත් කරන්න.');
       return;
@@ -133,14 +134,14 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
   const finalizeIvrDial = (
     productType: 'ගොවිමිතුරු' | 'සයුරු' | 'අනෙකුත්',
     productName: string,
-    lat: number,
-    lng: number,
+    lat: number | undefined,
+    lng: number | undefined,
     district: string
   ) => {
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
     // 1. Add Sale to DataContext & Firestore
-    addProductSale({
+    void addProductSale({
       agentId: currentUser.id,
       agentName: currentUser.name,
       agentCode: currentUser.agentCode || '',
@@ -153,7 +154,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
       customerMobile: customerPhone.trim() || undefined,
       amount: 0,
       notes: `IVR Keypad Dial: ${dialDisplay} | පාරිභෝගිකයා: ${customerPhone || 'Direct'}`,
-      location: `${district} (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+      location: lat != null && lng != null ? `${district} (${lat.toFixed(4)}, ${lng.toFixed(4)})` : district,
       latitude: lat,
       longitude: lng,
       district,
@@ -162,13 +163,24 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
       dialCode: dialDisplay,
     });
 
-    // 2. Trigger native device dialer
-    // USSD hash (#) must be encoded as %23 for tel: links
-    const encodedTel = dialDisplay.replace(/#/g, '%23');
-    try {
-      window.location.href = `tel:${encodedTel}`;
-    } catch (e) {
-      console.log('Native dialer trigger:', e);
+    // 2. Trigger the Android-native USSD/dialer bridge. The bridge uses ACTION_CALL
+    // with explicit CALL_PHONE permission and falls back to ACTION_DIAL if needed.
+    if (is616 || is828) {
+      try {
+        const result = await dialNativeUssd(dialDisplay as '#616#' | '#828#');
+        if (result?.status === 'DIALER_FALLBACK') {
+          console.info('USSD dialer fallback:', result.message);
+        }
+      } catch (error) {
+        console.error('Native USSD dial failed:', error);
+        alert('දුරකථන Dialer එක විවෘත කළ නොහැක. Phone permission එක පරීක්ෂා කරන්න.');
+      }
+    } else {
+      try {
+        window.location.href = `tel:${encodeURIComponent(dialDisplay)}`;
+      } catch (error) {
+        console.error('Dialer fallback failed:', error);
+      }
     }
 
     setIsDialing(false);
@@ -233,12 +245,12 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
     setTimeout(() => setAppShareSuccess(null), 6000);
   };
 
-  const confirmAppActivation = () => {
+  const confirmAppActivation = async () => {
     if (!pendingAppSaleId) {
       alert('පළමුව Customer App Link එක Share කරන්න.');
       return;
     }
-    const ok = updateProductSaleVerification(pendingAppSaleId, 'COMPLETED', currentUser.name, `Customer confirmed ${getAppName()} installed/activated.`);
+    const ok = await updateProductSaleVerification(pendingAppSaleId, 'COMPLETED', currentUser.name, `Customer confirmed ${getAppName()} installed/activated.`);
     if (ok) {
       setPendingAppSaleId(null);
       setAppShareSuccess('✅ Customer App activation තහවුරු විය. Sale එක දැන් Count වේ.');
