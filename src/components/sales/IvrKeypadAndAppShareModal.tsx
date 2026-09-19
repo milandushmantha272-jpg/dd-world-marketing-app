@@ -104,7 +104,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
     // Capture location with high accuracy
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        async (pos) => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           const district = currentUser.location?.district || currentUser.assignedDistrict || 'Colombo';
@@ -113,7 +113,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
 
           await finalizeIvrDial(productType, productName, lat, lng, district);
         },
-        (err) => {
+        async (err) => {
           console.warn('GPS prompt error, fallback to profile location:', err);
           const lat = currentUser.location?.latitude;
           const lng = currentUser.location?.longitude;
