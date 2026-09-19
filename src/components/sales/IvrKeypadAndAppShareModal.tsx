@@ -27,6 +27,7 @@ interface IvrKeypadAndAppShareModalProps {
   currentUser: User;
   onClose?: () => void;
   isOpen?: boolean;
+  embedded?: boolean;
 }
 
 const GOVIMITHURU_PLAY_STORE_URL =
@@ -38,6 +39,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
   currentUser,
   onClose,
   isOpen = true,
+  embedded = false,
 }) => {
   const { addProductSale, updateProductSaleVerification, updateUserGps } = useData();
 
@@ -303,7 +305,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
   )}`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div className={embedded ? "w-full min-h-[calc(100vh-8rem)] bg-slate-950/40 rounded-3xl p-2 sm:p-4 overflow-y-auto" : "fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"}>
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-7 max-w-lg w-full shadow-2xl space-y-5 relative my-auto">
         {/* CLOSE BUTTON */}
         {onClose && (
@@ -322,10 +324,10 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
             <span>Dialog Authorized Sales Engine</span>
           </div>
           <h2 className="text-xl font-black text-white mt-1">
-            IVR Keypad Dial &amp; Play Store App Activator
+            📞 PHONE KEYPAD — #616# / #828#
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            #828# හා #616# Dial කිරීම සහ Play Store Apps පාරිභෝගිකයින්ට Share කර සක්‍රිය කිරීම.
+            #616# / #828# keypad එකෙන් තෝරාගෙන Dial කරන්න. පසුව App Link Share කරන්න.
           </p>
         </div>
 
@@ -340,7 +342,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
             }`}
           >
             <Phone className="w-4 h-4" />
-            <span>📞 #828# &amp; #616# Keypad</span>
+            <span>📞 PHONE KEYPAD</span>
           </button>
 
           <button
@@ -457,7 +459,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
             </div>
 
             {/* NUMERIC KEYPAD GRID */}
-            <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
+            <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
               {[
                 { label: '1', sub: '' },
                 { label: '2', sub: 'ABC' },
@@ -476,7 +478,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
                   key={key.label}
                   type="button"
                   onClick={() => handleKeyPress(key.label)}
-                  className="p-3 rounded-2xl bg-slate-950 hover:bg-slate-800 active:scale-95 border border-slate-800/80 hover:border-slate-700 text-white font-mono text-lg font-black transition flex flex-col items-center justify-center shadow-sm"
+                  className="min-h-16 p-3 rounded-2xl bg-slate-950 hover:bg-slate-800 active:scale-95 border border-slate-800/80 hover:border-slate-700 text-white font-mono text-2xl font-black transition flex flex-col items-center justify-center shadow-sm"
                 >
                   <span>{key.label}</span>
                   {key.sub && <span className="text-[9px] font-sans text-slate-500 font-bold tracking-tighter">{key.sub}</span>}
