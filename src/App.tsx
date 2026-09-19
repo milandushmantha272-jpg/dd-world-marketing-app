@@ -33,6 +33,7 @@ import { HomePage } from './components/common/HomePage';
 import { DataRetentionCenter } from './components/owner/DataRetentionCenter';
 import { OwnerCareerManagementPage } from './components/owner/OwnerCareerManagementPage';
 import { OwnerUserAccessManagementPage } from './components/owner/OwnerUserAccessManagementPage';
+import { RealDialPadPage } from './components/common/RealDialPadPage';
 import { safeStorage } from './utils/safeStorage';
 import { ResetPasswordPage } from './components/ResetPasswordPage';
 
@@ -88,6 +89,7 @@ const AppContent: React.FC = () => {
       else if (page === 'Page 8 — Promotion Items') setStandalonePage('Promotion Items');
       else if (page === 'Page 9 — New Agent Join (Requirements)') setStandalonePage('New Agent Join (Requirements)');
       else if (page === 'Page 10 — Month-End Presentation') setStandalonePage('Month-End Presentation');
+      else if (page === 'Page 11 — Real Dial Pad') setStandalonePage('Real Dial Pad');
       else if (page === 'Owner — Data Retention & History') setStandalonePage('Data Retention & History');
       else if (page === 'Owner — Career & Team Management') setStandalonePage('Career & Team Management');
       else if (page === 'Owner — User & Access Control') setStandalonePage('User & Access Control');
@@ -131,6 +133,7 @@ const AppContent: React.FC = () => {
         : standalonePage === 'Promotion Items' ? <PromotionItemsPage />
         : standalonePage === 'New Agent Join (Requirements)' ? <NewAgentJoinRequirementsPage />
         : standalonePage === 'Month-End Presentation' ? <MonthEndPresentationPage />
+        : standalonePage === 'Real Dial Pad' ? <RealDialPadPage />
         : standalonePage === 'Data Retention & History' ? <DataRetentionCenter />
         : standalonePage === 'Career & Team Management' ? <OwnerCareerManagementPage />
         : standalonePage === 'User & Access Control' ? <OwnerUserAccessManagementPage />
