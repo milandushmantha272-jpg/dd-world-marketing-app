@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
 import com.getcapacitor.JSObject
@@ -75,7 +77,7 @@ class NativeUssdBridge : Plugin() {
                         put("failureCode", failureCode)
                     })
                 }
-            }, ContextCompat.getMainExecutor(activity))
+            }, Handler(Looper.getMainLooper()))
         } catch (error: Exception) {
             call.resolve(JSObject().apply {
                 put("status", "FAILED")
