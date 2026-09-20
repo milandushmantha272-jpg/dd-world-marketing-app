@@ -2,7 +2,7 @@ name: Build Permanent Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/ussd-sales-verification ]
   workflow_dispatch:
 
 permissions:
