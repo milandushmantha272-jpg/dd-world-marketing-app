@@ -10,6 +10,7 @@ import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.annotation.Permission
+import com.getcapacitor.annotation.PermissionCallback
 
 @CapacitorPlugin(
     name = "NativeUssdBridge",
@@ -18,17 +19,24 @@ import com.getcapacitor.annotation.Permission
 class NativeUssdBridge : Plugin() {
     @PluginMethod
     fun dialUssd(call: PluginCall) {
-        val dialString = call.getString("code")?.trim().orEmpty()
+        val raw = call.getString("code")?.trim().orEmpty()
+        val isApprovedUssd = raw == "#616#" || raw == "#828#"
+        val isPhoneNumber = Regex("^[0-9+*#(),;N -]{1,32}$").matches(raw)
 
-        // Accept ordinary phone numbers and only the two company-approved IVR codes.
-        val isApprovedUssd = dialString == "#616#" || dialString == "#828#"
-        val isPhoneNumber = Regex("^[0-9*#+(),;N -]{1,32}$").matches(dialString)
         if (!isApprovedUssd && !isPhoneNumber) {
             call.reject("Unsupported dial string")
             return
         }
 
-        val uri = Uri.parse("tel:" + Uri.encode(dialString))
+        // Keep USSD control characters intact; encode only the # characters.
+        // For normal phone calls, remove visual spaces before creating the tel URI.
+        val dialString = if (isApprovedUssd || raw.contains("*")) {
+            raw.replace("#", "%23").replace(" ", "")
+        } else {
+            raw.replace(" ", "")
+        }
+        val uri = Uri.parse("tel:$dialString")
+
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M &&
                 activity.checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED
@@ -40,7 +48,7 @@ class NativeUssdBridge : Plugin() {
             activity.startActivity(Intent(Intent.ACTION_CALL, uri))
             call.resolve(JSObject().apply {
                 put("status", "STARTED")
-                put("message", "Dial request handed to Android telephony.")
+                put("message", "Call request handed to Android telephony.")
             })
         } catch (e: SecurityException) {
             call.reject("CALL_PHONE permission is required", e)
@@ -57,6 +65,7 @@ class NativeUssdBridge : Plugin() {
         }
     }
 
+    @PermissionCallback
     private fun permissionCallback(call: PluginCall) {
         if (getPermissionState("phone") == com.getcapacitor.PermissionState.GRANTED) {
             dialUssd(call)
