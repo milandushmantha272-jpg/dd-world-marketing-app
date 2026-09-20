@@ -38,16 +38,16 @@ class NativeUssdBridge : Plugin() {
     }
 
     private fun sendUssd(call: PluginCall, code: String) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            call.resolve(JSObject().apply {
-                put("status", "UNSUPPORTED_API")
-                put("message", "Android 8.0 or newer is required for in-app USSD.")
-            })
+        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissionForAlias("phone", call, "permissionCallback")
             return
         }
 
-        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissionForAlias("phone", call, "permissionCallback")
+        // Some carriers/devices reject Android's direct sendUssdRequest API.
+        // Fall back to the native phone dialer, which lets the carrier's
+        // own telephony stack process codes such as #616# and #828#.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            launchNativeDialer(call, code)
             return
         }
 
@@ -71,17 +71,27 @@ class NativeUssdBridge : Plugin() {
                 }
 
                 override fun onReceiveUssdResponseFailed(manager: TelephonyManager, request: String, failureCode: Int) {
-                    call.resolve(JSObject().apply {
-                        put("status", "FAILED")
-                        put("message", "Dialog network/carrier rejected the USSD request.")
-                        put("failureCode", failureCode)
-                    })
+                    launchNativeDialer(call, code)
                 }
             }, Handler(Looper.getMainLooper()))
         } catch (error: Exception) {
+            launchNativeDialer(call, code)
+        }
+    }
+
+    private fun launchNativeDialer(call: PluginCall, code: String) {
+        try {
+            val encodedCode = Uri.encode(code).replace("%2A", "*")
+            activity.startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:$encodedCode")))
+            call.resolve(JSObject().apply {
+                put("status", "STARTED")
+                put("message", "USSD handed to the native phone dialer.")
+                put("fallback", true)
+            })
+        } catch (error: Exception) {
             call.resolve(JSObject().apply {
                 put("status", "FAILED")
-                put("message", error.message ?: "Unable to send USSD request.")
+                put("message", error.message ?: "Unable to start native USSD dialer.")
             })
         }
     }
