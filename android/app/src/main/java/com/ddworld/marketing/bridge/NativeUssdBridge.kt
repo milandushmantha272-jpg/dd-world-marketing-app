@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.telephony.TelephonyManager
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -20,48 +22,96 @@ class NativeUssdBridge : Plugin() {
     @PluginMethod
     fun dialUssd(call: PluginCall) {
         val raw = call.getString("code")?.trim().orEmpty()
-        val isApprovedUssd = raw == "#616#" || raw == "#828#"
-        val isPhoneNumber = Regex("^[0-9+*#(),;N -]{1,32}$").matches(raw)
+        val isUssd = raw.startsWith("*") || raw.startsWith("#")
+        val isValid = Regex("^[0-9+*#(),;N -]{1,32}$").matches(raw)
 
-        if (!isApprovedUssd && !isPhoneNumber) {
+        if (!isValid || raw.isBlank()) {
             call.reject("Unsupported dial string")
             return
         }
 
-        // Keep USSD control characters intact; encode only the # characters.
-        // For normal phone calls, remove visual spaces before creating the tel URI.
-        val dialString = if (isApprovedUssd || raw.contains("*")) {
-            raw.replace("#", "%23").replace(" ", "")
+        if (isUssd) {
+            sendUssd(call, raw)
         } else {
-            raw.replace(" ", "")
+            callPhone(call, raw)
         }
-        val uri = Uri.parse("tel:$dialString")
+    }
+
+    private fun sendUssd(call: PluginCall, code: String) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            call.resolve(JSObject().apply {
+                put("status", "UNSUPPORTED_API")
+                put("message", "Android 8.0 or newer is required for in-app USSD.")
+            })
+            return
+        }
+
+        if (activity.checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissionForAlias("phone", call, "permissionCallback")
+            return
+        }
+
+        val telephony = activity.getSystemService(TelephonyManager::class.java)
+        if (telephony == null || !activity.packageManager.hasSystemFeature("android.hardware.telephony")) {
+            call.resolve(JSObject().apply {
+                put("status", "UNSUPPORTED_DEVICE")
+                put("message", "This device does not support mobile telephony.")
+            })
+            return
+        }
 
         try {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M &&
-                activity.checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestPermissionForAlias("phone", call, "permissionCallback")
-                return
-            }
+            telephony.sendUssdRequest(
+                code,
+                object : TelephonyManager.UssdResponseCallback() {
+                    override fun onReceiveUssdResponse(
+                        telephonyManager: TelephonyManager,
+                        request: String,
+                        response: CharSequence
+                    ) {
+                        call.resolve(JSObject().apply {
+                            put("status", "SUCCESS")
+                            put("message", "USSD response received.")
+                            put("response", response.toString())
+                        })
+                    }
 
-            activity.startActivity(Intent(Intent.ACTION_CALL, uri))
+                    override fun onReceiveUssdResponseFailed(
+                        telephonyManager: TelephonyManager,
+                        request: String,
+                        failureCode: Int
+                    ) {
+                        call.resolve(JSObject().apply {
+                            put("status", "FAILED")
+                            put("message", "Dialog network/carrier rejected the USSD request.")
+                            put("failureCode", failureCode)
+                        })
+                    }
+                },
+                null
+            )
+        } catch (error: Exception) {
+            call.resolve(JSObject().apply {
+                put("status", "FAILED")
+                put("message", error.message ?: "Unable to send USSD request.")
+            })
+        }
+    }
+
+    private fun callPhone(call: PluginCall, number: String) {
+        if (activity.checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissionForAlias("phone", call, "permissionCallback")
+            return
+        }
+
+        try {
+            activity.startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:${number.replace(" ", "")}")))
             call.resolve(JSObject().apply {
                 put("status", "STARTED")
                 put("message", "Call request handed to Android telephony.")
             })
-        } catch (e: SecurityException) {
-            call.reject("CALL_PHONE permission is required", e)
-        } catch (e: Exception) {
-            try {
-                activity.startActivity(Intent(Intent.ACTION_DIAL, uri))
-                call.resolve(JSObject().apply {
-                    put("status", "DIALER_FALLBACK")
-                    put("message", "Native dialer opened.")
-                })
-            } catch (fallbackError: Exception) {
-                call.reject("Unable to open the phone dialer", fallbackError)
-            }
+        } catch (error: Exception) {
+            call.reject("Unable to start phone call", error)
         }
     }
 
