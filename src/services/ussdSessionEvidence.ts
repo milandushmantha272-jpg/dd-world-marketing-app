@@ -83,8 +83,10 @@ export function reduceUssdEvidence(
   if (!isTerminalEvent && nextOrder < currentOrder) return state;
   if (event.step === 'SUCCESS' && !hasRequiredPreSuccessSteps(state)) return state;
 
+  // A device-reported USSD success is only evidence, never a verified sale.
+  // Keep it UNVERIFIED until the Manager completes Dialog Q/C verification.
   let status: EvidenceStatus = state.status;
-  if (event.step === 'SUCCESS') status = 'COMPLETED';
+  if (event.step === 'SUCCESS') status = 'UNVERIFIED';
   if (event.step === 'FAILED' || event.step === 'CANCELLED') status = 'FAILED';
   if (event.step === 'UNVERIFIED') status = 'UNVERIFIED';
 
@@ -96,8 +98,9 @@ export function reduceUssdEvidence(
   };
 }
 
-export function hasTerminalSuccess(state: UssdEvidenceState): boolean {
-  return state.status === 'COMPLETED' && state.currentStep === 'SUCCESS';
+export function hasTerminalSuccess(_state: UssdEvidenceState): boolean {
+  // Deliberately false: Dialog Q/C approval is required separately.
+  return false;
 }
 
 // Dialog Q/C verification is required before a sale can be counted.
