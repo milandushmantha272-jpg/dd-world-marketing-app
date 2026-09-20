@@ -54,6 +54,19 @@ export function createUssdEvidenceState(
   };
 }
 
+export function isFlowStepAllowed(flow: UssdFlow, step: UssdStep): boolean {
+  if (flow === 'SAYURU') return step !== 'CROPS';
+  return step !== 'ZONE';
+}
+
+export function hasRequiredPreSuccessSteps(state: UssdEvidenceState): boolean {
+  const steps = new Set(state.events.map((event) => event.step));
+  const required = ['CUSTOMER_NUMBER', 'OTP', 'CONFIRMATION'];
+  if (state.flow === 'SAYURU') required.splice(2, 0, 'ZONE');
+  else required.splice(2, 0, 'CROPS');
+  return required.every((step) => steps.has(step as UssdStep));
+}
+
 export function reduceUssdEvidence(
   state: UssdEvidenceState,
   event: UssdEvidenceEvent,
@@ -62,14 +75,13 @@ export function reduceUssdEvidence(
 
   const last = state.events[state.events.length - 1];
   if (last?.step === event.step && last.text === event.text) return state;
-
-  const isTerminal = state.status !== 'PENDING';
-  if (isTerminal) return state;
+  if (state.status !== 'PENDING') return state;
 
   const currentOrder = stepOrder[state.currentStep];
   const nextOrder = stepOrder[event.step];
   const isTerminalEvent = event.step === 'FAILED' || event.step === 'CANCELLED' || event.step === 'UNVERIFIED';
   if (!isTerminalEvent && nextOrder < currentOrder) return state;
+  if (event.step === 'SUCCESS' && !hasRequiredPreSuccessSteps(state)) return state;
 
   let status: EvidenceStatus = state.status;
   if (event.step === 'SUCCESS') status = 'COMPLETED';
@@ -82,11 +94,6 @@ export function reduceUssdEvidence(
     status,
     events: [...state.events, event],
   };
-}
-
-export function isFlowStepAllowed(flow: UssdFlow, step: UssdStep): boolean {
-  if (flow === 'SAYURU') return step !== 'CROPS';
-  return step !== 'ZONE';
 }
 
 export function hasTerminalSuccess(state: UssdEvidenceState): boolean {
