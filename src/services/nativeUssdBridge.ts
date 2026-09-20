@@ -1,28 +1,32 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
+export interface NativeUssdResult {
+  status: string;
+  message: string;
+  response?: string;
+  failureCode?: number;
+}
+
 export interface NativeUssdBridgePlugin {
-  dialUssd(options: { code: string }): Promise<{ status: string; message: string }>;
+  dialUssd(options: { code: string }): Promise<NativeUssdResult>;
 }
 
 const NativeUssdBridge = registerPlugin<NativeUssdBridgePlugin>('NativeUssdBridge');
 
 export type SupportedDialString = string;
 
-export const dialNativeUssd = async (code: SupportedDialString) => {
+export const dialNativeUssd = async (code: SupportedDialString): Promise<NativeUssdResult> => {
   const dialString = code.trim();
-  const isApprovedUssd = dialString === '#616#' || dialString === '#828#';
   const isValidDialString = /^[0-9*#+(),;N -]{1,32}$/.test(dialString);
 
-  if (!isValidDialString || (!isApprovedUssd && dialString.length === 0)) {
+  if (!isValidDialString || dialString.length === 0) {
     throw new Error('Invalid dial string');
   }
 
   if (!Capacitor.isNativePlatform()) {
-    const encoded = encodeURIComponent(dialString);
-    window.location.href = `tel:${encoded}`;
     return {
-      status: 'DIALER_FALLBACK',
-      message: 'Native Android bridge is unavailable on web.',
+      status: 'WEB_UNAVAILABLE',
+      message: 'Native Android USSD bridge is unavailable in the browser.',
     };
   }
 
