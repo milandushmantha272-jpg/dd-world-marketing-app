@@ -41,7 +41,10 @@ const stepOrder: Record<UssdStep, number> = {
   UNVERIFIED: 6,
 };
 
-export function createUssdEvidenceState(flow: UssdFlow, startedAt = new Date().toISOString()): UssdEvidenceState {
+export function createUssdEvidenceState(
+  flow: UssdFlow,
+  startedAt = new Date().toISOString(),
+): UssdEvidenceState {
   return {
     flow,
     startedAt,
@@ -55,11 +58,19 @@ export function reduceUssdEvidence(
   state: UssdEvidenceState,
   event: UssdEvidenceEvent,
 ): UssdEvidenceState {
-  const last = state.events[state.events.length - 1];
-  const duplicate = last?.step === event.step && last.text === event.text;
-  if (duplicate) return state;
+  if (!isFlowStepAllowed(state.flow, event.step)) return state;
 
-  const nextEvents = [...state.events, event];
+  const last = state.events[state.events.length - 1];
+  if (last?.step === event.step && last.text === event.text) return state;
+
+  const isTerminal = state.status !== 'PENDING';
+  if (isTerminal) return state;
+
+  const currentOrder = stepOrder[state.currentStep];
+  const nextOrder = stepOrder[event.step];
+  const isTerminalEvent = event.step === 'FAILED' || event.step === 'CANCELLED' || event.step === 'UNVERIFIED';
+  if (!isTerminalEvent && nextOrder < currentOrder) return state;
+
   let status: EvidenceStatus = state.status;
   if (event.step === 'SUCCESS') status = 'COMPLETED';
   if (event.step === 'FAILED' || event.step === 'CANCELLED') status = 'FAILED';
@@ -69,7 +80,7 @@ export function reduceUssdEvidence(
     ...state,
     currentStep: event.step,
     status,
-    events: nextEvents,
+    events: [...state.events, event],
   };
 }
 
@@ -82,6 +93,7 @@ export function hasTerminalSuccess(state: UssdEvidenceState): boolean {
   return state.status === 'COMPLETED' && state.currentStep === 'SUCCESS';
 }
 
-export function isCountableEvidence(state: UssdEvidenceState): boolean {
+// Dialog Q/C verification is required before a sale can be counted.
+export function isCountableEvidence(_state: UssdEvidenceState): boolean {
   return false;
 }
