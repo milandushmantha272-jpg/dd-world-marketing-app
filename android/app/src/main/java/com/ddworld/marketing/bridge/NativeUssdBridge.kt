@@ -79,19 +79,20 @@ class NativeUssdBridge : Plugin() {
 
     private fun launchNativeDialer(call: PluginCall, code: String) {
         try {
-            val encodedCode = Uri.encode(code).replace("%2A", "*")
-            activity.startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:$encodedCode")))
+            val encodedCode = Uri.encode(code)
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$encodedCode"))
+            activity.startActivity(intent)
             call.resolve(JSObject().apply {
-                put("status", "STARTED")
+                put("status", "DIALER_FALLBACK")
                 put("verified", false)
-                put("message", "USSD handed to the native phone dialer; final result is unverified.")
+                put("message", "Dialer opened. Complete the USSD flow manually; final result is unverified.")
                 put("fallback", true)
             })
         } catch (error: Exception) {
             call.resolve(JSObject().apply {
                 put("status", "FAILED")
                 put("verified", false)
-                put("message", error.message ?: "Unable to start native USSD dialer.")
+                put("message", error.message ?: "Unable to open native dialer.")
             })
         }
     }
@@ -106,10 +107,15 @@ class NativeUssdBridge : Plugin() {
             activity.startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:${number.replace(" ", "")}")))
             call.resolve(JSObject().apply {
                 put("status", "STARTED")
-                put("message", "Call request handed to Android telephony.")
+                put("verified", false)
+                put("message", "Call request handed to Android telephony; result is unverified.")
             })
         } catch (error: Exception) {
-            call.reject("Unable to start phone call", error)
+            call.resolve(JSObject().apply {
+                put("status", "FAILED")
+                put("verified", false)
+                put("message", error.message ?: "Unable to start phone call.")
+            })
         }
     }
 
@@ -118,7 +124,11 @@ class NativeUssdBridge : Plugin() {
         if (getPermissionState("phone") == PermissionState.GRANTED) {
             dialUssd(call)
         } else {
-            call.reject("CALL_PHONE permission was not granted")
+            call.resolve(JSObject().apply {
+                put("status", "PERMISSION_DENIED")
+                put("verified", false)
+                put("message", "Phone permission was not granted. Enable Phone permission in Android Settings.")
+            })
         }
     }
 }
