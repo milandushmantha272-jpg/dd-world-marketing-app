@@ -22,12 +22,21 @@ export const RealDialPadPage: React.FC = () => {
     setBusy(true); setStatus(null);
     try {
       const result = await dialNativeUssd(value);
-      setStatus(result.status === 'DIALER_FALLBACK'
-        ? 'Phone dialer එක විවෘත වුණා. Call/USSD එක phone එකෙන් තහවුරු කරන්න.'
-        : 'Dial request එක Android phone එකට යොමු කළා. Dialog activation success එක මෙතැනින් තහවුරු කරන්නේ නැහැ.');
+      if (result.status === 'SUCCESS') {
+        setStatus(result.response ? `Dialog response: ${result.response}` : 'USSD request එක සාර්ථකයි.');
+      } else if (result.status === 'FAILED') {
+        setStatus(`USSD අසාර්ථකයි: ${result.message}`);
+      } else if (result.status === 'UNSUPPORTED_API' || result.status === 'UNSUPPORTED_DEVICE') {
+        setStatus(result.message);
+      } else if (result.status === 'WEB_UNAVAILABLE') {
+        setStatus('මෙය Android app එකෙන්ම භාවිතා කරන්න. Browser එකෙන් USSD යවන්න බැහැ.');
+      } else {
+        setStatus(result.message || `Dial status: ${result.status}`);
+      }
     } catch (error) {
       console.error('Dial pad error:', error);
-      setStatus('Dial කරන්න බැරි වුණා. Phone permission සහ SIM එක පරීක්ෂා කරන්න.');
+      const detail = error instanceof Error ? error.message : 'Unknown native bridge error';
+      setStatus(`Dial කරන්න බැරි වුණා: ${detail}`);
     } finally { setBusy(false); }
   };
 
