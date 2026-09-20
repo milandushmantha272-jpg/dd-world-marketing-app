@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.telephony.TelephonyManager
+import androidx.core.content.ContextCompat
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -88,7 +89,7 @@ class NativeUssdBridge : Plugin() {
                         })
                     }
                 },
-                null
+                ContextCompat.getMainExecutor(activity)
             )
         } catch (error: Exception) {
             call.resolve(JSObject().apply {
@@ -117,7 +118,7 @@ class NativeUssdBridge : Plugin() {
 
     @PermissionCallback
     private fun permissionCallback(call: PluginCall) {
-        if (getPermissionState("phone") == com.getcapacitor.PermissionState.GRANTED) {
+        if (getPermissionState("phone") == com.capacitor.PermissionState.GRANTED) {
             dialUssd(call)
         } else {
             call.reject("CALL_PHONE permission was not granted")
