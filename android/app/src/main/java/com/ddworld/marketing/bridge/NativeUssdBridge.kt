@@ -8,6 +8,7 @@ import android.os.Build
 import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
 import com.getcapacitor.JSObject
+import com.getcapacitor.PermissionState
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
@@ -31,11 +32,7 @@ class NativeUssdBridge : Plugin() {
             return
         }
 
-        if (isUssd) {
-            sendUssd(call, raw)
-        } else {
-            callPhone(call, raw)
-        }
+        if (isUssd) sendUssd(call, raw) else callPhone(call, raw)
     }
 
     private fun sendUssd(call: PluginCall, code: String) {
@@ -47,7 +44,7 @@ class NativeUssdBridge : Plugin() {
             return
         }
 
-        if (activity.checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
             requestPermissionForAlias("phone", call, "permissionCallback")
             return
         }
@@ -62,35 +59,23 @@ class NativeUssdBridge : Plugin() {
         }
 
         try {
-            telephony.sendUssdRequest(
-                code,
-                object : TelephonyManager.UssdResponseCallback() {
-                    override fun onReceiveUssdResponse(
-                        telephonyManager: TelephonyManager,
-                        request: String,
-                        response: CharSequence
-                    ) {
-                        call.resolve(JSObject().apply {
-                            put("status", "SUCCESS")
-                            put("message", "USSD response received.")
-                            put("response", response.toString())
-                        })
-                    }
+            telephony.sendUssdRequest(code, object : TelephonyManager.UssdResponseCallback() {
+                override fun onReceiveUssdResponse(manager: TelephonyManager, request: String, response: CharSequence) {
+                    call.resolve(JSObject().apply {
+                        put("status", "SUCCESS")
+                        put("message", "USSD response received.")
+                        put("response", response.toString())
+                    })
+                }
 
-                    override fun onReceiveUssdResponseFailed(
-                        telephonyManager: TelephonyManager,
-                        request: String,
-                        failureCode: Int
-                    ) {
-                        call.resolve(JSObject().apply {
-                            put("status", "FAILED")
-                            put("message", "Dialog network/carrier rejected the USSD request.")
-                            put("failureCode", failureCode)
-                        })
-                    }
-                },
-                ContextCompat.getMainExecutor(activity)
-            )
+                override fun onReceiveUssdResponseFailed(manager: TelephonyManager, request: String, failureCode: Int) {
+                    call.resolve(JSObject().apply {
+                        put("status", "FAILED")
+                        put("message", "Dialog network/carrier rejected the USSD request.")
+                        put("failureCode", failureCode)
+                    })
+                }
+            }, ContextCompat.getMainExecutor(activity))
         } catch (error: Exception) {
             call.resolve(JSObject().apply {
                 put("status", "FAILED")
@@ -100,7 +85,7 @@ class NativeUssdBridge : Plugin() {
     }
 
     private fun callPhone(call: PluginCall, number: String) {
-        if (activity.checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
             requestPermissionForAlias("phone", call, "permissionCallback")
             return
         }
@@ -118,7 +103,7 @@ class NativeUssdBridge : Plugin() {
 
     @PermissionCallback
     private fun permissionCallback(call: PluginCall) {
-        if (getPermissionState("phone") == com.capacitor.PermissionState.GRANTED) {
+        if (getPermissionState("phone") == PermissionState.GRANTED) {
             dialUssd(call)
         } else {
             call.reject("CALL_PHONE permission was not granted")
