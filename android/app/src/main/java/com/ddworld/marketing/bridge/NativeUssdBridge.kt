@@ -43,9 +43,6 @@ class NativeUssdBridge : Plugin() {
             return
         }
 
-        // Some carriers/devices reject Android's direct sendUssdRequest API.
-        // Fall back to the native phone dialer, which lets the carrier's
-        // own telephony stack process codes such as #616# and #828#.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             launchNativeDialer(call, code)
             return
@@ -55,6 +52,7 @@ class NativeUssdBridge : Plugin() {
         if (telephony == null || !activity.packageManager.hasSystemFeature("android.hardware.telephony")) {
             call.resolve(JSObject().apply {
                 put("status", "UNSUPPORTED_DEVICE")
+                put("verified", false)
                 put("message", "This device does not support mobile telephony.")
             })
             return
@@ -64,9 +62,9 @@ class NativeUssdBridge : Plugin() {
             telephony.sendUssdRequest(code, object : TelephonyManager.UssdResponseCallback() {
                 override fun onReceiveUssdResponse(manager: TelephonyManager, request: String, response: CharSequence) {
                     call.resolve(JSObject().apply {
-                        put("status", "SUCCESS")
-                        put("message", "USSD response received.")
-                        put("response", response.toString())
+                        put("status", "USSD_RESPONSE_RECEIVED")
+                        put("verified", false)
+                        put("message", "USSD response received; Dialog Q/C verification is still required.")
                     })
                 }
 
@@ -85,12 +83,14 @@ class NativeUssdBridge : Plugin() {
             activity.startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:$encodedCode")))
             call.resolve(JSObject().apply {
                 put("status", "STARTED")
-                put("message", "USSD handed to the native phone dialer.")
+                put("verified", false)
+                put("message", "USSD handed to the native phone dialer; final result is unverified.")
                 put("fallback", true)
             })
         } catch (error: Exception) {
             call.resolve(JSObject().apply {
                 put("status", "FAILED")
+                put("verified", false)
                 put("message", error.message ?: "Unable to start native USSD dialer.")
             })
         }
