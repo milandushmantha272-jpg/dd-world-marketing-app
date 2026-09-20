@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Delete, Phone, PhoneCall, RotateCcw } from 'lucide-react';
+import { Delete, PhoneCall, RotateCcw } from 'lucide-react';
 import { dialNativeUssd } from '../../services/nativeUssdBridge';
 
 const QUICK_CODES = ['#616#', '#828#'] as const;
@@ -86,11 +86,6 @@ export const RealDialPadPage: React.FC = () => {
           </div>
 
           {status && <div className="mt-3 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-center text-[11px] leading-5 text-slate-300">{status}</div>}
-        </div>
-
-        <div className="mt-3 flex items-start gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/5 p-3 text-[10px] leading-4 text-amber-100/80">
-          <Phone className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>මෙය real Android dial action එකක්. Dialog activation/sales confirmation එක app එක තනිවම තහවුරු නොකරයි.</p>
         </div>
       </div>
     </section>
