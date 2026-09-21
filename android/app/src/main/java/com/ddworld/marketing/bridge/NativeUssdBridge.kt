@@ -163,21 +163,6 @@ class NativeUssdBridge : Plugin() {
         val stateGranted = ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
         return callGranted && stateGranted
     }
-    private fun startTelephonyFallback(call: PluginCall, code: String, reason: String) {
-        try {
-            val intent = android.content.Intent(android.content.Intent.ACTION_CALL, android.net.Uri.parse("tel:${code.replace(" ", "")}"))
-            activity.startActivity(intent)
-            call.resolve(JSObject().apply {
-                put("status", "FALLBACK_STARTED")
-                put("verified", false)
-                put("fallback", true)
-                put("message", "$reason Android telephony fallback started.")
-            })
-        } catch (error: Exception) {
-            resolveFailure(call, "$reason ${error.message ?: "Unable to start Android telephony fallback."}")
-        }
-    }
-
     private fun resolveFailure(call: PluginCall, message: String) {
         call.resolve(JSObject().apply {
             put("status", "FAILED")
