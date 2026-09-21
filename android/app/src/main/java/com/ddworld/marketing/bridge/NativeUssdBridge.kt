@@ -155,7 +155,7 @@ class NativeUssdBridge : Plugin() {
         val subId = subscription.subscriptionId
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             accounts.firstOrNull { handle ->
-                try { telecom.getSubscriptionId(handle) == subId } catch (_: SecurityException) { false }
+                try { activity.getSystemService(TelephonyManager::class.java)?.getSubscriptionId(handle) == subId } catch (_: SecurityException) { false }
             }?.let { return it }
         }
 
