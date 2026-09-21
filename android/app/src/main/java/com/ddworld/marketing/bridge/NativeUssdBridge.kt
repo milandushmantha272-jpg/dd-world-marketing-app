@@ -43,7 +43,7 @@ class NativeUssdBridge : Plugin() {
         }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            resolveFailure(call, "This Android version does not support in-app USSD execution.")
+            startTelephonyFallback(call, code, "Android version does not support in-app USSD execution.")
             return
         }
 
@@ -57,7 +57,7 @@ class NativeUssdBridge : Plugin() {
             val telephony = selectDialogSubscription(baseTelephony)
 
             if (telephony == null) {
-                resolveFailure(call, "No active mobile SIM was found. Please enable the Dialog SIM.")
+                startTelephonyFallback(call, code, "No active mobile SIM was found.")
                 return
             }
 
@@ -72,11 +72,11 @@ class NativeUssdBridge : Plugin() {
                 }
 
                 override fun onReceiveUssdResponseFailed(manager: TelephonyManager, request: String, failureCode: Int) {
-                    resolveFailure(call, "Dialog USSD request failed on the active SIM. Error code: $failureCode")
+                    startTelephonyFallback(call, code, "In-app USSD failed with error code $failureCode.")
                 }
             }, Handler(Looper.getMainLooper()))
         } catch (error: Exception) {
-            resolveFailure(call, error.message ?: "Unable to execute USSD inside the app.")
+            startTelephonyFallback(call, code, error.message ?: "Unable to execute USSD inside the app.")
         }
     }
 
@@ -102,6 +102,21 @@ class NativeUssdBridge : Plugin() {
             baseTelephony.createForSubscriptionId(selected.subscriptionId)
         } else {
             baseTelephony
+        }
+    }
+
+    private fun startTelephonyFallback(call: PluginCall, code: String, reason: String) {
+        try {
+            val intent = android.content.Intent(android.content.Intent.ACTION_CALL, android.net.Uri.parse("tel:${code.replace(" ", "")}"))
+            activity.startActivity(intent)
+            call.resolve(JSObject().apply {
+                put("status", "FALLBACK_STARTED")
+                put("verified", false)
+                put("fallback", true)
+                put("message", "$reason Android telephony fallback started.")
+            })
+        } catch (error: Exception) {
+            resolveFailure(call, "$reason ${error.message ?: "Unable to start Android telephony fallback."}")
         }
     }
 
