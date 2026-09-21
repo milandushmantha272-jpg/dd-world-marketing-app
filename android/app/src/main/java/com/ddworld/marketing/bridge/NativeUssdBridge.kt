@@ -19,7 +19,15 @@ import com.getcapacitor.annotation.PermissionCallback
 
 @CapacitorPlugin(
     name = "NativeUssdBridge",
-    permissions = [Permission(alias = "phone", strings = [Manifest.permission.CALL_PHONE])]
+    permissions = [
+        Permission(
+            alias = "phone",
+            strings = [
+                Manifest.permission.CALL_PHONE,
+                Manifest.permission.READ_PHONE_STATE
+            ]
+        )
+    ]
 )
 class NativeUssdBridge : Plugin() {
     @PluginMethod
@@ -37,7 +45,9 @@ class NativeUssdBridge : Plugin() {
     }
 
     private fun sendUssd(call: PluginCall, code: String) {
-        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+        val callGranted = ContextCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED
+        val stateGranted = ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+        if (!callGranted || !stateGranted) {
             requestPermissionForAlias("phone", call, "permissionCallback")
             return
         }
@@ -153,7 +163,7 @@ class NativeUssdBridge : Plugin() {
         if (getPermissionState("phone") == PermissionState.GRANTED) {
             dialUssd(call)
         } else {
-            resolveFailure(call, "Phone permission was not granted. Enable Phone permission in Android Settings.")
+            resolveFailure(call, "Phone and SIM permission was not granted. Enable Phone permission in Android Settings.")
         }
     }
 }
