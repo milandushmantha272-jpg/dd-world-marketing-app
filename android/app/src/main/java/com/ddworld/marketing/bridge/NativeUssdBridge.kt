@@ -150,9 +150,15 @@ class NativeUssdBridge : Plugin() {
         }
 
         if (accounts.isEmpty()) return null
-        if (subscription == null) return accounts.firstOrNull()
+        if (subscription == null) return if (accounts.size == 1) accounts.first() else null
 
         val subId = subscription.subscriptionId
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            accounts.firstOrNull { handle ->
+                try { telecom.getSubscriptionId(handle) == subId } catch (_: SecurityException) { false }
+            }?.let { return it }
+        }
+
         return accounts.firstOrNull { handle ->
             handle.id == subId.toString() || handle.id.contains(subId.toString())
         } ?: if (accounts.size == 1) accounts.first() else null
