@@ -1,12 +1,11 @@
 package com.ddworld.marketing.bridge
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
 import com.getcapacitor.JSObject
@@ -44,57 +43,75 @@ class NativeUssdBridge : Plugin() {
         }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            launchNativeDialer(call, code)
+            resolveFailure(call, "This Android version does not support in-app USSD execution.")
             return
         }
 
-        val telephony = activity.getSystemService(TelephonyManager::class.java)
-        if (telephony == null || !activity.packageManager.hasSystemFeature("android.hardware.telephony")) {
-            call.resolve(JSObject().apply {
-                put("status", "UNSUPPORTED_DEVICE")
-                put("verified", false)
-                put("message", "This device does not support mobile telephony.")
-            })
+        if (!activity.packageManager.hasSystemFeature("android.hardware.telephony")) {
+            resolveFailure(call, "This device does not support mobile telephony.")
             return
         }
 
         try {
+            val baseTelephony = activity.getSystemService(TelephonyManager::class.java)
+            val telephony = selectDialogSubscription(baseTelephony)
+
+            if (telephony == null) {
+                resolveFailure(call, "No active mobile SIM was found. Please enable the Dialog SIM.")
+                return
+            }
+
             telephony.sendUssdRequest(code, object : TelephonyManager.UssdResponseCallback() {
                 override fun onReceiveUssdResponse(manager: TelephonyManager, request: String, response: CharSequence) {
                     call.resolve(JSObject().apply {
                         put("status", "USSD_RESPONSE_RECEIVED")
                         put("verified", false)
                         put("message", "USSD response received; Dialog Q/C verification is still required.")
+                        put("response", response.toString())
                     })
                 }
 
                 override fun onReceiveUssdResponseFailed(manager: TelephonyManager, request: String, failureCode: Int) {
-                    launchNativeDialer(call, code)
+                    resolveFailure(call, "Dialog USSD request failed on the active SIM. Error code: $failureCode")
                 }
             }, Handler(Looper.getMainLooper()))
         } catch (error: Exception) {
-            launchNativeDialer(call, code)
+            resolveFailure(call, error.message ?: "Unable to execute USSD inside the app.")
         }
     }
 
-    private fun launchNativeDialer(call: PluginCall, code: String) {
-        try {
-            val encodedCode = Uri.encode(code)
-            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$encodedCode"))
-            activity.startActivity(intent)
-            call.resolve(JSObject().apply {
-                put("status", "DIALER_FALLBACK")
-                put("verified", false)
-                put("message", "Dialer opened. Complete the USSD flow manually; final result is unverified.")
-                put("fallback", true)
-            })
-        } catch (error: Exception) {
-            call.resolve(JSObject().apply {
-                put("status", "FAILED")
-                put("verified", false)
-                put("message", error.message ?: "Unable to open native dialer.")
-            })
+    private fun selectDialogSubscription(baseTelephony: TelephonyManager?): TelephonyManager? {
+        if (baseTelephony == null) return null
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) return baseTelephony
+
+        val subscriptionManager = activity.getSystemService(SubscriptionManager::class.java) ?: return baseTelephony
+        val activeSubscriptions = try {
+            subscriptionManager.activeSubscriptionInfoList.orEmpty()
+        } catch (_: SecurityException) {
+            emptyList()
         }
+
+        val dialogSubscription = activeSubscriptions.firstOrNull { info ->
+            val carrier = info.carrierName?.toString().orEmpty()
+            val display = info.displayName?.toString().orEmpty()
+            carrier.contains("Dialog", ignoreCase = true) || display.contains("Dialog", ignoreCase = true)
+        }
+
+        val selected = dialogSubscription ?: activeSubscriptions.firstOrNull()
+        return if (selected != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            baseTelephony.createForSubscriptionId(selected.subscriptionId)
+        } else {
+            baseTelephony
+        }
+    }
+
+    private fun resolveFailure(call: PluginCall, message: String) {
+        call.resolve(JSObject().apply {
+            put("status", "FAILED")
+            put("verified", false)
+            put("fallback", false)
+            put("message", message)
+        })
     }
 
     private fun callPhone(call: PluginCall, number: String) {
@@ -104,18 +121,15 @@ class NativeUssdBridge : Plugin() {
         }
 
         try {
-            activity.startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:${number.replace(" ", "")}")))
+            val intent = android.content.Intent(android.content.Intent.ACTION_CALL, android.net.Uri.parse("tel:${number.replace(" ", "")}"))
+            activity.startActivity(intent)
             call.resolve(JSObject().apply {
                 put("status", "STARTED")
                 put("verified", false)
                 put("message", "Call request handed to Android telephony; result is unverified.")
             })
         } catch (error: Exception) {
-            call.resolve(JSObject().apply {
-                put("status", "FAILED")
-                put("verified", false)
-                put("message", error.message ?: "Unable to start phone call.")
-            })
+            resolveFailure(call, error.message ?: "Unable to start phone call.")
         }
     }
 
@@ -124,11 +138,7 @@ class NativeUssdBridge : Plugin() {
         if (getPermissionState("phone") == PermissionState.GRANTED) {
             dialUssd(call)
         } else {
-            call.resolve(JSObject().apply {
-                put("status", "PERMISSION_DENIED")
-                put("verified", false)
-                put("message", "Phone permission was not granted. Enable Phone permission in Android Settings.")
-            })
+            resolveFailure(call, "Phone permission was not granted. Enable Phone permission in Android Settings.")
         }
     }
 }
