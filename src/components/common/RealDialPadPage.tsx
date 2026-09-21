@@ -24,6 +24,8 @@ export const RealDialPadPage: React.FC = () => {
       const result = await dialNativeUssd(value);
       if (result.status === 'SUCCESS' || result.status === 'USSD_RESPONSE_RECEIVED') {
         setStatus(result.response ? `Dialog response: ${result.response}` : 'USSD request එක සාර්ථකයි.');
+      } else if (result.status === 'FALLBACK_STARTED') {
+        setStatus('USSD code එක Android Phone Dialer එකට යොමු කළා. එතැනින් Continue කරන්න.');
       } else if (result.status === 'FAILED') {
         setStatus(`USSD අසාර්ථකයි: ${result.message}`);
       } else if (result.status === 'UNSUPPORTED_API' || result.status === 'UNSUPPORTED_DEVICE') {
