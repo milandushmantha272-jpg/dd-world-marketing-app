@@ -6,13 +6,11 @@ import org.junit.Test
 class NativeUssdBridgeTest {
     @Test
     fun fallbackUriEncodesHashCharacters() {
-        val uri = NativeUssdBridge.buildUssdFallbackUri("#616#")
-        assertEquals("tel:%23616%23", uri.toString())
+        assertEquals("%23616%23", NativeUssdBridge.encodeUssdForTelUri("#616#"))
     }
 
     @Test
     fun fallbackUriPreservesStarAndEncodesHash() {
-        val uri = NativeUssdBridge.buildUssdFallbackUri("*123#")
-        assertEquals("tel:*123%23", uri.toString())
+        assertEquals("*123%23", NativeUssdBridge.encodeUssdForTelUri("*123#"))
     }
 }
