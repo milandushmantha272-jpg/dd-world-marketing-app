@@ -3,6 +3,8 @@ name: Build Permanent Android APK
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -75,6 +77,12 @@ jobs:
 
       - name: Sync Capacitor Android
         run: npx cap sync android
+
+      - name: Run Android Unit Tests
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest --no-daemon
 
       - name: Build Android Debug APK
         run: |
