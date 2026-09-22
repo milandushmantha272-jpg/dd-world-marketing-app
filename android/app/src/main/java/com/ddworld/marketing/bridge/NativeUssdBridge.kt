@@ -105,7 +105,7 @@ class NativeUssdBridge : Plugin() {
             call.resolve(JSObject().apply {
                 put("status", "FALLBACK_STARTED")
                 put("failureCode", failureCode)
-                put("message", "Direct USSD API was rejected; Android telephony was started with the encoded USSD code.")
+                put("message", "USSD request started.")
             })
         } catch (error: SecurityException) {
             call.resolve(JSObject().apply {
