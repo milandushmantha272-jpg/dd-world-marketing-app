@@ -20,7 +20,7 @@ import com.getcapacitor.annotation.PermissionCallback
 
 @CapacitorPlugin(
     name = "NativeUssdBridge",
-    permissions = [Permission(alias = "phone", strings = [Manifest.permission.CALL_PHONE])]
+    permissions = [Permission(alias = "phone", strings = [Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE])]
 )
 class NativeUssdBridge : Plugin() {
     @PluginMethod
@@ -38,31 +38,35 @@ class NativeUssdBridge : Plugin() {
     }
 
     private fun sendUssd(call: PluginCall, code: String) {
-        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+        if (!hasPhonePermissions()) {
             requestPermissionForAlias("phone", call, "permissionCallback")
             return
         }
 
-        // Some carriers/devices reject Android's direct sendUssdRequest API.
-        // Fall back to the native phone dialer, which lets the carrier's
-        // own telephony stack process codes such as #616# and #828#.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            launchNativeDialer(call, code)
+            call.resolve(JSObject().apply {
+                put("status", "UNSUPPORTED_API")
+                put("message", "Direct in-app USSD requires Android 8.0 (API 26) or newer.")
+            })
             return
         }
 
-        val telephony = activity.getSystemService(TelephonyManager::class.java)
-        if (telephony == null || !activity.packageManager.hasSystemFeature("android.hardware.telephony")) {
+        val telephony = selectDialogTelephonyManager()
+        if (telephony == null) {
             call.resolve(JSObject().apply {
-                put("status", "UNSUPPORTED_DEVICE")
-                put("message", "This device does not support mobile telephony.")
+                put("status", "NO_ACTIVE_SIM")
+                put("message", "Dialog SIM එකක් active/default ලෙස හඳුනාගත නොහැක.")
             })
             return
         }
 
         try {
             telephony.sendUssdRequest(code, object : TelephonyManager.UssdResponseCallback() {
-                override fun onReceiveUssdResponse(manager: TelephonyManager, request: String, response: CharSequence) {
+                override fun onReceiveUssdResponse(
+                    manager: TelephonyManager,
+                    request: String,
+                    response: CharSequence
+                ) {
                     call.resolve(JSObject().apply {
                         put("status", "SUCCESS")
                         put("message", "USSD response received.")
@@ -70,30 +74,60 @@ class NativeUssdBridge : Plugin() {
                     })
                 }
 
-                override fun onReceiveUssdResponseFailed(manager: TelephonyManager, request: String, failureCode: Int) {
-                    launchNativeDialer(call, code)
+                override fun onReceiveUssdResponseFailed(
+                    manager: TelephonyManager,
+                    request: String,
+                    failureCode: Int
+                ) {
+                    call.resolve(JSObject().apply {
+                        put("status", "FAILED")
+                        put("failureCode", failureCode)
+                        put("message", "Dialog carrier rejected the USSD request.")
+                    })
                 }
             }, Handler(Looper.getMainLooper()))
-        } catch (error: Exception) {
-            launchNativeDialer(call, code)
-        }
-    }
-
-    private fun launchNativeDialer(call: PluginCall, code: String) {
-        try {
-            val encodedCode = Uri.encode(code).replace("%2A", "*")
-            activity.startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:$encodedCode")))
+        } catch (error: SecurityException) {
             call.resolve(JSObject().apply {
-                put("status", "STARTED")
-                put("message", "USSD handed to the native phone dialer.")
-                put("fallback", true)
+                put("status", "PERMISSION_DENIED")
+                put("message", "Phone/SIM permission was not granted.")
             })
         } catch (error: Exception) {
             call.resolve(JSObject().apply {
                 put("status", "FAILED")
-                put("message", error.message ?: "Unable to start native USSD dialer.")
+                put("message", error.message ?: "Unable to send USSD request.")
             })
         }
+    }
+
+    private fun hasPhonePermissions(): Boolean {
+        return ContextCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun selectDialogTelephonyManager(): TelephonyManager? {
+        val subscriptionManager = activity.getSystemService(SubscriptionManager::class.java) ?: return null
+        val subscriptions = try {
+            subscriptionManager.activeSubscriptionInfoList.orEmpty()
+        } catch (_: SecurityException) {
+            return null
+        }
+
+        val dialogSub = subscriptions.firstOrNull {
+            it.carrierName?.toString()?.contains("dialog", ignoreCase = true) == true
+        }
+
+        val selectedId = dialogSub?.subscriptionId
+            ?: SubscriptionManager.getDefaultVoiceSubscriptionId().takeIf {
+                it != SubscriptionManager.INVALID_SUBSCRIPTION_ID
+            }
+            ?: SubscriptionManager.getDefaultDataSubscriptionId().takeIf {
+                it != SubscriptionManager.INVALID_SUBSCRIPTION_ID
+            }
+            ?: subscriptions.firstOrNull()?.subscriptionId
+            ?: return null
+
+        return activity.getSystemService(TelephonyManager::class.java)
+            ?.createForSubscriptionId(selectedId)
     }
 
     private fun callPhone(call: PluginCall, number: String) {
