@@ -80,25 +80,20 @@ class NativeUssdBridge : Plugin() {
                     request: String,
                     failureCode: Int
                 ) {
-                    // Some Android/carrier combinations reject the direct
-                    // sendUssdRequest() API even though the normal telephony
-                    // USSD path can execute the same code. Fall back to the
-                    // in-app initiated ACTION_CALL path instead of reporting
-                    // a hard failure to the user.
-                    try {
-                        activity.startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:$request")))
-                        call.resolve(JSObject().apply {
-                            put("status", "STARTED")
-                            put("failureCode", failureCode)
-                            put("message", "USSD request handed to Android telephony.")
-                        })
-                    } catch (error: Exception) {
-                        call.resolve(JSObject().apply {
-                            put("status", "FAILED")
-                            put("failureCode", failureCode)
-                            put("message", "Dialog carrier rejected the USSD request.")
-                        })
+                    val reason = when (failureCode) {
+                        TelephonyManager.USSD_RETURN_FAILURE ->
+                            "Dialog network failed to complete the USSD request."
+                        TelephonyManager.USSD_ERROR_SERVICE_UNAVAIL ->
+                            "USSD service is unavailable on the selected Dialog SIM."
+                        else ->
+                            "Android/telephony did not allow this USSD request."
                     }
+
+                    call.resolve(JSObject().apply {
+                        put("status", "FAILED")
+                        put("failureCode", failureCode)
+                        put("message", reason)
+                    })
                 }
             }, Handler(Looper.getMainLooper()))
         } catch (error: SecurityException) {

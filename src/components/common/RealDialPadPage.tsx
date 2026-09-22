@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { Delete, PhoneCall, RotateCcw } from 'lucide-react';
 import { dialNativeUssd } from '../../services/nativeUssdBridge';
 
-const QUICK_CODES = ['#616#', '#828#'] as const;
+const QUICK_CODES = [
+  { code: '616', label: 'Govi Mithuru · 616' },
+  { code: '828', label: 'Sayuru · 828' },
+] as const;
 
 export const RealDialPadPage: React.FC = () => {
   const [display, setDisplay] = useState('');
@@ -18,7 +21,7 @@ export const RealDialPadPage: React.FC = () => {
 
   const dial = async () => {
     const value = display.trim();
-    if (!value) { setStatus('අංකයක් හෝ #616# / #828# code එකක් ඇතුළත් කරන්න.'); return; }
+    if (!value) { setStatus('අංකයක් හෝ 616 / 828 Dialog code එකක් ඇතුළත් කරන්න.'); return; }
     setBusy(true); setStatus(null);
     try {
       const result = await dialNativeUssd(value);
@@ -52,7 +55,7 @@ export const RealDialPadPage: React.FC = () => {
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-3 text-center">
           <h1 className="text-xl font-black text-white sm:text-2xl">Real Dial Pad</h1>
-          <p className="mt-1 text-[11px] leading-4 text-slate-400">Normal calls සහ Dialog IVR codes</p>
+          <p className="mt-1 text-[11px] leading-4 text-slate-400">Normal calls සහ Dialog IVR / USSD codes</p>
         </div>
 
         <div className="rounded-[24px] border border-white/10 bg-slate-950/80 p-3 shadow-2xl sm:p-4">
@@ -63,9 +66,9 @@ export const RealDialPadPage: React.FC = () => {
           </div>
 
           <div className="mb-3 grid grid-cols-2 gap-2">
-            {QUICK_CODES.map((code) => (
+            {QUICK_CODES.map(({ code, label }) => (
               <button key={code} type="button" onClick={() => { setDisplay(code); setStatus(null); }} className="h-10 rounded-xl border border-red-400/30 bg-red-500/10 text-sm font-black text-red-200 active:scale-95">
-                {code}
+                {label}
               </button>
             ))}
           </div>
