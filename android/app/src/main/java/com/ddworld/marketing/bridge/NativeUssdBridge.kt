@@ -18,7 +18,6 @@ import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.annotation.Permission
 import com.getcapacitor.annotation.PermissionCallback
-import java.nio.charset.StandardCharsets
 
 @CapacitorPlugin(
     name = "NativeUssdBridge",
@@ -81,18 +80,7 @@ class NativeUssdBridge : Plugin() {
                     request: String,
                     failureCode: Int
                 ) {
-                    call.resolve(JSObject().apply {
-                        put("status", "FAILED")
-                        put("failureCode", failureCode)
-                        put("message", when (failureCode) {
-                            TelephonyManager.USSD_RETURN_FAILURE ->
-                                "Dialog network failed to complete the USSD request."
-                            TelephonyManager.USSD_ERROR_SERVICE_UNAVAIL ->
-                                "USSD service is unavailable on the selected Dialog SIM."
-                            else ->
-                                "Android telephony rejected the USSD request."
-                        })
-                    })
+                    startNativeDialerFallback(call, code, failureCode)
                 }
             }, Handler(Looper.getMainLooper()))
         } catch (error: SecurityException) {
@@ -101,11 +89,47 @@ class NativeUssdBridge : Plugin() {
                 put("message", "Phone/SIM permission was not granted.")
             })
         } catch (error: Exception) {
+            startNativeDialerFallback(call, code, null)
+        }
+    }
+
+    private fun startNativeDialerFallback(call: PluginCall, code: String, failureCode: Int?) {
+        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+            call.resolve(JSObject().apply {
+                put("status", "PERMISSION_DENIED")
+                put("message", "CALL_PHONE permission was not granted.")
+            })
+            return
+        }
+
+        try {
+            // Uri.fromParts keeps '*' and '#' in the tel payload instead of treating '#' as a URI fragment.
+            val intent = Intent(Intent.ACTION_CALL, Uri.fromParts("tel", code, null))
+            activity.startActivity(intent)
+            call.resolve(JSObject().apply {
+                put("status", "DIALER_STARTED")
+                put("failureCode", failureCode ?: -1)
+                put("message", "Android telephony started the USSD code.")
+            })
+        } catch (error: Exception) {
             call.resolve(JSObject().apply {
                 put("status", "FAILED")
-                put("message", error.message ?: "Unable to send USSD request.")
+                put("failureCode", failureCode ?: -1)
+                put("message", failureMessage(failureCode))
+                put("detail", error.message ?: "Unable to start Android telephony.")
             })
         }
+    }
+
+    private fun failureMessage(failureCode: Int?): String = when (failureCode) {
+        TelephonyManager.USSD_RETURN_FAILURE ->
+            "Dialog network failed to complete the USSD request."
+        TelephonyManager.USSD_ERROR_SERVICE_UNAVAIL ->
+            "USSD service is unavailable on the selected Dialog SIM."
+        TelephonyManager.USSD_ERROR_NOT_ALLOWED ->
+            "Android telephony did not allow this USSD request."
+        else ->
+            "Android telephony rejected the USSD request."
     }
 
     private fun hasPhonePermissions(): Boolean {
