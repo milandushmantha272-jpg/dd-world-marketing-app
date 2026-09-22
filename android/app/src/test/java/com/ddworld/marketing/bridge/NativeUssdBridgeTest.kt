@@ -11,8 +11,8 @@ class NativeUssdBridgeTest {
     }
 
     @Test
-    fun fallbackUriPreservesStarAndHashUssdCode() {
+    fun fallbackUriPreservesStarAndEncodesHash() {
         val uri = NativeUssdBridge.buildUssdFallbackUri("*123#")
-        assertEquals("tel:%2A123%23", uri.toString())
+        assertEquals("tel:*123%23", uri.toString())
     }
 }
