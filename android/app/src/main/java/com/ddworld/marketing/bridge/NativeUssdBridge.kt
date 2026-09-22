@@ -18,6 +18,7 @@ import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.annotation.Permission
 import com.getcapacitor.annotation.PermissionCallback
+import java.nio.charset.StandardCharsets
 
 @CapacitorPlugin(
     name = "NativeUssdBridge",
@@ -122,8 +123,33 @@ class NativeUssdBridge : Plugin() {
     }
 
     internal companion object {
+        private const val HEX = "0123456789ABCDEF"
+
+        fun encodeUssdForTelUri(code: String): String {
+            val bytes = code.toByteArray(StandardCharsets.UTF_8)
+            val out = StringBuilder(bytes.size)
+            for (byte in bytes) {
+                val value = byte.toInt() and 0xFF
+                val safe = value in 'a'.code..'z'.code ||
+                    value in 'A'.code..'Z'.code ||
+                    value in '0'.code..'9'.code ||
+                    value == '-'.code || value == '_'.code || value == '.'.code ||
+                    value == '!'.code || value == '~'.code || value == '*'.code ||
+                    value == '\''.code || value == '('.code || value == ')'.code
+
+                if (safe) {
+                    out.append(value.toChar())
+                } else {
+                    out.append('%')
+                    out.append(HEX[value ushr 4])
+                    out.append(HEX[value and 0x0F])
+                }
+            }
+            return out.toString()
+        }
+
         fun buildUssdFallbackUri(code: String): Uri {
-            return Uri.parse("tel:" + Uri.encode(code))
+            return Uri.parse("tel:" + encodeUssdForTelUri(code))
         }
     }
 
