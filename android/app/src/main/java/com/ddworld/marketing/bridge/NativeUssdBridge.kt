@@ -80,20 +80,7 @@ class NativeUssdBridge : Plugin() {
                     request: String,
                     failureCode: Int
                 ) {
-                    val reason = when (failureCode) {
-                        TelephonyManager.USSD_RETURN_FAILURE ->
-                            "Dialog network failed to complete the USSD request."
-                        TelephonyManager.USSD_ERROR_SERVICE_UNAVAIL ->
-                            "USSD service is unavailable on the selected Dialog SIM."
-                        else ->
-                            "Android/telephony did not allow this USSD request."
-                    }
-
-                    call.resolve(JSObject().apply {
-                        put("status", "FAILED")
-                        put("failureCode", failureCode)
-                        put("message", reason)
-                    })
+                    startEncodedTelephonyFallback(call, request, failureCode)
                 }
             }, Handler(Looper.getMainLooper()))
         } catch (error: SecurityException) {
@@ -106,6 +93,37 @@ class NativeUssdBridge : Plugin() {
                 put("status", "FAILED")
                 put("message", error.message ?: "Unable to send USSD request.")
             })
+        }
+    }
+
+    private fun startEncodedTelephonyFallback(call: PluginCall, request: String, failureCode: Int) {
+        try {
+            activity.startActivity(
+                Intent(Intent.ACTION_CALL, buildUssdFallbackUri(request))
+            )
+            call.resolve(JSObject().apply {
+                put("status", "FALLBACK_STARTED")
+                put("failureCode", failureCode)
+                put("message", "Direct USSD API was rejected; Android telephony was started with the encoded USSD code.")
+            })
+        } catch (error: SecurityException) {
+            call.resolve(JSObject().apply {
+                put("status", "PERMISSION_DENIED")
+                put("failureCode", failureCode)
+                put("message", "Phone permission was not granted for the USSD fallback.")
+            })
+        } catch (error: Exception) {
+            call.resolve(JSObject().apply {
+                put("status", "FAILED")
+                put("failureCode", failureCode)
+                put("message", error.message ?: "Android telephony could not start the USSD fallback.")
+            })
+        }
+    }
+
+    internal companion object {
+        fun buildUssdFallbackUri(code: String): Uri {
+            return Uri.parse("tel:" + Uri.encode(code))
         }
     }
 
@@ -147,7 +165,7 @@ class NativeUssdBridge : Plugin() {
         }
 
         try {
-            activity.startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:${number.replace(" ", "")}")))
+            activity.startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number.replace(" ", ""))))
             call.resolve(JSObject().apply {
                 put("status", "STARTED")
                 put("message", "Call request handed to Android telephony.")
