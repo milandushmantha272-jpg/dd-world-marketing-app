@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets
 
 @CapacitorPlugin(
     name = "NativeUssdBridge",
-    permissions = [Permission(alias = "phone", strings = [Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE])]
+    permissions = [Permission(alias = "phone", strings = [Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_PHONE_NUMBERS])]
 )
 class NativeUssdBridge : Plugin() {
     @PluginMethod
@@ -81,7 +81,18 @@ class NativeUssdBridge : Plugin() {
                     request: String,
                     failureCode: Int
                 ) {
-                    startEncodedTelephonyFallback(call, request, failureCode)
+                    call.resolve(JSObject().apply {
+                        put("status", "FAILED")
+                        put("failureCode", failureCode)
+                        put("message", when (failureCode) {
+                            TelephonyManager.USSD_RETURN_FAILURE ->
+                                "Dialog network failed to complete the USSD request."
+                            TelephonyManager.USSD_ERROR_SERVICE_UNAVAIL ->
+                                "USSD service is unavailable on the selected Dialog SIM."
+                            else ->
+                                "Android telephony rejected the USSD request."
+                        })
+                    })
                 }
             }, Handler(Looper.getMainLooper()))
         } catch (error: SecurityException) {
@@ -94,62 +105,6 @@ class NativeUssdBridge : Plugin() {
                 put("status", "FAILED")
                 put("message", error.message ?: "Unable to send USSD request.")
             })
-        }
-    }
-
-    private fun startEncodedTelephonyFallback(call: PluginCall, request: String, failureCode: Int) {
-        try {
-            activity.startActivity(
-                Intent(Intent.ACTION_CALL, buildUssdFallbackUri(request))
-            )
-            call.resolve(JSObject().apply {
-                put("status", "FALLBACK_STARTED")
-                put("failureCode", failureCode)
-                put("message", "USSD request started.")
-            })
-        } catch (error: SecurityException) {
-            call.resolve(JSObject().apply {
-                put("status", "PERMISSION_DENIED")
-                put("failureCode", failureCode)
-                put("message", "Phone permission was not granted for the USSD fallback.")
-            })
-        } catch (error: Exception) {
-            call.resolve(JSObject().apply {
-                put("status", "FAILED")
-                put("failureCode", failureCode)
-                put("message", error.message ?: "Android telephony could not start the USSD fallback.")
-            })
-        }
-    }
-
-    internal companion object {
-        private const val HEX = "0123456789ABCDEF"
-
-        fun encodeUssdForTelUri(code: String): String {
-            val bytes = code.toByteArray(StandardCharsets.UTF_8)
-            val out = StringBuilder(bytes.size)
-            for (byte in bytes) {
-                val value = byte.toInt() and 0xFF
-                val safe = value in 'a'.code..'z'.code ||
-                    value in 'A'.code..'Z'.code ||
-                    value in '0'.code..'9'.code ||
-                    value == '-'.code || value == '_'.code || value == '.'.code ||
-                    value == '!'.code || value == '~'.code || value == '*'.code ||
-                    value == '\''.code || value == '('.code || value == ')'.code
-
-                if (safe) {
-                    out.append(value.toChar())
-                } else {
-                    out.append('%')
-                    out.append(HEX[value ushr 4])
-                    out.append(HEX[value and 0x0F])
-                }
-            }
-            return out.toString()
-        }
-
-        fun buildUssdFallbackUri(code: String): Uri {
-            return Uri.parse("tel:" + encodeUssdForTelUri(code))
         }
     }
 
