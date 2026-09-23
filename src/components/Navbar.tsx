@@ -114,9 +114,9 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <div className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-slate-800 bg-slate-950/98 px-3 shadow-lg sm:hidden">
+      <div className="sticky top-0 z-50 flex h-12 items-center justify-between border-b border-slate-800 bg-slate-950/98 px-3 shadow-lg sm:hidden">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-900">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-900">
             <DdWorldLogo size="sm" showText={false} />
           </div>
           <div className="min-w-0">
@@ -125,8 +125,8 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <button type="button" onClick={() => setKycModalOpen(true)} className="flex h-10 min-w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2 text-[10px] font-black text-emerald-300" aria-label="My KYC">KYC</button>
-          <button type="button" onClick={logout} className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300" aria-label="Logout" title="Logout"><LogOut className="h-4 w-4" /></button>
+          <button type="button" onClick={() => setKycModalOpen(true)} className="flex h-9 min-w-9 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2 text-[10px] font-black text-emerald-300" aria-label="My KYC">KYC</button>
+          <button type="button" onClick={logout} className="flex h-9 w-9 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300" aria-label="Logout" title="Logout"><LogOut className="h-4 w-4" /></button>
         </div>
       </div>
       <header className="hidden bg-slate-900/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 text-slate-100 shadow-lg sm:block">
