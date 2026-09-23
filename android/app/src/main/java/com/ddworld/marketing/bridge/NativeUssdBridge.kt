@@ -63,11 +63,7 @@ class NativeUssdBridge : Plugin() {
 
         try {
             telephony.sendUssdRequest(code, object : TelephonyManager.UssdResponseCallback() {
-                override fun onReceiveUssdResponse(
-                    manager: TelephonyManager,
-                    request: String,
-                    response: CharSequence
-                ) {
+                override fun onReceiveUssdResponse(manager: TelephonyManager, request: String, response: CharSequence) {
                     call.resolve(JSObject().apply {
                         put("status", "SUCCESS")
                         put("message", "USSD response received.")
@@ -75,20 +71,16 @@ class NativeUssdBridge : Plugin() {
                     })
                 }
 
-                override fun onReceiveUssdResponseFailed(
-                    manager: TelephonyManager,
-                    request: String,
-                    failureCode: Int
-                ) {
+                override fun onReceiveUssdResponseFailed(manager: TelephonyManager, request: String, failureCode: Int) {
                     startNativeDialerFallback(call, code, failureCode)
                 }
             }, Handler(Looper.getMainLooper()))
-        } catch (error: SecurityException) {
+        } catch (_: SecurityException) {
             call.resolve(JSObject().apply {
                 put("status", "PERMISSION_DENIED")
                 put("message", "Phone/SIM permission was not granted.")
             })
-        } catch (error: Exception) {
+        } catch (_: Exception) {
             startNativeDialerFallback(call, code, null)
         }
     }
@@ -103,7 +95,6 @@ class NativeUssdBridge : Plugin() {
         }
 
         try {
-            // Uri.fromParts keeps '*' and '#' in the tel payload instead of treating '#' as a URI fragment.
             val intent = Intent(Intent.ACTION_CALL, Uri.fromParts("tel", code, null))
             activity.startActivity(intent)
             call.resolve(JSObject().apply {
@@ -122,14 +113,9 @@ class NativeUssdBridge : Plugin() {
     }
 
     private fun failureMessage(failureCode: Int?): String = when (failureCode) {
-        TelephonyManager.USSD_RETURN_FAILURE ->
-            "Dialog network failed to complete the USSD request."
-        TelephonyManager.USSD_ERROR_SERVICE_UNAVAIL ->
-            "USSD service is unavailable on the selected Dialog SIM."
-        TelephonyManager.USSD_ERROR_NOT_ALLOWED ->
-            "Android telephony did not allow this USSD request."
-        else ->
-            "Android telephony rejected the USSD request."
+        TelephonyManager.USSD_RETURN_FAILURE -> "Dialog network failed to complete the USSD request."
+        TelephonyManager.USSD_ERROR_SERVICE_UNAVAIL -> "USSD service is unavailable on the selected Dialog SIM."
+        else -> "Android telephony rejected the USSD request."
     }
 
     private fun hasPhonePermissions(): Boolean {
@@ -139,28 +125,14 @@ class NativeUssdBridge : Plugin() {
 
     private fun selectDialogTelephonyManager(): TelephonyManager? {
         val subscriptionManager = activity.getSystemService(SubscriptionManager::class.java) ?: return null
-        val subscriptions = try {
-            subscriptionManager.activeSubscriptionInfoList.orEmpty()
-        } catch (_: SecurityException) {
-            return null
-        }
-
-        val dialogSub = subscriptions.firstOrNull {
-            it.carrierName?.toString()?.contains("dialog", ignoreCase = true) == true
-        }
-
+        val subscriptions = try { subscriptionManager.activeSubscriptionInfoList.orEmpty() } catch (_: SecurityException) { return null }
+        val dialogSub = subscriptions.firstOrNull { it.carrierName?.toString()?.contains("dialog", ignoreCase = true) == true }
         val selectedId = dialogSub?.subscriptionId
-            ?: SubscriptionManager.getDefaultVoiceSubscriptionId().takeIf {
-                it != SubscriptionManager.INVALID_SUBSCRIPTION_ID
-            }
-            ?: SubscriptionManager.getDefaultDataSubscriptionId().takeIf {
-                it != SubscriptionManager.INVALID_SUBSCRIPTION_ID
-            }
+            ?: SubscriptionManager.getDefaultVoiceSubscriptionId().takeIf { it != SubscriptionManager.INVALID_SUBSCRIPTION_ID }
+            ?: SubscriptionManager.getDefaultDataSubscriptionId().takeIf { it != SubscriptionManager.INVALID_SUBSCRIPTION_ID }
             ?: subscriptions.firstOrNull()?.subscriptionId
             ?: return null
-
-        return activity.getSystemService(TelephonyManager::class.java)
-            ?.createForSubscriptionId(selectedId)
+        return activity.getSystemService(TelephonyManager::class.java)?.createForSubscriptionId(selectedId)
     }
 
     private fun callPhone(call: PluginCall, number: String) {
@@ -168,7 +140,6 @@ class NativeUssdBridge : Plugin() {
             requestPermissionForAlias("phone", call, "permissionCallback")
             return
         }
-
         try {
             activity.startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number.replace(" ", ""))))
             call.resolve(JSObject().apply {
@@ -182,10 +153,7 @@ class NativeUssdBridge : Plugin() {
 
     @PermissionCallback
     private fun permissionCallback(call: PluginCall) {
-        if (getPermissionState("phone") == PermissionState.GRANTED) {
-            dialUssd(call)
-        } else {
-            call.reject("CALL_PHONE permission was not granted")
-        }
+        if (getPermissionState("phone") == PermissionState.GRANTED) dialUssd(call)
+        else call.reject("CALL_PHONE permission was not granted")
     }
 }
