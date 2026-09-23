@@ -169,3 +169,69 @@ table { width: 100%; max-width: 100%; }
     transition-duration: .01ms !important;
   }
 }
+
+/* DD WORLD Smart Compact UI — mobile-first density pass */
+.dd-compact-ui {
+  --dd-compact-gap: 10px;
+  --dd-compact-radius: 14px;
+}
+
+.dd-compact-ui main { min-width: 0; }
+.dd-compact-ui .dd-page-shell { padding-top: 14px !important; padding-bottom: 88px !important; }
+.dd-compact-ui .dd-card { border-radius: var(--dd-compact-radius); }
+
+@media (max-width: 640px) {
+  .dd-compact-ui { font-size: 13px; }
+  .dd-compact-ui .dd-page-shell {
+    padding: 10px 8px 84px !important;
+  }
+  .dd-compact-ui .dd-page-shell > div,
+  .dd-compact-ui .dd-page-shell > section {
+    width: 100% !important;
+  }
+  .dd-compact-ui .dd-card {
+    border-radius: 12px !important;
+    box-shadow: 0 5px 16px rgba(0,0,0,.16);
+  }
+  .dd-compact-ui main {
+    padding-bottom: max(82px, env(safe-area-inset-bottom) + 68px) !important;
+  }
+  .dd-compact-ui [class~="p-10"] { padding: 12px !important; }
+  .dd-compact-ui [class~="p-8"] { padding: 11px !important; }
+  .dd-compact-ui [class~="p-7"] { padding: 10px !important; }
+  .dd-compact-ui [class~="p-6"] { padding: 10px !important; }
+  .dd-compact-ui [class~="p-5"] { padding: 9px !important; }
+  .dd-compact-ui [class~="p-4"] { padding: 8px !important; }
+  .dd-compact-ui [class~="gap-8"],
+  .dd-compact-ui [class~="gap-7"],
+  .dd-compact-ui [class~="gap-6"] { gap: 10px !important; }
+  .dd-compact-ui [class~="gap-5"],
+  .dd-compact-ui [class~="gap-4"] { gap: 8px !important; }
+  .dd-compact-ui [class~="space-y-8"] > :not([hidden]) ~ :not([hidden]),
+  .dd-compact-ui [class~="space-y-7"] > :not([hidden]) ~ :not([hidden]),
+  .dd-compact-ui [class~="space-y-6"] > :not([hidden]) ~ :not([hidden]) { margin-top: 10px !important; }
+  .dd-compact-ui [class~="space-y-5"] > :not([hidden]) ~ :not([hidden]),
+  .dd-compact-ui [class~="space-y-4"] > :not([hidden]) ~ :not([hidden]) { margin-top: 8px !important; }
+  .dd-compact-ui h1 { font-size: clamp(1.12rem, 5vw, 1.55rem); line-height: 1.18; }
+  .dd-compact-ui h2 { font-size: clamp(1rem, 4.5vw, 1.28rem); line-height: 1.2; }
+  .dd-compact-ui h3 { font-size: clamp(.92rem, 4vw, 1.08rem); line-height: 1.25; }
+  .dd-compact-ui p { line-height: 1.45; }
+  .dd-compact-ui input,
+  .dd-compact-ui select,
+  .dd-compact-ui textarea { font-size: 13px !important; }
+  .dd-compact-ui table { font-size: 11px; }
+  .dd-compact-ui th,
+  .dd-compact-ui td { padding: 7px 6px !important; }
+  .dd-compact-ui img { max-height: 42vh; object-fit: contain; }
+}
+
+@media (max-width: 380px) {
+  .dd-compact-ui .dd-page-shell { padding-left: 6px !important; padding-right: 6px !important; }
+  .dd-compact-ui { font-size: 12.5px; }
+  .dd-compact-ui button,
+  .dd-compact-ui [role="button"] { min-height: 42px; }
+}
+
+@media (min-width: 641px) {
+  .dd-compact-ui .dd-page-shell { padding-top: 18px !important; padding-bottom: 32px !important; }
+}
