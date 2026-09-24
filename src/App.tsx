@@ -102,7 +102,7 @@ const AppContent: React.FC = () => {
 
   React.useEffect(() => {
     try {
-      const APP_VERSION = '2026.8.07-v5.8-notifications';
+      const APP_VERSION = '2026.9.24-v6.0-ussd-native-ui';
       const storedVersion = safeStorage.getItem('ddworld_platform_app_version');
       if (storedVersion !== APP_VERSION) { safeStorage.setItem('ddworld_platform_app_version', APP_VERSION); setUpdateNotice('DD WORLD Official App updated.'); setTimeout(() => setUpdateNotice(null), 3500); }
     } catch (e) { console.warn('App version check sync error:', e); }
