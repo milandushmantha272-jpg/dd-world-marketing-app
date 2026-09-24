@@ -34,7 +34,9 @@
     "react-dom": "^19.0.1",
     "react-is": "^19.2.8",
     "recharts": "^3.10.1",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "@capacitor/local-notifications": "^8.0.0",
+    "@capacitor/push-notifications": "^8.0.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
