@@ -12,9 +12,9 @@ class NativeUssdBridgeTest {
     }
 
     @Test
-    fun agentActivationCodesUseNativeTelephonyRoute() {
-        assertTrue(UssdActivationRouting.shouldUseNativeTelephony("#616#"))
-        assertTrue(UssdActivationRouting.shouldUseNativeTelephony("#828#"))
-        assertFalse(UssdActivationRouting.shouldUseNativeTelephony("*123#"))
+    fun agentActivationCodesUseDirectUssdRequestRoute() {
+        assertTrue(UssdActivationRouting.transportFor("#616#") == UssdActivationRouting.Transport.DIRECT_USSD_REQUEST)
+        assertTrue(UssdActivationRouting.transportFor("#828#") == UssdActivationRouting.Transport.DIRECT_USSD_REQUEST)
+        assertTrue(UssdActivationRouting.transportFor("*123#") == UssdActivationRouting.Transport.DIRECT_USSD_REQUEST)
     }
 }
