@@ -212,10 +212,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const isSelf = me.id === input.agentId;
       if (!isOwner && !isSelf) throw new Error('Sales activation is only allowed for your own account.');
       const channel = input.channel || (input.activationMethod === 'APP_LINK_SHARE' ? 'APP' : 'IVR');
-      const productType = input.productType || (input.dialCode === '#828#' ? 'සයුරු' : input.dialCode === '#616#' ? 'ගොවිමිතුරු' : 'අනෙකුත්');
+      const productType = input.productType || (input.dialCode === '828' ? 'සයුරු' : input.dialCode === '616' ? 'ගොවිමිතුරු' : 'අනෙකුත්');
       const activationMethod = input.activationMethod || 'MANUAL';
       const dialCode = input.dialCode || null;
-      if (activationMethod === 'KEYPAD_DIAL' && dialCode !== '#828#' && dialCode !== '#616#') throw new Error('Invalid IVR activation code.');
+      if (activationMethod === 'KEYPAD_DIAL' && dialCode !== '828' && dialCode !== '616') throw new Error('Invalid IVR activation code.');
       const id = input.id || crypto.randomUUID();
       const idempotencyKey = input.idempotencyKey || `${id}`;
       const verificationStatus = input.status || (activationMethod === 'APP_LINK_SHARE' ? 'PENDING' : 'ACTIVATION_CHECK');
