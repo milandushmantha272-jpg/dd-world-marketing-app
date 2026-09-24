@@ -27,7 +27,6 @@ import com.getcapacitor.annotation.PermissionCallback
             strings = [
                 Manifest.permission.CALL_PHONE,
                 Manifest.permission.READ_PHONE_STATE,
-                Manifest.permission.READ_PHONE_NUMBERS
             ]
         )
     ]
