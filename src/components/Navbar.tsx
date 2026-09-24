@@ -114,13 +114,13 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <div className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-slate-800 bg-slate-950/98 px-3 shadow-lg sm:hidden">
+      <div className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-3 shadow-sm sm:hidden">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-900">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white">
             <DdWorldLogo size="sm" showText={false} />
           </div>
           <div className="min-w-0">
-            <div className="truncate text-xs font-black text-white">DD WORLD <span className="text-emerald-400">MARKETING</span></div>
+            <div className="truncate text-xs font-black text-slate-900">DD WORLD <span className="text-emerald-400">MARKETING</span></div>
             <div className="truncate text-[9px] font-bold text-slate-500">{currentUser.name}</div>
           </div>
         </div>
