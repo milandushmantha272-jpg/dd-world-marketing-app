@@ -258,16 +258,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try { await signOutSupabase(); } catch (error) { console.warn('Supabase sign-out warning:', error); }
   };
 
-  if (authError && !currentUser) {
-    return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#000', color: '#fff', fontFamily: 'sans-serif' }}>
-      <div style={{ width: '100%', maxWidth: 560, padding: 28, border: '1px solid #444', borderRadius: 16, background: '#111', boxSizing: 'border-box' }}>
-        <h2 style={{ marginTop: 0 }}>DD WORLD — Login / Supabase Error</h2>
-        <p style={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{authError}</p>
-        <button type="button" onClick={() => void retryAuth()} disabled={authChecking} style={{ marginTop: 12, padding: '12px 20px', borderRadius: 10, border: 0, cursor: authChecking ? 'wait' : 'pointer' }}>{authChecking ? 'Retrying…' : 'Retry'}</button>
-      </div>
-    </div>;
-  }
-
   return <AuthContext.Provider value={{ currentUser, authError, retryAuth, login, loginAsUser, loginWithoutCredentials, logout }}>{children}</AuthContext.Provider>;
 };
 
