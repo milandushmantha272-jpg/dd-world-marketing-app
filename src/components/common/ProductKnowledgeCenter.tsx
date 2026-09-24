@@ -35,10 +35,10 @@ const PRODUCT_QUIZZES: Record<string, QuizQuestion[]> = {
   sayuru_ivr: [
     {
       id: 1,
-      question: 'සයුරු (#828#) IVR සේවාව සක්‍රීය කිරීමට පාරිභෝගිකයා ඩයල් කළ යුතු අංකය කුමක්ද?',
-      options: ['#616#', '#828#', '#111#', '#777#'],
+      question: 'සයුරු (828) IVR සේවාව සක්‍රීය කිරීමට පාරිභෝගිකයා ඩයල් කළ යුතු අංකය කුමක්ද?',
+      options: ['616', '828', '#111#', '#777#'],
       correctAnswer: 1,
-      explanation: 'සයුරු සේවාව Dialog ජාලය ඔස්සේ #828# ඩයල් කිරීමෙන් හෝ 828 අමතා සක්‍රීය කරගත හැක.'
+      explanation: 'සයුරු සේවාව Dialog ජාලය ඔස්සේ 828 ඩයල් කිරීමෙන් හෝ 828 අමතා සක්‍රීය කරගත හැක.'
     },
     {
       id: 2,
@@ -74,10 +74,10 @@ const PRODUCT_QUIZZES: Record<string, QuizQuestion[]> = {
   govimithuru_ivr: [
     {
       id: 1,
-      question: 'ගොවිමිතුරු (#616#) සේවාව සක්‍රීය කරන්නේ කෙසේද?',
-      options: ['#616# ඩයල් කිරීමෙන්', '#828# ඩයල් කිරීමෙන්', '119 අමතා', '#123# ඩයල් කර'],
+      question: 'ගොවිමිතුරු (616) සේවාව සක්‍රීය කරන්නේ කෙසේද?',
+      options: ['616 ඩයල් කිරීමෙන්', '828 ඩයල් කිරීමෙන්', '119 අමතා', '#123# ඩයල් කර'],
       correctAnswer: 0,
-      explanation: 'ඕනෑම Dialog සිම් පතකින් #616# ඩයල් කර තමන්ගේ බෝගය තෝරා සක්‍රීය කරගත හැක.'
+      explanation: 'ඕනෑම Dialog සිම් පතකින් 616 ඩයල් කර තමන්ගේ බෝගය තෝරා සක්‍රීය කරගත හැක.'
     },
     {
       id: 2,
@@ -195,7 +195,7 @@ export const ProductKnowledgeCenter: React.FC = () => {
               📚 OFFICIAL PRODUCT KNOWLEDGE &amp; TRAINING CENTER
             </span>
             <h2 className="text-xl sm:text-2xl font-black text-white mt-2">
-              ගොවිමිතුරු (#616#) සහ සයුරු (#828#) නිෂ්පාදන අධ්‍යාපනික හා විකුණුම් මධ්‍යස්ථානය
+              ගොවිමිතුරු (616) සහ සයුරු (828) නිෂ්පාදන අධ්‍යාපනික හා විකුණුම් මධ්‍යස්ථානය
             </h2>
             <p className="text-xs text-slate-300 mt-1 max-w-2xl">
               DD WORLD නිලධාරීන්ගේ නිෂ්පාදන දැනුම ඉහළ නැංවීම, පාරිභෝගික සේවාවන් පැහැදිලි කිරීම, විකුණුම් තාක්ෂණයන් ඉගෙනීම සහ මාර්ගගත ඇගයීම් පරීක්ෂණ (Quizzes).
@@ -250,11 +250,11 @@ export const ProductKnowledgeCenter: React.FC = () => {
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              IVR #616#
+              IVR 616
             </span>
             <Phone className="w-4 h-4 text-emerald-400" />
           </div>
-          <h3 className="text-sm font-black text-emerald-200">ගොවිමිතුරු (#616#) IVR</h3>
+          <h3 className="text-sm font-black text-emerald-200">ගොවිමිතුරු (616) IVR</h3>
           <p className="text-[11px] text-slate-400">කෘෂිකාර්මික හඬ පණිවිඩ සේවාව</p>
         </button>
 
@@ -286,11 +286,11 @@ export const ProductKnowledgeCenter: React.FC = () => {
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
-              IVR #828#
+              IVR 828
             </span>
             <Phone className="w-4 h-4 text-blue-400" />
           </div>
-          <h3 className="text-sm font-black text-blue-200">සයුරු (#828#) IVR</h3>
+          <h3 className="text-sm font-black text-blue-200">සයුරු (828) IVR</h3>
           <p className="text-[11px] text-slate-400">ධීවර කාලගුණ හා ආරක්ෂිත සේවාව</p>
         </button>
 
@@ -322,9 +322,9 @@ export const ProductKnowledgeCenter: React.FC = () => {
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h3 className="text-base font-black text-white flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-amber-400" />
-                  {activeProd === 'govimithuru_ivr' && '🌾 ගොවිමිතුරු (#616#) IVR - සේවා විස්තරය & ප්‍රයෝජන'}
+                  {activeProd === 'govimithuru_ivr' && '🌾 ගොවිමිතුරු (616) IVR - සේවා විස්තරය & ප්‍රයෝජන'}
                   {activeProd === 'govimithuru_app' && '📱 ගොවිමිතුරු Mobile App - ස්මාර්ට් කෘෂි ඇප්ලිකේෂනය'}
-                  {activeProd === 'sayuru_ivr' && '🌊 සයුරු (#828#) IVR - ධීවර කාලගුණ හා ජීවිතාරක්ෂක සේවාව'}
+                  {activeProd === 'sayuru_ivr' && '🌊 සයුරු (828) IVR - ධීවර කාලගුණ හා ජීවිතාරක්ෂක සේවාව'}
                   {activeProd === 'sayuru_app' && '⚓ සයුරු Mobile App - GPS කාලගුණ සිතියම'}
                 </h3>
                 <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
@@ -338,7 +338,7 @@ export const ProductKnowledgeCenter: React.FC = () => {
                   <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
                     <h4 className="font-bold text-emerald-300 text-sm">1. සේවා හැඳින්වීම (Product Description)</h4>
                     <p className="leading-relaxed text-slate-300">
-                      ගොවිමිතුරු (#616#) යනු ශ්‍රී ලංකා කෘෂිකර්ම දෙපාර්තමේන්තුව සහ Dialog Axiata එක්ව ක්‍රියාත්මක කරන දිවයිනේ විශාලතම ඩිජිටල් කෘෂිකාර්මික උපදේශන සේවාවයි. වී, බඩඉරිඟු, තේ, කුරුඳු, එළවළු සහ පලතුරු ඇතුළු බෝග 30කට අධික ප්‍රමාණයකට අදාළ බෝග වගාව, පොහොර යෙදීම, කෘමි හා රෝග පාලනය සහ අස්වනු නෙලීම දක්වා උපදෙස් හඬ පණිවිඩ (Voice Messages) හා SMS මඟින් ලබාදේ.
+                      ගොවිමිතුරු (616) යනු ශ්‍රී ලංකා කෘෂිකර්ම දෙපාර්තමේන්තුව සහ Dialog Axiata එක්ව ක්‍රියාත්මක කරන දිවයිනේ විශාලතම ඩිජිටල් කෘෂිකාර්මික උපදේශන සේවාවයි. වී, බඩඉරිඟු, තේ, කුරුඳු, එළවළු සහ පලතුරු ඇතුළු බෝග 30කට අධික ප්‍රමාණයකට අදාළ බෝග වගාව, පොහොර යෙදීම, කෘමි හා රෝග පාලනය සහ අස්වනු නෙලීම දක්වා උපදෙස් හඬ පණිවිඩ (Voice Messages) හා SMS මඟින් ලබාදේ.
                     </p>
                   </div>
 
@@ -355,7 +355,7 @@ export const ProductKnowledgeCenter: React.FC = () => {
                   <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
                     <h4 className="font-bold text-cyan-300 text-sm">3. සක්‍රීය කිරීමේ පටිපාටිය (Activation Procedure)</h4>
                     <div className="p-3 rounded-xl bg-slate-900 border border-cyan-500/30 text-cyan-200 font-mono text-[11px] space-y-1">
-                      <p><strong>පියවර 1:</strong> Dialog දුරකථනයෙන් <strong>#616#</strong> ඩයල් කරන්න.</p>
+                      <p><strong>පියවර 1:</strong> Dialog දුරකථනයෙන් <strong>616</strong> ඩයල් කරන්න.</p>
                       <p><strong>පියවර 2:</strong> කැමති භාෂාව තෝරන්න (සිංහල / දෙමළ).</p>
                       <p><strong>පියවර 3:</strong> තමන් වගා කරන බෝගය තෝරා ලියාපදිංචි වන්න.</p>
                     </div>
@@ -364,7 +364,7 @@ export const ProductKnowledgeCenter: React.FC = () => {
                   <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
                     <h4 className="font-bold text-purple-300 text-sm">4. විකුණුම්කරුගේ මඟපෙන්වීම (Sales Pitching Guide)</h4>
                     <p className="leading-relaxed">
-                      ගොවි මහතා හමුවූ විට සෘජුවම ඔහුගේ දුරකථනයෙන් #616# ඩයල් කර පෙන්වන්න. "අයියා, දිනකට රුපියල් 2යි යන්නේ. තේ කෝප්පයක මිලෙන් මුළු මාසයක්ම වගාව ආරක්ෂා කරගන්න පුළුවන්" යනුවෙන් පැහැදිලි කරන්න.
+                      ගොවි මහතා හමුවූ විට සෘජුවම ඔහුගේ දුරකථනයෙන් 616 ඩයල් කර පෙන්වන්න. "අයියා, දිනකට රුපියල් 2යි යන්නේ. තේ කෝප්පයක මිලෙන් මුළු මාසයක්ම වගාව ආරක්ෂා කරගන්න පුළුවන්" යනුවෙන් පැහැදිලි කරන්න.
                     </p>
                   </div>
                 </div>
@@ -390,14 +390,14 @@ export const ProductKnowledgeCenter: React.FC = () => {
               {activeProd === 'sayuru_ivr' && (
                 <div className="space-y-4 text-xs text-slate-300">
                   <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-                    <h4 className="font-bold text-blue-300 text-sm">1. සයුරු (#828#) සේවා විස්තරය</h4>
+                    <h4 className="font-bold text-blue-300 text-sm">1. සයුරු (828) සේවා විස්තරය</h4>
                     <p className="leading-relaxed">
-                      සයුරු (#828#) යනු ශ්‍රී ලාංකික ධීවර ප්‍රජාව මුහුදේදී මුහුණදෙන කාලගුණික අනතුරු හා රළ තත්ත්වයන් පිළිබඳ තොරතුරු දිනපතා උදෑසන හා සවස හඬ පණිවිඩ සහ SMS මඟින් සපයන එකම ජීවිතාරක්ෂක සේවාවයි.
+                      සයුරු (828) යනු ශ්‍රී ලාංකික ධීවර ප්‍රජාව මුහුදේදී මුහුණදෙන කාලගුණික අනතුරු හා රළ තත්ත්වයන් පිළිබඳ තොරතුරු දිනපතා උදෑසන හා සවස හඬ පණිවිඩ සහ SMS මඟින් සපයන එකම ජීවිතාරක්ෂක සේවාවයි.
                     </p>
                   </div>
                   <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
                     <h4 className="font-bold text-amber-300 text-sm">2. සක්‍රීය කිරීමට (Activation)</h4>
-                    <p className="font-mono text-cyan-300">#828# ඩයල් කර ධීවර කලාපය (උදා: බස්නාහිර, දකුණ, නැගෙනහිර) තෝරා ගන්න.</p>
+                    <p className="font-mono text-cyan-300">828 ඩයල් කර ධීවර කලාපය (උදා: බස්නාහිර, දකුණ, නැගෙනහිර) තෝරා ගන්න.</p>
                   </div>
                 </div>
               )}
@@ -483,7 +483,7 @@ export const ProductKnowledgeCenter: React.FC = () => {
               <div className="space-y-3 text-xs">
                 <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
                   <div className="flex items-center gap-2 font-bold text-white">
-                    <Play className="w-4 h-4 text-rose-400 fill-rose-400" /> #616# ගොවිමිතුරු සක්‍රීය කරන වීඩියෝව
+                    <Play className="w-4 h-4 text-rose-400 fill-rose-400" /> 616 ගොවිමිතුරු සක්‍රීය කරන වීඩියෝව
                   </div>
                   <p className="text-[11px] text-slate-400">පාරිභෝගිකයා ඉදිරියේ විනාඩි 1න් සක්‍රීය කරන ආකාරය.</p>
                   <a
@@ -498,7 +498,7 @@ export const ProductKnowledgeCenter: React.FC = () => {
 
                 <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
                   <div className="flex items-center gap-2 font-bold text-white">
-                    <Play className="w-4 h-4 text-rose-400 fill-rose-400" /> #828# සයුරු ධීවර සේවා නිරූපණය
+                    <Play className="w-4 h-4 text-rose-400 fill-rose-400" /> 828 සයුරු ධීවර සේවා නිරූපණය
                   </div>
                   <p className="text-[11px] text-slate-400">ධීවරයන්ට සයුරු සේවාව විකුණන ආකාරය.</p>
                   <a
@@ -542,9 +542,9 @@ export const ProductKnowledgeCenter: React.FC = () => {
                 PRODUCT KNOWLEDGE QUIZ
               </span>
               <h3 className="text-lg font-black text-white mt-1">
-                {activeProd === 'govimithuru_ivr' && 'ගොවිමිතුරු (#616#) IVR - දැනුම මැනීමේ පරීක්ෂණය'}
+                {activeProd === 'govimithuru_ivr' && 'ගොවිමිතුරු (616) IVR - දැනුම මැනීමේ පරීක්ෂණය'}
                 {activeProd === 'govimithuru_app' && 'ගොවිමිතුරු App - දැනුම මැනීමේ පරීක්ෂණය'}
-                {activeProd === 'sayuru_ivr' && 'සයුරු (#828#) IVR - දැනුම මැනීමේ පරීක්ෂණය'}
+                {activeProd === 'sayuru_ivr' && 'සයුරු (828) IVR - දැනුම මැනීමේ පරීක්ෂණය'}
                 {activeProd === 'sayuru_app' && 'සයුරු App - දැනුම මැනීමේ පරීක්ෂණය'}
               </h3>
             </div>
