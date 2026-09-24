@@ -232,7 +232,7 @@ export const TeamLeaderDashboard: React.FC = () => {
 
   const handleSaleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const code = productType === 'ගොවිමිතුරු' ? '#616#' : productType === 'සයුරු' ? '#828#' : 'Other';
+    const code = productType === 'ගොවිමිතුරු' ? '616' : productType === 'සයුරු' ? '828' : 'Other';
     const parsedQty = parseInt(quantity, 10);
     const finalQty = !isNaN(parsedQty) && parsedQty > 0 ? parsedQty : 1;
 
@@ -384,7 +384,7 @@ export const TeamLeaderDashboard: React.FC = () => {
           }`}
         >
           <Phone className="w-4 h-4 text-amber-400" />
-          <span>📞 #828# / #616# Keypad &amp; App</span>
+          <span>📞 828 / 616 Keypad &amp; App</span>
         </button>
 
         <button
@@ -734,8 +734,8 @@ export const TeamLeaderDashboard: React.FC = () => {
                   onChange={(e) => setProductType(e.target.value as any)}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 font-bold focus:outline-none focus:border-purple-500"
                 >
-                  <option value="ගොවිමිතුරු">ගොවිමිතුරු (#616#)</option>
-                  <option value="සයුරු">සයුරු (#828#)</option>
+                  <option value="ගොවිමිතුරු">ගොවිමිතුරු (616)</option>
+                  <option value="සයුරු">සයුරු (828)</option>
                   <option value="අනෙකුත්">අනෙකුත්</option>
                 </select>
               </div>
