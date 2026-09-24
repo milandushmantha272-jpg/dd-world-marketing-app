@@ -440,7 +440,7 @@ export const DigitalEmployeeIdCard: React.FC<DigitalEmployeeIdCardProps> = ({ us
               </div>
 
               <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-[9px] text-slate-400 text-left space-y-1">
-                <p className="text-amber-400 font-bold">• Authorized Field Partner for Dialog Axiata PLC — Govimithuru #616# &amp; Sayuru #828# Services.</p>
+                <p className="text-amber-400 font-bold">• Authorized Field Partner for Dialog Axiata PLC — Govimithuru 616 &amp; Sayuru 828 Services.</p>
                 <p>• This Digital ID is official property of DD WORLD MARKETING.</p>
                 <p>• Authorized for official field visits, merchant onboarding, and customer verification.</p>
                 <div className="pt-1 border-t border-slate-800/80 text-[8.5px] text-slate-400 space-y-0.5">
