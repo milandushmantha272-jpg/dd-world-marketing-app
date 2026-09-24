@@ -3,8 +3,8 @@ import { CheckCircle2, Info, Loader2, Radio, RotateCcw, Smartphone } from 'lucid
 import { dialNativeUssd } from '../../services/nativeUssdBridge';
 
 const QUICK_USSD = [
-  { code: '#616#', title: 'Govimithuru', subtitle: 'Service Activation', className: 'dd-ussd-red' },
-  { code: '#828#', title: 'Sayuru', subtitle: 'Service Activation', className: 'dd-ussd-blue' },
+  { code: '616', title: 'Govimithuru', subtitle: 'Service Activation', className: 'dd-ussd-red' },
+  { code: '828', title: 'Sayuru', subtitle: 'Service Activation', className: 'dd-ussd-blue' },
 ] as const;
 
 type StatusTone = 'success' | 'started' | 'error';
