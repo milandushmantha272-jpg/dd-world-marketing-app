@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
+import android.util.Log
 import androidx.core.content.ContextCompat
 import com.getcapacitor.JSObject
 import com.getcapacitor.PermissionState
@@ -90,12 +91,17 @@ class NativeUssdBridge : Plugin() {
                     request: String,
                     failureCode: Int
                 ) {
+                    // Some Android/carrier combinations reject sendUssdRequest() even though
+                    // the normal phone telephony path can execute the same USSD code. Fall back
+                    // to ACTION_CALL using an encoded tel URI so # is not treated as a URI fragment.
+                    if (startUssdViaPhoneTelephony(call, code)) return
+
                     call.resolve(JSObject().apply {
                         put("status", "FAILED")
                         put("failureCode", failureCode)
                         put("message", when (failureCode) {
                             TelephonyManager.USSD_RETURN_FAILURE ->
-                                "Dialog network failed to complete the USSD request."
+                                "Dialog network failed to complete the USSD request and the phone telephony fallback could not start."
                             TelephonyManager.USSD_ERROR_SERVICE_UNAVAIL ->
                                 "USSD service is unavailable on the selected Dialog SIM."
                             else ->
@@ -157,6 +163,32 @@ class NativeUssdBridge : Plugin() {
 
         return activity.getSystemService(TelephonyManager::class.java)
             ?.createForSubscriptionId(selectedId)
+    }
+
+    private fun startUssdViaPhoneTelephony(call: PluginCall, code: String): Boolean {
+        if (ContextCompat.checkSelfPermission(
+                activity,
+                Manifest.permission.CALL_PHONE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) return false
+
+        return try {
+            val encoded = Uri.encode(code)
+            activity.startActivity(
+                Intent(
+                    Intent.ACTION_CALL,
+                    Uri.parse("tel:$encoded")
+                )
+            )
+            call.resolve(JSObject().apply {
+                put("status", "DIALER_STARTED")
+                put("message", "USSD request handed to Android phone telephony fallback.")
+            })
+            true
+        } catch (error: Exception) {
+            Log.w("NativeUssdBridge", "USSD phone telephony fallback failed", error)
+            false
+        }
     }
 
     private fun callPhone(call: PluginCall, number: String) {
