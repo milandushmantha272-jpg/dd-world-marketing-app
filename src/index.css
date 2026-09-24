@@ -327,7 +327,7 @@ table { width: 100%; max-width: 100%; }
   box-shadow: 0 10px 26px rgba(20, 65, 120, .16);
 }
 
-.dd-compact-ui .dd-agent-hero .text-white {
+.dd-compact-ui .dd-agent-hero [class*="text-white"] {
   color: #fff !important;
 }
 
