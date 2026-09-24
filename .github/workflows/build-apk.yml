@@ -130,3 +130,4 @@ jobs:
           if-no-files-found: error
 
 # Fresh APK build trigger
+# v6.0 native USSD + compact mobile UI verification
