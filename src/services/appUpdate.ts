@@ -14,7 +14,6 @@ type ReleaseMetadata = {
   body?: unknown;
   html_url?: unknown;
   assets?: Array<{ browser_download_url?: unknown; name?: unknown }>;
-  minimum_version_code?: unknown;
 };
 
 export const STABLE_DOWNLOAD_URL =
@@ -31,32 +30,57 @@ export const getInstalledAppVersion = (): InstalledAppVersion => ({
   code: APP_VERSION_CODE,
 });
 
-const parseVersionCode = (tag: unknown): number | null => {
-  if (typeof tag !== 'string') return null;
-  const match = tag.match(/(?:v|release-)?(\d+)(?:\.(\d+))?(?:\.(\d+))?/i);
-  if (!match) return null;
-  const major = Number(match[1]);
-  const minor = Number(match[2] || 0);
-  const patch = Number(match[3] || 0);
-  if (![major, minor, patch].every(Number.isSafeInteger)) return null;
-  return major * 1_000_000 + minor * 1_000 + patch;
-};
-
-const toLatestCode = (metadata: ReleaseMetadata): number | null => {
-  const numericAsset = metadata.assets?.find((asset) =>
-    typeof asset.name === 'string' && /version[-_]?code/i.test(asset.name),
-  );
-  if (numericAsset && typeof numericAsset.name === 'string') {
-    const match = numericAsset.name.match(/(\d+)/);
-    if (match) return Number(match[1]);
-  }
-  return parseVersionCode(metadata.tag_name);
-};
-
 export const compareVersionCodes = (installedCode: number, latestCode: number): boolean =>
   Number.isSafeInteger(installedCode) &&
   Number.isSafeInteger(latestCode) &&
   latestCode > installedCode;
+
+const parseReleaseTag = (tag: unknown): { version: string; code: number } | null => {
+  if (typeof tag !== 'string') return null;
+
+  // Release tags must carry the Android versionCode explicitly:
+  // v<version>-build<versionCode>, e.g. v1.1.1-build3.
+  const match = tag.match(/^v?(\d+\.\d+\.\d+)-build(\d+)$/i);
+  if (!match) return null;
+
+  const code = Number(match[4]);
+  if (!Number.isSafeInteger(code) || code < 1) return null;
+
+  return { version: match[1], code };
+};
+
+const parseMinimumVersionCode = (body: unknown): number | null => {
+  if (typeof body !== 'string') return null;
+  const match = body.match(/^minimum_version_code\s*:\s*(\d+)\s*$/im);
+  if (!match) return null;
+
+  const code = Number(match[1]);
+  return Number.isSafeInteger(code) && code >= 1 ? code : null;
+};
+
+export const parseReleaseMetadata = (
+  metadata: ReleaseMetadata,
+  installedCode: number,
+): AppUpdateInfo | null => {
+  const parsed = parseReleaseTag(metadata.tag_name);
+  if (!parsed || !compareVersionCodes(installedCode, parsed.code)) return null;
+
+  const downloadUrl =
+    typeof metadata.html_url === 'string' && metadata.html_url
+      ? metadata.html_url
+      : STABLE_DOWNLOAD_URL;
+  const releaseNotes = typeof metadata.body === 'string' ? metadata.body.trim() : '';
+  const minimumVersionCode = parseMinimumVersionCode(metadata.body);
+
+  return {
+    available: true,
+    latestVersion: parsed.version,
+    latestCode: parsed.code,
+    downloadUrl,
+    releaseNotes: releaseNotes || undefined,
+    mandatory: minimumVersionCode !== null && installedCode < minimumVersionCode,
+  };
+};
 
 export const checkForAppUpdate = async (): Promise<AppUpdateInfo | null> => {
   const installed = getInstalledAppVersion();
@@ -72,30 +96,7 @@ export const checkForAppUpdate = async (): Promise<AppUpdateInfo | null> => {
     if (!response.ok) return null;
 
     const metadata = (await response.json()) as ReleaseMetadata;
-    const latestCode = toLatestCode(metadata);
-    if (latestCode === null || !compareVersionCodes(installed.code, latestCode)) return null;
-
-    const latestVersion =
-      typeof metadata.tag_name === 'string' ? metadata.tag_name.replace(/^v/i, '') : 'New version';
-    const releaseNotes = typeof metadata.body === 'string' ? metadata.body.trim() : undefined;
-    const downloadUrl =
-      typeof metadata.html_url === 'string' && metadata.html_url
-        ? metadata.html_url
-        : STABLE_DOWNLOAD_URL;
-
-    const minimumVersionCode =
-      typeof metadata.minimum_version_code === 'number' && Number.isSafeInteger(metadata.minimum_version_code)
-        ? metadata.minimum_version_code
-        : null;
-
-    return {
-      available: true,
-      latestVersion,
-      latestCode,
-      downloadUrl,
-      releaseNotes: releaseNotes || undefined,
-      mandatory: minimumVersionCode !== null && installed.code < minimumVersionCode,
-    };
+    return parseReleaseMetadata(metadata, installed.code);
   } catch {
     return null;
   } finally {
