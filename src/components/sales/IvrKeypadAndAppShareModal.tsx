@@ -46,7 +46,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
   const [activeMode, setActiveMode] = useState<'keypad' | 'app_share'>('keypad');
 
   // Keypad state
-  const [dialDisplay, setDialDisplay] = useState<string>('#616#');
+  const [dialDisplay, setDialDisplay] = useState<string>('616');
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
   const [isDialing, setIsDialing] = useState<boolean>(false);
@@ -76,7 +76,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
     setDialDisplay('');
   };
 
-  const handleQuickDial = (code: '#616#' | '#828#') => {
+  const handleQuickDial = (code: '616' | '828') => {
     setDialDisplay(code);
   };
 
@@ -98,9 +98,9 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
       ? 'සයුරු'
       : 'අනෙකුත්';
     const productName = is616
-      ? 'ගොවිමිතුරු (#616#) [IVR Keypad]'
+      ? 'ගොවිමිතුරු (616) [IVR Keypad]'
       : is828
-      ? 'සයුරු (#828#) [IVR Keypad]'
+      ? 'සයුරු (828) [IVR Keypad]'
       : `IVR Call (${dialDisplay})`;
 
     // Capture location with high accuracy
@@ -140,15 +140,15 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
     lng: number | undefined,
     district: string
   ) => {
-    const is616 = productName.includes('#616#');
-    const is828 = productName.includes('#828#');
+    const is616 = productName.includes('616');
+    const is828 = productName.includes('828');
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
     // 1. Execute the native request first. Do not report a successful sale when
     // Android or the carrier has rejected the USSD request.
     if (is616 || is828) {
       try {
-        const result = await dialNativeUssd(dialDisplay as '#616#' | '#828#');
+        const result = await dialNativeUssd(dialDisplay as '616' | '828');
         if (result.status !== 'SUCCESS') {
           setIsDialing(false);
           setDialSuccess(`❌ ${result.message || 'USSD request failed.'}`);
@@ -332,10 +332,10 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
             <span>Dialog Authorized Sales Engine</span>
           </div>
           <h2 className="text-xl font-black text-white mt-1">
-            📞 PHONE KEYPAD — #616# / #828#
+            📞 PHONE KEYPAD — 616 / 828
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            #616# / #828# keypad එකෙන් තෝරාගෙන Dial කරන්න. පසුව App Link Share කරන්න.
+            616 / 828 keypad එකෙන් තෝරාගෙන Dial කරන්න. පසුව App Link Share කරන්න.
           </p>
         </div>
 
@@ -367,7 +367,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
         </div>
 
         {/* ------------------------------------------------------------- */}
-        {/* MODE 1: PHONE KEYPAD (#616# & #828# DIALER) */}
+        {/* MODE 1: PHONE KEYPAD (616 & 828 DIALER) */}
         {/* ------------------------------------------------------------- */}
         {activeMode === 'keypad' && (
           <div className="space-y-4">
@@ -383,34 +383,34 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickDial('#616#')}
+                onClick={() => handleQuickDial('616')}
                 className={`p-3 rounded-2xl border transition-all text-left flex items-center justify-between ${
-                  dialDisplay === '#616#'
+                  dialDisplay === '616'
                     ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-2 ring-emerald-500/30'
                     : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 text-slate-300'
                 }`}
               >
                 <div>
-                  <div className="text-xs font-black">🌾 ගොවිමිතුරු (#616#)</div>
+                  <div className="text-xs font-black">🌾 ගොවිමිතුරු (616)</div>
                   <div className="text-[10px] text-slate-400">Agriculture &amp; Weather IVR</div>
                 </div>
-                <span className="text-xs font-mono font-bold text-emerald-400">#616#</span>
+                <span className="text-xs font-mono font-bold text-emerald-400">616</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleQuickDial('#828#')}
+                onClick={() => handleQuickDial('828')}
                 className={`p-3 rounded-2xl border transition-all text-left flex items-center justify-between ${
-                  dialDisplay === '#828#'
+                  dialDisplay === '828'
                     ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 ring-2 ring-cyan-500/30'
                     : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 text-slate-300'
                 }`}
               >
                 <div>
-                  <div className="text-xs font-black">🌊 සයුරු (#828#)</div>
+                  <div className="text-xs font-black">🌊 සයුරු (828)</div>
                   <div className="text-[10px] text-slate-400">Fisheries &amp; Ocean IVR</div>
                 </div>
-                <span className="text-xs font-mono font-bold text-cyan-400">#828#</span>
+                <span className="text-xs font-mono font-bold text-cyan-400">828</span>
               </button>
             </div>
 
