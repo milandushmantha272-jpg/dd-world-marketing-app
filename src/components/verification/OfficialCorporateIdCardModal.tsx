@@ -45,7 +45,9 @@ export const OfficialCorporateIdCardModal: React.FC<OfficialCorporateIdCardModal
   const [idPhoto, setIdPhoto] = useState<string>(
     verification?.idPhotoUrl ||
       activeUser?.avatar ||
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+      (activeUser?.role === 'owner'
+        ? '/owner-profile.jpg'
+        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80')
   );
 
   const [idNumber, setIdNumber] = useState(
@@ -223,7 +225,7 @@ export const OfficialCorporateIdCardModal: React.FC<OfficialCorporateIdCardModal
                 <img
                   src={idPhoto}
                   alt={activeUser.name}
-                  className="w-32 h-36 object-cover rounded-2xl border-2 border-amber-400 shadow-xl"
+                  className="w-32 h-36 object-cover rounded-2xl border-2 border-amber-400 ring-2 ring-white/80 ring-offset-2 ring-offset-slate-900 shadow-xl"
                 />
 
                 {/* Upload Button Overlay */}

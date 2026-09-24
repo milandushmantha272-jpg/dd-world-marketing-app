@@ -39,7 +39,9 @@ export const PersonalProfileKycPage: React.FC = () => {
   const [idPhoto, setIdPhoto] = useState<string>(
     userVerification?.idPhotoUrl ||
       currentUser?.avatar ||
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+      (currentUser?.role === 'owner'
+        ? '/owner-profile.jpg'
+        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80')
   );
 
   const [gramaNiladhariReport, setGramaNiladhariReport] = useState<string>(
@@ -548,7 +550,7 @@ export const PersonalProfileKycPage: React.FC = () => {
                 <img
                   src={idPhoto}
                   alt="Staff Photo"
-                  className="w-24 h-24 rounded-2xl object-cover border-2 border-blue-400 shadow-xl"
+                  className="w-24 h-24 rounded-2xl object-cover border-2 border-blue-400 ring-2 ring-white/90 ring-offset-2 ring-offset-slate-900 shadow-xl"
                 />
                 <span className={`absolute -bottom-2 right-1/2 translate-x-1/2 px-2 py-0.5 rounded-full font-black text-[8px] uppercase shadow-md ${
                   userVerification?.status === 'verified'
