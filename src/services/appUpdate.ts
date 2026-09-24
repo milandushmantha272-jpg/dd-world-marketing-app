@@ -43,7 +43,7 @@ const parseReleaseTag = (tag: unknown): { version: string; code: number } | null
   const match = tag.match(/^v?(\d+\.\d+\.\d+)-build(\d+)$/i);
   if (!match) return null;
 
-  const code = Number(match[4]);
+  const code = Number(match[2]);
   if (!Number.isSafeInteger(code) || code < 1) return null;
 
   return { version: match[1], code };
