@@ -11,21 +11,33 @@ export const MainNavigation: React.FC = () => {
   const { currentUser } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const items = [
-    { label: 'Home', icon: Home, page: 'Home' },
-    { label: 'Sales', icon: BarChart3, page: 'Page 3 — Sales Activation' },
-    { label: 'Verify', icon: ShieldCheck, page: 'Page 6 — Details Submit / ID Requirements' },
-  ];
-
-  const moreItems = [
-    { label: 'Reports', icon: FileText, page: 'Page 4 — Sales Summary / Reports' },
-    { label: 'My Details', icon: User, page: 'Page 6 — Details Submit / ID Requirements' },
-    { label: 'Payment', icon: Wallet, page: 'Page 7 — Commission / Payment' },
-    { label: 'Attendance', icon: CalendarCheck, page: 'Page 2 — Attendance' },
-    { label: 'New Agent', icon: UserPlus, page: 'Page 9 — New Agent Join (Requirements)' },
-    { label: 'Month End', icon: Presentation, page: 'Page 10 — Month-End Presentation' },
-    ...(currentUser?.role === 'owner' ? [{ label: 'User Access', icon: UserCog, page: 'Owner — User & Access Control' }] : []),
-  ];
+  const role = currentUser?.role;
+  const isOwner = role === 'owner';
+  const isLeader = role === 'team_leader' || role === 'junior_team_leader';
+  const items = isOwner
+    ? [{ label: 'Home', icon: Home, page: 'Home' }, { label: 'Teams', icon: UserCog, page: 'Owner — Career & Team Management' }, { label: 'Verify', icon: ShieldCheck, page: 'Page 6 — Details Submit / ID Requirements' }]
+    : isLeader
+      ? [{ label: 'Home', icon: Home, page: 'Home' }, { label: 'Team Sales', icon: BarChart3, page: 'Page 3 — Sales Activation' }, { label: 'Team', icon: UserCog, page: 'Page 4 — Sales Summary / Reports' }]
+      : [{ label: 'Home', icon: Home, page: 'Home' }, { label: 'Sales', icon: BarChart3, page: 'Page 3 — Sales Activation' }, { label: 'Verify', icon: ShieldCheck, page: 'Page 6 — Details Submit / ID Requirements' }];
+  const moreItems = isOwner
+    ? [
+        { label: 'All Reports', icon: FileText, page: 'Page 4 — Sales Summary / Reports' },
+        { label: 'Owner Profile', icon: User, page: 'Page 6 — Details Submit / ID Requirements' },
+        { label: 'Attendance Control', icon: CalendarCheck, page: 'Page 2 — Attendance' },
+        { label: 'IVR & Activations', icon: BarChart3, page: 'Page 3 — Sales Activation' },
+        { label: 'Data History', icon: FileText, page: 'Owner — Data Retention & History' },
+        { label: 'Career & Teams', icon: UserPlus, page: 'Owner — Career & Team Management' },
+        { label: 'User Access', icon: UserCog, page: 'Owner — User & Access Control' },
+      ]
+    : [
+        { label: 'Reports', icon: FileText, page: 'Page 4 — Sales Summary / Reports' },
+        { label: 'My Details', icon: User, page: 'Page 6 — Details Submit / ID Requirements' },
+        { label: 'Payment', icon: Wallet, page: 'Page 7 — Commission / Payment' },
+        { label: 'Attendance', icon: CalendarCheck, page: 'Page 2 — Attendance' },
+        { label: 'New Agent', icon: UserPlus, page: 'Page 9 — New Agent Join (Requirements)' },
+        { label: 'Month End', icon: Presentation, page: 'Page 10 — Month-End Presentation' },
+        { label: 'USSD', icon: BarChart3, page: 'Page 11 — Real Dial Pad' },
+      ];
 
   return (
     <>
