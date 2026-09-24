@@ -117,7 +117,7 @@ const AppContent: React.FC = () => {
 
   const isPromotionPage = standalonePage === 'Promotion Items';
 
-  return <div className="min-h-screen bg-transparent text-slate-100 flex flex-col font-sans relative">
+  return <div className="dd-compact-ui min-h-screen bg-transparent flex flex-col font-sans relative">
     <Navbar />
     <NotificationCenter />
     {updateNotice && <div className="dd-header text-white text-xs font-bold py-2 px-4 text-center shadow-lg z-50">{updateNotice}</div>}
