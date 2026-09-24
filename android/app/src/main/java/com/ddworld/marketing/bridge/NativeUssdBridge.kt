@@ -213,8 +213,17 @@ class NativeUssdBridge : Plugin() {
     private fun selectDialogPhoneAccount(): PhoneAccountHandle? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return null
 
-        val selectedSubscriptionId = selectDialogSubscriptionId() ?: return null
         val telecom = activity.getSystemService(TelecomManager::class.java) ?: return null
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return try {
+                telecom.getDefaultOutgoingPhoneAccount("tel")
+            } catch (_: SecurityException) {
+                null
+            }
+        }
+
+        val selectedSubscriptionId = selectDialogSubscriptionId() ?: return null
         val telephony = activity.getSystemService(TelephonyManager::class.java) ?: return null
 
         return try {
@@ -222,7 +231,7 @@ class NativeUssdBridge : Plugin() {
                 telephony.getSubscriptionId(account) == selectedSubscriptionId
             } ?: telecom.getDefaultOutgoingPhoneAccount("tel")
         } catch (_: SecurityException) {
-            null
+            telecom.getDefaultOutgoingPhoneAccount("tel")
         }
     }
 
