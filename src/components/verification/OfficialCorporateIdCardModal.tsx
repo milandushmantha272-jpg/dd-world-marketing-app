@@ -215,7 +215,7 @@ export const OfficialCorporateIdCardModal: React.FC<OfficialCorporateIdCardModal
 
               {/* Authorized Service Subtitle */}
               <p className="text-[10px] text-slate-300 font-medium mt-1 leading-snug">
-                Dialog Govimithuru (#616#) &amp; Sayuru (#828#) Authorized Field Agency
+                Dialog Govimithuru (616) &amp; Sayuru (828) Authorized Field Agency
               </p>
             </div>
 
@@ -286,7 +286,7 @@ export const OfficialCorporateIdCardModal: React.FC<OfficialCorporateIdCardModal
             {/* 4. Company Description Statement */}
             <div className="p-3 rounded-2xl bg-blue-950/40 border border-blue-500/30 text-[10px] text-slate-300 leading-relaxed text-center space-y-1">
               <p className="font-bold text-amber-300">
-                මෙය ඩයලොග් ආයතනයේ ගොවිමිතුරු (#616#) හා සයුරු (#828#) සේවා අලෙවි කරන ආයතනයකි.
+                මෙය ඩයලොග් ආයතනයේ ගොවිමිතුරු (616) හා සයුරු (828) සේවා අලෙවි කරන ආයතනයකි.
               </p>
               <p className="text-slate-400 text-[9.5px]">
                 DD WORLD PVT LTD • Dialog Axiata Authorized Field Agency • Sri Lanka
