@@ -10,7 +10,8 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "./node_modules/.bin/tsc --noEmit"
+    "lint": "./node_modules/.bin/tsc --noEmit",
+    "test:update": "node --experimental-strip-types --test src/services/appUpdate.test.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
