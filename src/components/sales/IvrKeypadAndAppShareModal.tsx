@@ -144,7 +144,35 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
     const is828 = productName.includes('#828#');
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-    // 1. Add Sale to DataContext & Firestore
+    // 1. Execute the native request first. Do not report a successful sale when
+    // Android or the carrier has rejected the USSD request.
+    if (is616 || is828) {
+      try {
+        const result = await dialNativeUssd(dialDisplay as '#616#' | '#828#');
+        if (result.status !== 'SUCCESS') {
+          setIsDialing(false);
+          setDialSuccess(`❌ ${result.message || 'USSD request failed.'}`);
+          return;
+        }
+      } catch (error) {
+        console.error('Native USSD dial failed:', error);
+        setIsDialing(false);
+        setDialSuccess('❌ USSD run කරන්න බැරි වුණා. Phone permission සහ Dialog SIM එක පරීක්ෂා කරන්න.');
+        return;
+      }
+    } else {
+      try {
+        window.location.href = `tel:${encodeURIComponent(dialDisplay)}`;
+      } catch (error) {
+        console.error('Dialer fallback failed:', error);
+        setIsDialing(false);
+        setDialSuccess('❌ Dialer එක විවෘත කළ නොහැක.');
+        return;
+      }
+    }
+
+    // 2. Record the activation request only after the dial request completed
+    // successfully. DataContext keeps IVR activations in its verification flow.
     void addProductSale({
       agentId: currentUser.id,
       agentName: currentUser.name,
@@ -167,29 +195,9 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
       dialCode: dialDisplay,
     });
 
-    // 2. Trigger the Android-native USSD/dialer bridge. The bridge uses ACTION_CALL
-    // with explicit CALL_PHONE permission and falls back to ACTION_DIAL if needed.
-    if (is616 || is828) {
-      try {
-        const result = await dialNativeUssd(dialDisplay as '#616#' | '#828#');
-        if (result?.status === 'DIALER_FALLBACK') {
-          console.info('USSD dialer fallback:', result.message);
-        }
-      } catch (error) {
-        console.error('Native USSD dial failed:', error);
-        alert('දුරකථන Dialer එක විවෘත කළ නොහැක. Phone permission එක පරීක්ෂා කරන්න.');
-      }
-    } else {
-      try {
-        window.location.href = `tel:${encodeURIComponent(dialDisplay)}`;
-      } catch (error) {
-        console.error('Dialer fallback failed:', error);
-      }
-    }
-
     setIsDialing(false);
     setDialSuccess(
-      `✅ ${productName} ඇමතුම සාර්ථකව සම්බන්ධ විය!\nකාලය: ${timeStr} | ස්ථානය: ${district}`
+      `✅ ${productName} USSD request එක සාර්ථකව යවා response එක ලබා ගත්තා.\nකාලය: ${timeStr} | ස්ථානය: ${district}`
     );
     setTimeout(() => {
       setDialSuccess(null);
