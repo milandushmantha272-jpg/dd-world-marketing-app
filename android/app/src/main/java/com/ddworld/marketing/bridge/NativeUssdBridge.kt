@@ -1,12 +1,15 @@
 package com.ddworld.marketing.bridge
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.telecom.PhoneAccountHandle
+import android.telecom.TelecomManager
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
@@ -18,11 +21,19 @@ import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.annotation.Permission
 import com.getcapacitor.annotation.PermissionCallback
-import java.nio.charset.StandardCharsets
 
 @CapacitorPlugin(
     name = "NativeUssdBridge",
-    permissions = [Permission(alias = "phone", strings = [Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_PHONE_NUMBERS])]
+    permissions = [
+        Permission(
+            alias = "phone",
+            strings = [
+                Manifest.permission.CALL_PHONE,
+                Manifest.permission.READ_PHONE_STATE,
+                Manifest.permission.READ_PHONE_NUMBERS
+            ]
+        )
+    ]
 )
 class NativeUssdBridge : Plugin() {
     @PluginMethod
@@ -36,7 +47,56 @@ class NativeUssdBridge : Plugin() {
             return
         }
 
-        if (isUssd) sendUssd(call, raw) else callPhone(call, raw)
+        if (isUssd && UssdActivationRouting.shouldUseNativeTelephony(raw)) {
+            startAgentUssdThroughTelephony(call, raw)
+        } else if (isUssd) {
+            sendUssd(call, raw)
+        } else {
+            callPhone(call, raw)
+        }
+    }
+
+    private fun startAgentUssdThroughTelephony(call: PluginCall, code: String) {
+        if (!hasPhonePermissions()) {
+            requestPermissionForAlias("phone", call, "permissionCallback")
+            return
+        }
+
+        try {
+            val intent = Intent(Intent.ACTION_CALL).apply {
+                data = Uri.fromParts("tel", code, null)
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    selectDialogPhoneAccount()?.let { account ->
+                        putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, account)
+                    }
+                }
+
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            activity.startActivity(intent)
+
+            call.resolve(JSObject().apply {
+                put("status", "DIALER_STARTED")
+                put("message", "Dialog USSD started through the phone telephony service.")
+            })
+        } catch (_: ActivityNotFoundException) {
+            call.resolve(JSObject().apply {
+                put("status", "DIALER_UNAVAILABLE")
+                put("message", "Phone telephony service is unavailable for the USSD code.")
+            })
+        } catch (_: SecurityException) {
+            call.resolve(JSObject().apply {
+                put("status", "PERMISSION_DENIED")
+                put("message", "Phone call permission was not granted.")
+            })
+        } catch (error: Exception) {
+            call.resolve(JSObject().apply {
+                put("status", "FAILED")
+                put("message", error.message ?: "Unable to start the USSD request.")
+            })
+        }
     }
 
     private fun sendUssd(call: PluginCall, code: String) {
@@ -95,7 +155,7 @@ class NativeUssdBridge : Plugin() {
                     })
                 }
             }, Handler(Looper.getMainLooper()))
-        } catch (error: SecurityException) {
+        } catch (_: SecurityException) {
             call.resolve(JSObject().apply {
                 put("status", "PERMISSION_DENIED")
                 put("message", "Phone/SIM permission was not granted.")
@@ -109,12 +169,20 @@ class NativeUssdBridge : Plugin() {
     }
 
     private fun hasPhonePermissions(): Boolean {
-        return ContextCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+        return ContextCompat.checkSelfPermission(
+            activity,
+            Manifest.permission.CALL_PHONE
+        ) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(
+                activity,
+                Manifest.permission.READ_PHONE_STATE
+            ) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun selectDialogTelephonyManager(): TelephonyManager? {
-        val subscriptionManager = activity.getSystemService(SubscriptionManager::class.java) ?: return null
+    private fun selectDialogSubscriptionId(): Int? {
+        val subscriptionManager =
+            activity.getSystemService(SubscriptionManager::class.java) ?: return null
+
         val subscriptions = try {
             subscriptionManager.activeSubscriptionInfoList.orEmpty()
         } catch (_: SecurityException) {
@@ -125,7 +193,7 @@ class NativeUssdBridge : Plugin() {
             it.carrierName?.toString()?.contains("dialog", ignoreCase = true) == true
         }
 
-        val selectedId = dialogSub?.subscriptionId
+        return dialogSub?.subscriptionId
             ?: SubscriptionManager.getDefaultVoiceSubscriptionId().takeIf {
                 it != SubscriptionManager.INVALID_SUBSCRIPTION_ID
             }
@@ -133,20 +201,49 @@ class NativeUssdBridge : Plugin() {
                 it != SubscriptionManager.INVALID_SUBSCRIPTION_ID
             }
             ?: subscriptions.firstOrNull()?.subscriptionId
-            ?: return null
+    }
+
+    private fun selectDialogTelephonyManager(): TelephonyManager? {
+        val selectedId = selectDialogSubscriptionId() ?: return null
 
         return activity.getSystemService(TelephonyManager::class.java)
             ?.createForSubscriptionId(selectedId)
     }
 
+    private fun selectDialogPhoneAccount(): PhoneAccountHandle? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return null
+
+        val selectedSubscriptionId = selectDialogSubscriptionId() ?: return null
+        val telecom = activity.getSystemService(TelecomManager::class.java) ?: return null
+        val telephony = activity.getSystemService(TelephonyManager::class.java) ?: return null
+
+        return try {
+            telecom.getCallCapablePhoneAccounts().firstOrNull { account ->
+                telephony.getSubscriptionId(account) == selectedSubscriptionId
+            } ?: telecom.getDefaultOutgoingPhoneAccount("tel")
+        } catch (_: SecurityException) {
+            null
+        }
+    }
+
     private fun callPhone(call: PluginCall, number: String) {
-        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(
+                activity,
+                Manifest.permission.CALL_PHONE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             requestPermissionForAlias("phone", call, "permissionCallback")
             return
         }
 
         try {
-            activity.startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number.replace(" ", ""))))
+            activity.startActivity(
+                Intent(
+                    Intent.ACTION_CALL,
+                    Uri.parse("tel:" + number.replace(" ", ""))
+                )
+            )
+
             call.resolve(JSObject().apply {
                 put("status", "STARTED")
                 put("message", "Call request handed to Android telephony.")
@@ -161,7 +258,7 @@ class NativeUssdBridge : Plugin() {
         if (getPermissionState("phone") == PermissionState.GRANTED) {
             dialUssd(call)
         } else {
-            call.reject("CALL_PHONE permission was not granted")
+            call.reject("Phone permission was not granted")
         }
     }
 }
