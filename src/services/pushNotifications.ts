@@ -35,6 +35,7 @@ export const registerForPushNotifications = async (profileId: string): Promise<v
     let permission = await PushNotifications.checkPermissions();
     if (permission.receive !== 'granted') permission = await PushNotifications.requestPermissions();
     if (permission.receive !== 'granted') return;
+    await LocalNotifications.createChannel({ id: 'dd_world_marketing', name: 'DD WORLD MARKETING', description: 'DD WORLD MARKETING official notifications', importance: 5, visibility: 1, sound: 'default' });
     const localPermission = await LocalNotifications.checkPermissions();
     if (localPermission.display !== 'granted') await LocalNotifications.requestPermissions();
 
