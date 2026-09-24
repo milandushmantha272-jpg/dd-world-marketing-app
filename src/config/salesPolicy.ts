@@ -16,12 +16,12 @@ export const DD_WORLD_SALES_POLICY = {
   products: {
     sayuru: {
       label: 'Sayuru',
-      ivrCode: '#828#',
+      ivrCode: '828',
       channels: ['IVR', 'APP_ACTIVATION'] as const,
     },
     govimithuru: {
       label: 'Govi Mithuru',
-      ivrCode: '#616#',
+      ivrCode: '616',
       channels: ['IVR', 'APP_ACTIVATION'] as const,
     },
   },
