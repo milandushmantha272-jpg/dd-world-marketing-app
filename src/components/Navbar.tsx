@@ -119,7 +119,11 @@ export const Navbar: React.FC = () => {
           <Smartphone className="h-4 w-4" />
         </button>
         <div className="flex min-w-0 items-center gap-2">
-          <DdWorldLogo size="sm" showText={false} />
+          {currentUser.role === 'owner' ? (
+            <img src="/owner-profile.jpg" alt="Owner profile" className="h-9 w-9 rounded-full object-cover border-2 border-[#ef1d32] ring-2 ring-white shadow-sm" />
+          ) : (
+            <DdWorldLogo size="sm" showText={false} />
+          )}
           <div className="min-w-0">
             <div className="truncate text-[11px] font-black text-slate-900">DD WORLD <span className="text-[#ef1d32]">MARKETING</span></div>
             <div className="truncate text-[8px] font-bold text-slate-400">{currentUser.name}</div>
@@ -195,6 +199,7 @@ export const Navbar: React.FC = () => {
                   title="Owner Testing: Switch demo role"
                 >
                   <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+                  <img src="/owner-profile.jpg" alt="Owner profile" className="h-7 w-7 rounded-full object-cover border border-amber-400 ring-1 ring-white/60" />
                   <span className="max-w-[120px] sm:max-w-[160px] truncate">
                     {currentUser.name} (Owner)
                   </span>
