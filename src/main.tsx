@@ -6,6 +6,7 @@ import './index.css';
 import './security/authenticatedFetch';
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  props!: { children: ReactNode };
   state: { error: Error | null } = { error: null };
 
   static getDerivedStateFromError(error: Error) {
