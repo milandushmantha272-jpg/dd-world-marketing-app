@@ -89,8 +89,8 @@ export const LoginModal: React.FC = () => {
   };
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:9999,background:'#f5f8fc',display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
-      <div style={{width:'100%',maxWidth:430,background:'#fff',border:'1px solid #d8e3ef',borderRadius:24,padding:20,boxShadow:'0 12px 35px rgba(20,45,80,.12)',color:'#14213d'}}>
+    <div style={{position:'fixed',inset:0,zIndex:9999,background:'#f5f8fc',display:'flex',alignItems:'flex-start',justifyContent:'flex-start',padding:'16px 16px 32px',overflowY:'auto',boxSizing:'border-box',minHeight:'100dvh'}}>
+      <div style={{width:'100%',maxWidth:430,background:'#fff',border:'1px solid #d8e3ef',borderRadius:24,padding:20,boxShadow:'0 12px 35px rgba(20,45,80,.12)',color:'#14213d',margin:'auto 0',maxHeight:'calc(100dvh - 32px)',overflowY:'auto',boxSizing:'border-box'}}>
         <div style={{textAlign:'center'}}>
           <div style={{display:'inline-flex',width:64,height:64,borderRadius:18,alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#ef1d32,#1477e8)',color:'#fff',fontWeight:1000,fontSize:16}}>DD</div>
           <div style={{marginTop:10,fontSize:22,fontWeight:900}}>DD WORLD MARKETING</div>
