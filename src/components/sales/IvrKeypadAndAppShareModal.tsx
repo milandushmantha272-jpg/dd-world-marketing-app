@@ -149,7 +149,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
     if (is616 || is828) {
       try {
         const result = await dialNativeUssd(dialDisplay as '616' | '828');
-        if (result.status !== 'SUCCESS') {
+        if (result.status !== 'STARTED' && result.status !== 'SUCCESS') {
           setIsDialing(false);
           setDialSuccess(`❌ ${result.message || 'USSD request failed.'}`);
           return;
