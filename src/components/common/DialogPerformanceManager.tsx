@@ -119,8 +119,8 @@ export const DialogPerformanceManager: React.FC = () => {
                 onChange={(e) => setProductCode(e.target.value as any)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white font-bold focus:border-blue-500 outline-none"
               >
-                <option value="govimithuru">ගොවිමිතුරු (#616#)</option>
-                <option value="sayuru">සයුරු (#828#)</option>
+                <option value="govimithuru">ගොවිමිතුරු (616)</option>
+                <option value="sayuru">සයුරු (828)</option>
               </select>
             </div>
 
