@@ -5,16 +5,15 @@ import org.junit.Test
 
 class NativeUssdBridgeTest {
     @Test
-    fun ussdCodesUseExpectedHashSyntax() {
-        assertTrue("#616#".startsWith("#") && "#616#".endsWith("#"))
-        assertTrue("#828#".startsWith("#") && "#828#".endsWith("#"))
+    fun dialogShortCodesUsePhoneCallRoute() {
+        assertTrue(UssdActivationRouting.transportFor("616") == UssdActivationRouting.Transport.PHONE_CALL)
+        assertTrue(UssdActivationRouting.transportFor("828") == UssdActivationRouting.Transport.PHONE_CALL)
     }
 
     @Test
-    fun agentActivationCodesUseDirectUssdRequestRoute() {
-        assertTrue(UssdActivationRouting.transportFor("#616#") == UssdActivationRouting.Transport.DIRECT_USSD_REQUEST)
-        assertTrue(UssdActivationRouting.transportFor("#828#") == UssdActivationRouting.Transport.DIRECT_USSD_REQUEST)
+    fun genericMmiCodesStillUseDirectUssdRequestRoute() {
         assertTrue(UssdActivationRouting.transportFor("*123#") == UssdActivationRouting.Transport.DIRECT_USSD_REQUEST)
+        assertTrue(UssdActivationRouting.transportFor("#107#") == UssdActivationRouting.Transport.DIRECT_USSD_REQUEST)
         assertTrue(UssdActivationRouting.transportFor("0771234567") == UssdActivationRouting.Transport.PHONE_CALL)
     }
 }
