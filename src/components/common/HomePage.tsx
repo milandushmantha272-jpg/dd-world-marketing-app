@@ -106,13 +106,13 @@ export const HomePage: React.FC = () => {
         </div>
 
         <div className="mt-2 space-y-2">
-          <ServiceCard title="Govimithuru" subtitle="Digital Agriculture Service" code="#616#" tone="green" onClick={() => go('Page 11 — Real Dial Pad')} />
-          <ServiceCard title="Sayuru" subtitle="Digital Life Service" code="#828#" tone="purple" onClick={() => go('Page 11 — Real Dial Pad')} />
+          <ServiceCard title="Govimithuru" subtitle="Digital Agriculture Service" code="616" tone="green" onClick={() => go('Page 11 — Real Dial Pad')} />
+          <ServiceCard title="Sayuru" subtitle="Digital Life Service" code="828" tone="purple" onClick={() => go('Page 11 — Real Dial Pad')} />
         </div>
 
         <div className="dd-home-usdd-row">
-          <button type="button" onClick={() => go('Page 11 — Real Dial Pad')} className="dd-home-code dd-home-code-red">#616#</button>
-          <button type="button" onClick={() => go('Page 11 — Real Dial Pad')} className="dd-home-code dd-home-code-blue">#828#</button>
+          <button type="button" onClick={() => go('Page 11 — Real Dial Pad')} className="dd-home-code dd-home-code-red">616</button>
+          <button type="button" onClick={() => go('Page 11 — Real Dial Pad')} className="dd-home-code dd-home-code-blue">828</button>
         </div>
 
         <div className="dd-home-security">
