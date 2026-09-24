@@ -478,3 +478,39 @@ table { width: 100%; max-width: 100%; }
   .dd-compact-ui .dd-ussd-card { min-height: 94px; padding: 12px; }
   .dd-compact-ui .dd-ussd-icon { width: 38px; height: 38px; border-radius: 12px; }
 }
+
+.dd-reference-pages,.dd-reference-pages main{background:#f5f8fc;color:#14213d}
+.dd-reference-pages .dd-page-shell{color:#14213d}
+.dd-reference-pages .bg-slate-950,.dd-reference-pages .bg-slate-900,.dd-reference-pages .bg-slate-900\/95,.dd-reference-pages .bg-slate-900\/90,.dd-reference-pages .bg-slate-950\/95{background-color:#fff!important}
+.dd-reference-pages .border-slate-800,.dd-reference-pages .border-slate-700,.dd-reference-pages .border-white\/10{border-color:#dce5ef!important}
+.dd-reference-pages .text-white{color:#14213d!important}
+.dd-reference-pages .text-slate-100,.dd-reference-pages .text-slate-200,.dd-reference-pages .text-slate-300{color:#34435b!important}
+.dd-reference-pages .text-slate-400,.dd-reference-pages .text-slate-500{color:#728098!important}
+.dd-reference-pages .text-emerald-300,.dd-reference-pages .text-emerald-400{color:#10945a!important}
+.dd-reference-pages .text-cyan-300,.dd-reference-pages .text-cyan-400{color:#1477e8!important}
+.dd-reference-pages .shadow-2xl,.dd-reference-pages .shadow-xl{box-shadow:0 8px 24px rgba(32,59,92,.09)!important}
+.dd-reference-home{background:radial-gradient(circle at 100% 0,rgba(239,29,50,.08),transparent 32%),radial-gradient(circle at 0 34%,rgba(20,119,232,.07),transparent 30%),#f5f8fc}
+.dd-home-header{display:flex;align-items:center;justify-content:space-between;min-height:46px;margin-bottom:9px}
+.dd-home-logo{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;color:#fff;background:linear-gradient(135deg,#ef1d32,#1477e8);font-size:12px;font-weight:1000;letter-spacing:-.08em;box-shadow:0 5px 14px rgba(20,119,232,.18)}
+.dd-home-notify{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:12px;color:#52627b;background:#fff;border:1px solid #dce5ef;box-shadow:0 4px 12px rgba(31,55,88,.06)}
+.dd-home-welcome{display:flex;align-items:center;justify-content:space-between;padding:12px 13px;border-radius:16px;border:1px solid #d9e5f1;background:linear-gradient(135deg,#fff,#eef6ff);box-shadow:0 5px 15px rgba(31,55,88,.06)}
+.dd-home-avatar{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;background:linear-gradient(135deg,#4b78f0,#1477e8)}
+.dd-home-notice{display:flex;align-items:center;gap:8px;margin-top:8px;padding:9px 10px;border:1px solid #bce7d2;border-radius:12px;background:#f0fbf5;color:#38604e;font-size:9px;font-weight:700}
+.dd-home-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;min-height:112px;margin-top:9px;padding:14px;border-radius:18px;background:linear-gradient(125deg,#e81734 0%,#ef1d32 40%,#ffb400 100%);box-shadow:0 8px 20px rgba(239,29,50,.15)}
+.dd-home-banner:after{content:"";position:absolute;width:150px;height:150px;right:-45px;bottom:-75px;border-radius:50%;background:rgba(20,119,232,.45)}
+.dd-home-banner-orb{position:relative;z-index:1;width:62px;height:62px;display:flex;align-items:center;justify-content:center;border-radius:20px;color:#fff;background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.25)}
+.dd-home-action{min-height:78px;display:flex;align-items:center;justify-content:center;gap:7px;flex-direction:column;border-radius:16px;color:#fff;font-size:10px;font-weight:900;box-shadow:0 6px 15px rgba(31,55,88,.1)}
+.dd-home-action-blue{background:linear-gradient(145deg,#1477e8,#1d5fc5)}.dd-home-action-green{background:linear-gradient(145deg,#16a05d,#0c8d50)}.dd-home-action-purple{background:linear-gradient(145deg,#7c3aed,#6730c9)}.dd-home-action-orange{background:linear-gradient(145deg,#f08b2d,#e86d15)}
+.dd-home-service{width:100%;display:flex;align-items:center;gap:10px;min-height:68px;padding:10px 12px;border-radius:15px;border:1px solid #dce5ef;background:#fff;box-shadow:0 5px 14px rgba(31,55,88,.06)}
+.dd-home-service-icon{width:38px;height:38px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;border-radius:12px;color:#fff}
+.dd-home-service-green{color:#126a43}.dd-home-service-green .dd-home-service-icon{background:#16a05d}.dd-home-service-purple{color:#5f2db0}.dd-home-service-purple .dd-home-service-icon{background:#7c3aed}
+.dd-home-usdd-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.dd-home-code{min-height:46px;border-radius:13px;color:#fff;font-size:18px;font-weight:1000;box-shadow:0 6px 15px rgba(31,55,88,.1)}.dd-home-code-red{background:#ef1d32}.dd-home-code-blue{background:#1477e8}
+.dd-home-security{display:flex;align-items:center;gap:8px;margin-top:10px;padding:9px 10px;border-radius:12px;border:1px solid #dce5ef;background:#fff}
+.dd-reference-pages .rounded-3xl,.dd-reference-pages .rounded-[30px],.dd-reference-pages .rounded-[26px]{border-radius:18px}
+.dd-reference-pages input,.dd-reference-pages select,.dd-reference-pages textarea{color:#14213d!important;background-color:#fff!important;border-color:#d6e1ed!important}
+.dd-reference-pages input::placeholder,.dd-reference-pages textarea::placeholder{color:#9aa8ba!important}
+.dd-reference-login{background:radial-gradient(circle at 0 0,rgba(239,29,50,.22),transparent 28%),radial-gradient(circle at 100% 100%,rgba(20,119,232,.22),transparent 30%),#f7faff}
+.dd-reference-login-card{border:1px solid #d8e3ef;background:rgba(255,255,255,.96);color:#14213d}
+.dd-reference-login-card .text-white{color:#14213d!important}.dd-reference-login-card .text-slate-400,.dd-reference-login-card .text-slate-500{color:#718099!important}.dd-reference-login-card .text-slate-300{color:#4e5d73!important}
+.dd-login-security{border:1px solid #c5e8d4;background:#f0fbf5;color:#087a45}.dd-login-roles{border:1px solid #dce5ef;background:#f4f7fb}.dd-login-test{border:1px solid #f0d59a;background:#fff9e9;color:#8a5b00}.dd-login-input{border:1px solid #d6e1ed;background:#f9fbfe!important;color:#14213d!important}.dd-login-submit{background:linear-gradient(90deg,#ef1d32,#1477e8)}
+@media(max-width:640px){.dd-reference-pages main{padding-bottom:86px}.dd-reference-pages .dd-page-shell{padding:10px 12px 24px!important}.dd-reference-pages .space-y-5>:not([hidden])~:not([hidden]),.dd-reference-pages .space-y-6>:not([hidden])~:not([hidden]){margin-top:.65rem}.dd-reference-pages .p-5{padding:.8rem!important}.dd-reference-pages .p-6{padding:.9rem!important}.dd-reference-pages .text-2xl{font-size:1.05rem!important;line-height:1.25rem!important}.dd-reference-pages .text-xl{font-size:1rem!important}}
