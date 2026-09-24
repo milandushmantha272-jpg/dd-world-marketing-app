@@ -2,7 +2,7 @@
   "name": "dd-world-marketing",
   "description": "DD World Marketing Official Platform for Dialog Sayura & Govi Mithuru Operations",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.secure.ts",
