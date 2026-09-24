@@ -112,16 +112,21 @@ const AppContent: React.FC = () => {
     if (currentUser && 'geolocation' in navigator) navigator.geolocation.getCurrentPosition((pos) => console.log('GPS location available:', pos.coords.latitude, pos.coords.longitude), (err) => console.warn('GPS permission pending or denied:', err.message), { enableHighAccuracy: true });
   }, [currentUser]);
 
+  // This hook must run on every render. Previously it was below the
+  // !currentUser early return, so TEST MODE changed the hook count and React
+  // threw minified error #310 ("Rendered more hooks than during the previous render").
+  React.useEffect(() => {
+    if (!currentUser || !standalonePage) return;
+    const allowedStandalone = currentUser.role === 'owner'
+      ? ['ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad','Data Retention & History','Career & Team Management','User & Access Control']
+      : ['ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad'];
+    if (!allowedStandalone.includes(standalonePage)) { setStandalonePage(null); setShowHome(true); }
+  }, [currentUser, standalonePage]);
+
   if (!currentUser) return <LoginModal />;
   if (dataError) return <div className="dd-page-shell min-h-screen text-white flex items-center justify-center p-6"><div className="dd-card w-full max-w-lg p-6"><div className="text-2xl font-extrabold mb-2">DD WORLD data connection</div><p className="text-sm text-slate-300 leading-6">{dataError}</p><button type="button" onClick={retryData} className="mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 font-bold hover:bg-blue-500">Retry</button></div></div>;
 
   const isOwner = currentUser.role === 'owner';
-  const allowedStandalone = new Set(isOwner
-    ? ['ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad','Data Retention & History','Career & Team Management','User & Access Control']
-    : ['ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad']);
-  React.useEffect(() => {
-    if (standalonePage && !allowedStandalone.has(standalonePage)) { setStandalonePage(null); setShowHome(true); }
-  }, [currentUser.role, standalonePage]);
   const isPromotionPage = standalonePage === 'Promotion Items';
 
   return <div className="dd-compact-ui min-h-screen bg-transparent flex flex-col font-sans relative">
