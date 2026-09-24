@@ -114,20 +114,21 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <div className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-3 shadow-sm sm:hidden">
+      <div className="dd-reference-mobile-navbar sticky top-0 z-50 flex h-14 items-center justify-between px-3 sm:hidden">
+        <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('ddworld:navigate', { detail: { page: 'Page 11 — Real Dial Pad' } }))} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600" aria-label="USSD">
+          <Smartphone className="h-4 w-4" />
+        </button>
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white">
-            <DdWorldLogo size="sm" showText={false} />
-          </div>
+          <DdWorldLogo size="sm" showText={false} />
           <div className="min-w-0">
-            <div className="truncate text-xs font-black text-slate-900">DD WORLD <span className="text-emerald-400">MARKETING</span></div>
-            <div className="truncate text-[9px] font-bold text-slate-500">{currentUser.name}</div>
+            <div className="truncate text-[11px] font-black text-slate-900">DD WORLD <span className="text-[#ef1d32]">MARKETING</span></div>
+            <div className="truncate text-[8px] font-bold text-slate-400">{currentUser.name}</div>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <button type="button" onClick={() => setKycModalOpen(true)} className="flex h-10 min-w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2 text-[10px] font-black text-emerald-300" aria-label="My KYC">KYC</button>
-          <button type="button" onClick={logout} className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300" aria-label="Logout" title="Logout"><LogOut className="h-4 w-4" /></button>
-        </div>
+        <button type="button" onClick={() => setKycModalOpen(true)} className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600" aria-label="KYC">
+          <ShieldCheck className="h-4 w-4" />
+          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#ef1d32]" />
+        </button>
       </div>
       <header className="hidden bg-slate-900/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 text-slate-100 shadow-lg sm:block">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
