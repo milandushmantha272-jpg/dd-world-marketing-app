@@ -72,7 +72,23 @@ const startPwa = () => {
   // The native Android build is a Capacitor app, not a browser PWA.
   // Running a Workbox service worker inside the WebView can leave an older
   // cached JS bundle in control after an APK update, resulting in a blank screen.
-  if (Capacitor.isNativePlatform()) return;
+  if (Capacitor.isNativePlatform()) {
+    void (async () => {
+      try {
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((registration) => registration.unregister()));
+        }
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+        }
+      } catch (error) {
+        console.warn('Native WebView cache cleanup skipped:', error);
+      }
+    })();
+    return;
+  }
 
   void import('virtual:pwa-register').then(({ registerSW }) => {
     const updateSW = registerSW({
