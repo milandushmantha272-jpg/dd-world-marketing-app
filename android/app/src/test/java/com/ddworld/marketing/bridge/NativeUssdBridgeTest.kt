@@ -1,6 +1,5 @@
 package com.ddworld.marketing.bridge
 
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -16,5 +15,6 @@ class NativeUssdBridgeTest {
         assertTrue(UssdActivationRouting.transportFor("#616#") == UssdActivationRouting.Transport.DIRECT_USSD_REQUEST)
         assertTrue(UssdActivationRouting.transportFor("#828#") == UssdActivationRouting.Transport.DIRECT_USSD_REQUEST)
         assertTrue(UssdActivationRouting.transportFor("*123#") == UssdActivationRouting.Transport.DIRECT_USSD_REQUEST)
+        assertTrue(UssdActivationRouting.transportFor("0771234567") == UssdActivationRouting.Transport.PHONE_CALL)
     }
 }
