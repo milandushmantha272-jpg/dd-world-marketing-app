@@ -89,79 +89,55 @@ export const LoginModal: React.FC = () => {
   };
 
   return (
-    <div className="dd-reference-login fixed inset-0 z-50 flex min-h-screen items-center justify-center overflow-y-auto px-4 py-5">
-      <div className="dd-reference-login-card relative w-full max-w-md overflow-hidden rounded-[30px] p-5 shadow-2xl sm:p-7">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-500" />
-        <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
-        <div className="relative">
-          <div className="flex justify-center"><DdWorldLogo size="lg" showText={false} /></div>
-          <div className="mt-4 text-center">
-            <div className="text-[10px] font-black uppercase tracking-[0.28em] text-emerald-300">Official Employee Portal</div>
-            <h1 className="mt-2 text-2xl font-black tracking-tight text-white">DD WORLD MARKETING</h1>
-            <p className="mt-1 text-xs text-slate-400">Secure Company Access</p>
-          </div>
-
-          <div className="dd-login-security mt-5 flex items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-xs font-bold">
-            <ShieldCheck className="h-4 w-4" /> Owner-controlled secure authentication
-          </div>
-          {authError && (
-            <div className="dd-login-auth-warning mt-3 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] font-semibold text-amber-800">
-              <span className="flex-1">{authError}</span>
-              <button type="button" onClick={() => void retryAuth()} className="shrink-0 rounded-lg bg-white px-2.5 py-1.5 text-[10px] font-black text-amber-700 shadow-sm">Retry</button>
-            </div>
-          )}
-
-          <div className="dd-login-roles mt-4 grid grid-cols-2 gap-1.5 rounded-2xl p-1.5 sm:grid-cols-4">
-            {(Object.keys(roleMeta) as LoginRole[]).map((role) => {
-              const Icon = roleMeta[role].icon;
-              const selected = selectedRole === role;
-              return (
-                <button
-                  key={role}
-                  type="button"
-                  onClick={() => { setSelectedRole(role); setError(''); setResetSent(false); }}
-                  className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-extrabold transition ${selected ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/30' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {roleMeta[role].label}
-                </button>
-              );
-            })}
-          </div>
-
-          <button type="button" aria-label="Test Mode Login" onClick={() => { void loginWithoutCredentials(selectedRole); }} className="dd-login-test mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black transition" style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>🧪 TEST MODE — Login without username / password</button>
-
-          <form onSubmit={submit} className="mt-5 space-y-4">
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-bold text-slate-300">Employee ID / Agent Code / Email</span>
-              <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" className="dd-login-input w-full rounded-2xl px-4 py-3.5 text-sm outline-none transition focus:ring-2" placeholder="Enter registered ID or email" />
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-bold text-slate-300">Password</span>
-              <div className="relative">
-                <LockKeyhole className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" className="dd-login-input w-full rounded-2xl py-3.5 pl-10 pr-12 text-sm outline-none transition focus:ring-2" placeholder="Enter password" />
-                <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((v) => !v)} className="absolute right-2 top-1/2 min-h-9 -translate-y-1/2 rounded-lg px-2 text-slate-500 hover:text-white">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
-              </div>
-            </label>
-
-            {selectedRole === 'owner' && (
-              <button type="button" onClick={resetOwnerPassword} disabled={resetBusy} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-blue-400/20 bg-blue-400/10 px-4 py-3 text-xs font-bold text-blue-200 transition hover:bg-blue-400/15 disabled:opacity-60">
-                <Mail className="h-4 w-4" />{resetBusy ? 'Sending secure email…' : 'Forgot Owner Password'}
-              </button>
-            )}
-            {resetSent && <div className="rounded-2xl border border-emerald-400/25 bg-emerald-950/30 p-3 text-xs font-semibold leading-5 text-emerald-200">Password reset email එක registered Owner email එකට යවා ඇත.</div>}
-            {error && <div className="rounded-2xl border border-red-400/25 bg-red-950/35 p-3 text-xs font-semibold leading-5 text-red-200">{error}</div>}
-
-            <button type="submit" disabled={busy} className="dd-login-submit flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-black text-white shadow-lg transition hover:brightness-105 active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-60">
-              {busy ? 'Authenticating…' : `Secure ${roleMeta[selectedRole].label} Login`}
-              {!busy && <ArrowRight className="h-4 w-4" />}
-            </button>
-          </form>
-
-          <div className="mt-4 rounded-xl border border-amber-400/15 bg-amber-400/5 px-3 py-2 text-center text-[9px] font-semibold leading-4 text-amber-200/80">TEST MODE is temporary for final app checking. Disable it before production release.</div>
-          <div className="mt-3 text-center text-[10px] leading-5 text-slate-500">DD WORLD official employee access • Supabase Auth • database security policies</div>
+    <div style={{position:'fixed',inset:0,zIndex:9999,background:'#f5f8fc',display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
+      <div style={{width:'100%',maxWidth:430,background:'#fff',border:'1px solid #d8e3ef',borderRadius:24,padding:20,boxShadow:'0 12px 35px rgba(20,45,80,.12)',color:'#14213d'}}>
+        <div style={{textAlign:'center'}}>
+          <div style={{display:'inline-flex',width:64,height:64,borderRadius:18,alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#ef1d32,#1477e8)',color:'#fff',fontWeight:1000,fontSize:16}}>DD</div>
+          <div style={{marginTop:10,fontSize:22,fontWeight:900}}>DD WORLD MARKETING</div>
+          <div style={{marginTop:4,fontSize:12,color:'#718099'}}>Secure Employee Portal</div>
         </div>
+
+        <div style={{marginTop:16,display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          {(Object.keys(roleMeta) as LoginRole[]).map((role) => {
+            const Icon = roleMeta[role].icon;
+            const selected = selectedRole === role;
+            return <button key={role} type="button" onClick={() => { setSelectedRole(role); setError(''); setResetSent(false); }}
+              style={{minHeight:52,borderRadius:12,border:selected?'2px solid #1477e8':'1px solid #dce5ef',background:selected?'#1477e8':'#f7f9fc',color:selected?'#fff':'#34435b',fontWeight:800,fontSize:11,touchAction:'manipulation'}}>
+              <Icon style={{width:16,height:16,margin:'0 auto 3px'}} />{roleMeta[role].label}
+            </button>;
+          })}
+        </div>
+
+        <button type="button" aria-label="Test Mode Login" onClick={() => { void loginWithoutCredentials(selectedRole); }}
+          style={{width:'100%',minHeight:54,marginTop:14,border:0,borderRadius:14,background:'linear-gradient(90deg,#ef1d32,#1477e8)',color:'#fff',fontSize:14,fontWeight:900,touchAction:'manipulation',WebkitTapHighlightColor:'transparent',cursor:'pointer'}}>
+          🧪 TEST MODE — Login
+        </button>
+
+        {authError && <div style={{marginTop:10,padding:10,borderRadius:12,background:'#fff8e7',border:'1px solid #f0d59a',color:'#8a5b00',fontSize:11}}>
+          {authError} <button type="button" onClick={() => void retryAuth()} style={{marginLeft:8,padding:'5px 9px',borderRadius:8,border:0,background:'#fff',fontWeight:800}}>Retry</button>
+        </div>}
+
+        <form onSubmit={submit} style={{marginTop:16}}>
+          <label style={{display:'block',fontSize:12,fontWeight:700,color:'#34435b'}}>Employee ID / Agent Code / Email
+            <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" placeholder="Enter registered ID or email"
+              style={{display:'block',width:'100%',boxSizing:'border-box',marginTop:6,padding:'13px 14px',borderRadius:12,border:'1px solid #d6e1ed',background:'#f9fbfe',color:'#14213d',fontSize:14}} />
+          </label>
+          <label style={{display:'block',marginTop:12,fontSize:12,fontWeight:700,color:'#34435b'}}>Password
+            <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" placeholder="Enter password"
+              style={{display:'block',width:'100%',boxSizing:'border-box',marginTop:6,padding:'13px 14px',borderRadius:12,border:'1px solid #d6e1ed',background:'#f9fbfe',color:'#14213d',fontSize:14}} />
+          </label>
+          {selectedRole === 'owner' && <button type="button" onClick={resetOwnerPassword} disabled={resetBusy}
+            style={{width:'100%',marginTop:12,padding:11,borderRadius:12,border:'1px solid #c8dcf5',background:'#f3f8ff',color:'#1462b5',fontWeight:800}}>
+            {resetBusy ? 'Sending…' : 'Forgot Owner Password'}
+          </button>}
+          {resetSent && <div style={{marginTop:10,padding:10,borderRadius:10,background:'#effbf5',color:'#087a45',fontSize:11}}>Password reset email sent.</div>}
+          {error && <div style={{marginTop:10,padding:10,borderRadius:10,background:'#fff1f3',color:'#b42336',fontSize:11}}>{error}</div>}
+          <button type="submit" disabled={busy}
+            style={{width:'100%',marginTop:12,padding:13,borderRadius:12,border:0,background:'#14213d',color:'#fff',fontWeight:900,fontSize:13}}>
+            {busy ? 'Authenticating…' : 'Secure Login'}
+          </button>
+        </form>
+        <div style={{marginTop:12,textAlign:'center',fontSize:9,color:'#8795a8'}}>TEST MODE is temporary for app checking.</div>
       </div>
     </div>
   );
