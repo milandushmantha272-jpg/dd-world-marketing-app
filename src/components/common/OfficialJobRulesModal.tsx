@@ -214,7 +214,7 @@ export const OfficialJobRulesModal: React.FC<OfficialJobRulesModalProps> = ({ is
                         <span>2. දෛනික අවම ඉලක්කය (Minimum 10 Activations)</span>
                       </div>
                       <p className="text-xs text-slate-400 leading-relaxed">
-                        සෑම දිනකම ගොවිමිතුරු (#616#) සහ සයුරු (#828#) සක්‍රිය කිරීම් අවම වශයෙන් 10ක් සම්පූර්ණ කළ යුතුය. පාරිභෝගිකයාගේ සෘජු අනුමැතියකින් තොරව කිසිදු අංකයක් ඇතුළත් නොකළ යුතුය.
+                        සෑම දිනකම ගොවිමිතුරු (616) සහ සයුරු (828) සක්‍රිය කිරීම් අවම වශයෙන් 10ක් සම්පූර්ණ කළ යුතුය. පාරිභෝගිකයාගේ සෘජු අනුමැතියකින් තොරව කිසිදු අංකයක් ඇතුළත් නොකළ යුතුය.
                       </p>
                     </div>
 
@@ -224,7 +224,7 @@ export const OfficialJobRulesModal: React.FC<OfficialJobRulesModalProps> = ({ is
                         <span>3. සජීවී IVR ඩයල් කිරීමේ සාක්ෂිය</span>
                       </div>
                       <p className="text-xs text-slate-400 leading-relaxed">
-                        පාරිභෝගිකයා ඉදිරියේම #616# හෝ #828# අමතා ලියාපදිංචිය තහවුරු කළ යුතුය. Dialog Network වෙතින් ලැබෙන SMS සත්‍යාපනය පාරිභෝගිකයාට පැහැදිලි කර දිය යුතුය.
+                        පාරිභෝගිකයා ඉදිරියේම 616 හෝ 828 අමතා ලියාපදිංචිය තහවුරු කළ යුතුය. Dialog Network වෙතින් ලැබෙන SMS සත්‍යාපනය පාරිභෝගිකයාට පැහැදිලි කර දිය යුතුය.
                       </p>
                     </div>
 
