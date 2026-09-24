@@ -18,7 +18,7 @@ const roleMeta: Record<Exclude<UserRole, 'dialog_officer'>, { label: string; ico
 type LoginRole = Exclude<UserRole, 'dialog_officer'>;
 
 export const LoginModal: React.FC = () => {
-  const { login, loginWithoutCredentials } = useAuth();
+  const { login, loginWithoutCredentials, authError, retryAuth } = useAuth();
   const { users } = useData();
   const [selectedRole, setSelectedRole] = useState<LoginRole>('owner');
   const [identifier, setIdentifier] = useState('');
@@ -104,6 +104,12 @@ export const LoginModal: React.FC = () => {
           <div className="dd-login-security mt-5 flex items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-xs font-bold">
             <ShieldCheck className="h-4 w-4" /> Owner-controlled secure authentication
           </div>
+          {authError && (
+            <div className="dd-login-auth-warning mt-3 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] font-semibold text-amber-800">
+              <span className="flex-1">{authError}</span>
+              <button type="button" onClick={() => void retryAuth()} className="shrink-0 rounded-lg bg-white px-2.5 py-1.5 text-[10px] font-black text-amber-700 shadow-sm">Retry</button>
+            </div>
+          )}
 
           <div className="dd-login-roles mt-4 grid grid-cols-2 gap-1.5 rounded-2xl p-1.5 sm:grid-cols-4">
             {(Object.keys(roleMeta) as LoginRole[]).map((role) => {
@@ -123,7 +129,7 @@ export const LoginModal: React.FC = () => {
             })}
           </div>
 
-          <button type="button" onClick={() => void loginWithoutCredentials(selectedRole)} className="dd-login-test mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black transition">🧪 TEST MODE — Login without username / password</button>
+          <button type="button" aria-label="Test Mode Login" onClick={() => { void loginWithoutCredentials(selectedRole); }} className="dd-login-test mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black transition" style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>🧪 TEST MODE — Login without username / password</button>
 
           <form onSubmit={submit} className="mt-5 space-y-4">
             <label className="block">
