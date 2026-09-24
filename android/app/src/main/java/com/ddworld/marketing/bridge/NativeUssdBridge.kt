@@ -1,15 +1,12 @@
 package com.ddworld.marketing.bridge
 
 import android.Manifest
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.telecom.PhoneAccountHandle
-import android.telecom.TelecomManager
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
@@ -30,7 +27,6 @@ import com.getcapacitor.annotation.PermissionCallback
             strings = [
                 Manifest.permission.CALL_PHONE,
                 Manifest.permission.READ_PHONE_STATE,
-                Manifest.permission.READ_PHONE_NUMBERS
             ]
         )
     ]
@@ -39,7 +35,6 @@ class NativeUssdBridge : Plugin() {
     @PluginMethod
     fun dialUssd(call: PluginCall) {
         val raw = call.getString("code")?.trim().orEmpty()
-        val isUssd = raw.startsWith("*") || raw.startsWith("#")
         val isValid = Regex("^[0-9+*#(),;N -]{1,32}$").matches(raw)
 
         if (!isValid || raw.isBlank()) {
@@ -47,55 +42,9 @@ class NativeUssdBridge : Plugin() {
             return
         }
 
-        if (isUssd && UssdActivationRouting.shouldUseNativeTelephony(raw)) {
-            startAgentUssdThroughTelephony(call, raw)
-        } else if (isUssd) {
-            sendUssd(call, raw)
-        } else {
-            callPhone(call, raw)
-        }
-    }
-
-    private fun startAgentUssdThroughTelephony(call: PluginCall, code: String) {
-        if (!hasPhonePermissions()) {
-            requestPermissionForAlias("phone", call, "permissionCallback")
-            return
-        }
-
-        try {
-            val intent = Intent(Intent.ACTION_CALL).apply {
-                data = Uri.fromParts("tel", code, null)
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    selectDialogPhoneAccount()?.let { account ->
-                        putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, account)
-                    }
-                }
-
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-
-            activity.startActivity(intent)
-
-            call.resolve(JSObject().apply {
-                put("status", "DIALER_STARTED")
-                put("message", "Dialog USSD started through the phone telephony service.")
-            })
-        } catch (_: ActivityNotFoundException) {
-            call.resolve(JSObject().apply {
-                put("status", "DIALER_UNAVAILABLE")
-                put("message", "Phone telephony service is unavailable for the USSD code.")
-            })
-        } catch (_: SecurityException) {
-            call.resolve(JSObject().apply {
-                put("status", "PERMISSION_DENIED")
-                put("message", "Phone call permission was not granted.")
-            })
-        } catch (error: Exception) {
-            call.resolve(JSObject().apply {
-                put("status", "FAILED")
-                put("message", error.message ?: "Unable to start the USSD request.")
-            })
+        when (UssdActivationRouting.transportFor(raw)) {
+            UssdActivationRouting.Transport.DIRECT_USSD_REQUEST -> sendUssd(call, raw)
+            UssdActivationRouting.Transport.PHONE_CALL -> callPhone(call, raw)
         }
     }
 
@@ -208,31 +157,6 @@ class NativeUssdBridge : Plugin() {
 
         return activity.getSystemService(TelephonyManager::class.java)
             ?.createForSubscriptionId(selectedId)
-    }
-
-    private fun selectDialogPhoneAccount(): PhoneAccountHandle? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return null
-
-        val telecom = activity.getSystemService(TelecomManager::class.java) ?: return null
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            return try {
-                telecom.getDefaultOutgoingPhoneAccount("tel")
-            } catch (_: SecurityException) {
-                null
-            }
-        }
-
-        val selectedSubscriptionId = selectDialogSubscriptionId() ?: return null
-        val telephony = activity.getSystemService(TelephonyManager::class.java) ?: return null
-
-        return try {
-            telecom.getCallCapablePhoneAccounts().firstOrNull { account ->
-                telephony.getSubscriptionId(account) == selectedSubscriptionId
-            } ?: telecom.getDefaultOutgoingPhoneAccount("tel")
-        } catch (_: SecurityException) {
-            telecom.getDefaultOutgoingPhoneAccount("tel")
-        }
     }
 
     private fun callPhone(call: PluginCall, number: String) {

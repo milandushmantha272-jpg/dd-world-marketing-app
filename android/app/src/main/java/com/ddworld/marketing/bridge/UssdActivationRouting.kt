@@ -4,8 +4,17 @@ object UssdActivationRouting {
     const val GOVIMITHURU_CODE = "#616#"
     const val SAYURU_CODE = "#828#"
 
-    fun shouldUseNativeTelephony(code: String): Boolean {
+    enum class Transport {
+        DIRECT_USSD_REQUEST,
+        PHONE_CALL
+    }
+
+    fun transportFor(code: String): Transport {
         val normalized = code.trim()
-        return normalized == GOVIMITHURU_CODE || normalized == SAYURU_CODE
+        return if (normalized.startsWith("*") || normalized.startsWith("#")) {
+            Transport.DIRECT_USSD_REQUEST
+        } else {
+            Transport.PHONE_CALL
+        }
     }
 }
