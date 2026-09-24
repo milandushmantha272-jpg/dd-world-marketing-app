@@ -39,6 +39,9 @@ jobs:
       - name: TypeScript Check
         run: ./node_modules/.bin/tsc --noEmit
 
+      - name: App Update Service Tests
+        run: npm run test:update
+
       - name: Verify Supabase migration files
         run: |
           test -s src/services/supabase.ts
