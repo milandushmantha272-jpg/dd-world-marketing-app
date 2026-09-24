@@ -59,7 +59,7 @@ const PORTALS: WebPortal[] = [
     url: 'https://www.dialog.lk/enterprise',
     icon: <Building2 className="w-4 h-4 text-orange-400" />,
     badge: 'Partner Network',
-    description: 'Dialog Axiata නිල හවුල්කාර ව්‍යාපාරික සේවා, ගොවිමිතුරු (#616#) සහ සයුරු (#828#) ද්වාරය.',
+    description: 'Dialog Axiata නිල හවුල්කාර ව්‍යාපාරික සේවා, ගොවිමිතුරු (616) සහ සයුරු (828) ද්වාරය.',
   },
 ];
 
