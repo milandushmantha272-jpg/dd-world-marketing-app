@@ -83,19 +83,76 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let active = true;
-    const load = async () => { try { setDataError(null); await refreshCore(); } catch (error:any) { if (active) setDataError(error?.message ? `Supabase data error: ${error.message}` : 'Unable to load Supabase data.'); } };
-    void load();
-    const channel = supabase.channel('dd-world-core-data')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => void load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, () => void load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => void load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => void load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => void load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'leaves' }, () => void load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'security_alerts' }, () => void load())
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const load = async () => {
+      try {
+        setDataError(null);
+        await refreshCore();
+      } catch (error:any) {
+        if (active) {
+          setDataError(error?.message ? `Supabase data error: ${error.message}` : 'Unable to load Supabase data.');
+        }
+      }
+    };
+
+    // Do not open realtime/database subscriptions while the app is logged out.
+    // The login + TEST MODE screen must remain usable even when Supabase is
+    // unavailable or slow. Realtime starts only after an authenticated session.
+    const startForSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (!active || !data.session?.user) return;
+
+        await load();
+        if (!active) return;
+
+        channel = supabase.channel('dd-world-core-data')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => void load())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, () => void load())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => void load())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => void load())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => void load())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'leaves' }, () => void load())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'security_alerts' }, () => void load())
+          .subscribe();
+      } catch (error:any) {
+        // A logged-out user must never be blocked by a data/realtime error.
+        if (active && error?.message) console.warn('Deferred Supabase data startup:', error.message);
+      }
+    };
+
+    void startForSession();
+
+    const { data: authSubscription } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return;
+      if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
+        void startForSession();
+      }
+      if (event === 'SIGNED_OUT' || !session) {
+        setDataError(null);
+        setUsers([]);
+        setTeams([]);
+        setAttendance([]);
+        setSales([]);
+        setMessages([]);
+        setLeaves([]);
+        setSecurityAlerts([]);
+        if (channel) {
+          void supabase.removeChannel(channel);
+          channel = null;
+        }
+      }
+    });
+
     void retryToken;
-    return () => { active = false; void supabase.removeChannel(channel); };
+
+    return () => {
+      active = false;
+      authSubscription.subscription.unsubscribe();
+      if (channel) void supabase.removeChannel(channel);
+    };
   }, [refreshCore, retryToken]);
 
   const ownerGuard = async () => {
