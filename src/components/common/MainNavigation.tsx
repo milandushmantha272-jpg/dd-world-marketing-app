@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, BarChart3, CalendarCheck, MessageSquare, MoreHorizontal, FileText, User, Wallet, UserPlus, Presentation, X, UserCog } from 'lucide-react';
+import { Home, BarChart3, CalendarCheck, MessageSquare, MoreHorizontal, FileText, User, Wallet, UserPlus, Presentation, X, UserCog, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const navigate = (page: string) => {
@@ -14,7 +14,7 @@ export const MainNavigation: React.FC = () => {
   const items = [
     { label: 'Home', icon: Home, page: 'Home' },
     { label: 'Sales', icon: BarChart3, page: 'Page 3 — Sales Activation' },
-    { label: 'Messages', icon: MessageSquare, page: 'Page 5 — Message Room' },
+    { label: 'Verify', icon: ShieldCheck, page: 'Page 6 — Details Submit / ID Requirements' },
   ];
 
   const moreItems = [
