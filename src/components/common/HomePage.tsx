@@ -38,7 +38,7 @@ export const HomePage: React.FC = () => {
           <div>
             <p className="text-[9px] font-black uppercase tracking-[.18em] text-blue-600">Good Morning</p>
             <h1 className="mt-0.5 text-[19px] font-black tracking-tight text-slate-900">{firstName}</h1>
-            <p className="mt-0.5 text-[9px] font-semibold text-slate-500">Agent ID : {currentUser.agentCode || currentUser.employeeId || '123456'}</p>
+            <p className="mt-0.5 text-[9px] font-semibold text-slate-500">Agent ID : {currentUser.agentCode || currentUser.employeeId || '—'}</p>
           </div>
           <div className="dd-home-avatar"><UserRound className="h-5 w-5" /></div>
         </div>
