@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1031838170425",
+    "project_id": "dd-world-app-dushmsntha",
+    "storage_bucket": "dd-world-app-dushmsntha.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1031838170425:android:df1288843fd7433fb23ce8",
+        "android_client_info": {
+          "package_name": "com.ddworld.marketing.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfCvPALz-UrpG7RfG1GG5Vi1zVH7QbhFY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

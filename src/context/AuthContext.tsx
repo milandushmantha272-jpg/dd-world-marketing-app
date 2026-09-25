@@ -10,6 +10,7 @@ import {
   signOutSupabase,
 } from '../services/supabaseAuth';
 import { OWNER_EMAIL } from '../config/owner';
+import { registerForPushNotifications, removeCurrentPushToken } from '../services/pushNotifications';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -74,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearSession = () => {
     setCurrentUser(null);
     safeStorage.removeItem('ddworld_current_user_v2');
+    safeStorage.removeItem('ddworld_test_mode_session_v1');
   };
 
   const establishAuthorizedSession = async (authUser: { id: string; email?: string | null }) => {
@@ -94,6 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const authorizedProfile: User = { ...(localProfile || {}), ...profile, id: profile.id };
     setCurrentUser(authorizedProfile);
     setAuthError(null);
+    void registerForPushNotifications(authorizedProfile.id);
     safeStorage.setItem('ddworld_current_user_v2', JSON.stringify(authorizedProfile));
 
     if (profile.role !== 'owner') {
@@ -114,10 +117,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.auth.getSession();
       if (error) throw error;
       if (!data.session?.user) {
-        // No session is the normal logged-out state, not an authorization error.
+        // Restore an explicitly marked local TEST MODE session. This is only
+        // for UI testing until employee passwords are provisioned.
+        const testMode = safeStorage.getItem('ddworld_test_mode_session_v1') === 'true';
+        const storedUser = safeStorage.getItem('ddworld_current_user_v2');
+        if (testMode && storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser) as User;
+            const allowedRoles: UserRole[] = ['owner', 'team_leader', 'junior_team_leader', 'agent'];
+            if (parsed && typeof parsed.id === 'string' && allowedRoles.includes(parsed.role)) {
+              setCurrentUser(parsed);
+              setAuthError(null);
+              return;
+            }
+          } catch {
+            // Invalid local test data: fall through to the logged-out state.
+          }
+        }
         clearSession();
+        safeStorage.removeItem('ddworld_test_mode_session_v1');
         return;
       }
+      // A real Supabase session takes precedence over any local test session.
+      safeStorage.removeItem('ddworld_test_mode_session_v1');
       await establishAuthorizedSession(data.session.user);
     } catch (error) {
       clearSession();
@@ -142,8 +164,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.session?.user) {
           await establishAuthorizedSession(data.session.user);
         } else {
-          clearSession();
-          setAuthError(null);
+          // Restore the explicitly marked local TEST MODE session after app restart.
+          // A missing Supabase session must not erase a valid local test login.
+          const testMode = safeStorage.getItem('ddworld_test_mode_session_v1') === 'true';
+          const storedUser = safeStorage.getItem('ddworld_current_user_v2');
+          let restoredTestUser: User | null = null;
+          if (testMode && storedUser) {
+            try {
+              const parsed = JSON.parse(storedUser) as User;
+              const allowedRoles: UserRole[] = ['owner', 'team_leader', 'junior_team_leader', 'agent'];
+              if (parsed && typeof parsed.id === 'string' && allowedRoles.includes(parsed.role)) {
+                restoredTestUser = parsed;
+              }
+            } catch {
+              // Invalid local test data is discarded below.
+            }
+          }
+          if (restoredTestUser) {
+            setCurrentUser(restoredTestUser);
+            setAuthError(null);
+          } else {
+            clearSession();
+            setAuthError(null);
+          }
         }
       } catch (error) {
         if (mounted) {
@@ -161,7 +204,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // initial getSession() check above; this listener only clears local state
     // when the session actually disappears.
     const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
+      // INITIAL_SESSION may legitimately carry a null Supabase session while
+      // the app is using its explicitly marked local TEST MODE session.
+      // Only a real sign-out event should clear that local session.
+      if (event === 'SIGNED_OUT') {
         clearSession();
         setAuthError(null);
         setAuthChecking(false);
@@ -242,6 +288,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(demoUser);
       setAuthError(null);
       safeStorage.setItem('ddworld_current_user_v2', JSON.stringify(demoUser));
+      safeStorage.setItem('ddworld_test_mode_session_v1', 'true');
     } finally {
       setAuthChecking(false);
     }
@@ -253,6 +300,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (trackedUser && trackedUser.role !== 'owner') {
       try { await updateUserAppStatus(trackedUser.id, { isLoggedIn: false }); } catch (error) { console.warn('Login presence update warning:', error); }
     }
+    await removeCurrentPushToken();
     clearSession();
     setAuthError(null);
     try { await signOutSupabase(); } catch (error) { console.warn('Supabase sign-out warning:', error); }
