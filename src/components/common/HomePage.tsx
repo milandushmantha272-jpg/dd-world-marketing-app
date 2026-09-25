@@ -9,9 +9,6 @@ const go = (page: string) => {
 
 export const HomePage: React.FC = () => {
   const { currentUser } = useAuth();
-  const role = currentUser?.role;
-  const isOwner = role === 'owner';
-  const isLeader = role === 'team_leader' || role === 'junior_team_leader';
   const [showNotice, setShowNotice] = useState(false);
 
   if (!currentUser) return null;
