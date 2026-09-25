@@ -62,22 +62,16 @@ export const HomePage: React.FC = () => {
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
-          {isOwner ? <>
-            <button type="button" onClick={() => go('Owner — Career & Team Management')} className="dd-home-action dd-home-action-blue"><UserRound className="h-5 w-5" /><span>Teams</span></button>
-            <button type="button" onClick={() => go('Page 4 — Sales Summary / Reports')} className="dd-home-action dd-home-action-green"><BarChart3 className="h-5 w-5" /><span>Reports</span></button>
-            <button type="button" onClick={() => go('Owner — User & Access Control')} className="dd-home-action dd-home-action-purple"><ShieldCheck className="h-5 w-5" /><span>User Access</span></button>
-            <button type="button" onClick={() => go('Page 6 — Details Submit / ID Requirements')} className="dd-home-action dd-home-action-orange"><UserRound className="h-5 w-5" /><span>Owner Profile</span></button>
-          </> : isLeader ? <>
-            <button type="button" onClick={() => go('Page 3 — Sales Activation')} className="dd-home-action dd-home-action-blue"><BarChart3 className="h-5 w-5" /><span>Team Sales</span></button>
-            <button type="button" onClick={() => go('Page 4 — Sales Summary / Reports')} className="dd-home-action dd-home-action-green"><CheckCircle2 className="h-5 w-5" /><span>Team Reports</span></button>
-            <button type="button" onClick={() => go('Page 2 — Attendance')} className="dd-home-action dd-home-action-purple"><Radio className="h-5 w-5" /><span>Attendance</span></button>
-            <button type="button" onClick={() => go('Page 6 — Details Submit / ID Requirements')} className="dd-home-action dd-home-action-orange"><UserRound className="h-5 w-5" /><span>My Profile</span></button>
-          </> : <>
-            <button type="button" onClick={() => go('Page 3 — Sales Activation')} className="dd-home-action dd-home-action-blue"><BarChart3 className="h-5 w-5" /><span>Sales</span></button>
-            <button type="button" onClick={() => go('Page 6 — Details Submit / ID Requirements')} className="dd-home-action dd-home-action-green"><CheckCircle2 className="h-5 w-5" /><span>Verification</span></button>
-            <button type="button" onClick={() => go('Page 11 — Real Dial Pad')} className="dd-home-action dd-home-action-purple"><Radio className="h-5 w-5" /><span>USSD</span></button>
-            <button type="button" onClick={() => go('Page 6 — Details Submit / ID Requirements')} className="dd-home-action dd-home-action-orange"><UserRound className="h-5 w-5" /><span>Profile</span></button>
-          </>}
+          <button type="button" onClick={() => go('Page 1 — ID')} className="dd-home-action dd-home-action-blue"><UserRound className="h-5 w-5" /><span>Page 1 · ID</span></button>
+          <button type="button" onClick={() => go('Page 2 — Attendance')} className="dd-home-action dd-home-action-green"><CheckCircle2 className="h-5 w-5" /><span>Page 2 · Attendance</span></button>
+          <button type="button" onClick={() => go('Page 3 — Sales Activation')} className="dd-home-action dd-home-action-purple"><BarChart3 className="h-5 w-5" /><span>Page 3 · Sales</span></button>
+          <button type="button" onClick={() => go('Page 4 — Sales Summary / Reports')} className="dd-home-action dd-home-action-orange"><BarChart3 className="h-5 w-5" /><span>Page 4 · Reports</span></button>
+          <button type="button" onClick={() => go('Page 5 — Message Room')} className="dd-home-action dd-home-action-blue"><MessageSquare className="h-5 w-5" /><span>Page 5 · Messages</span></button>
+          <button type="button" onClick={() => go('Page 6 — Details Submit / ID Requirements')} className="dd-home-action dd-home-action-green"><ShieldCheck className="h-5 w-5" /><span>Page 6 · Details / KYC</span></button>
+          <button type="button" onClick={() => go('Page 7 — Commission / Payment')} className="dd-home-action dd-home-action-purple"><CheckCircle2 className="h-5 w-5" /><span>Page 7 · Payments</span></button>
+          <button type="button" onClick={() => go('Page 8 — Promotion Items')} className="dd-home-action dd-home-action-orange"><Radio className="h-5 w-5" /><span>Page 8 · Promotions</span></button>
+          <button type="button" onClick={() => go('Page 9 — New Agent Join (Requirements)')} className="dd-home-action dd-home-action-blue"><UserRound className="h-5 w-5" /><span>Page 9 · Join</span></button>
+          <button type="button" onClick={() => go('Page 10 — Month-End Presentation')} className="dd-home-action dd-home-action-green"><BarChart3 className="h-5 w-5" /><span>Page 10 · Month-End</span></button>
         </div>
 
         <div className="dd-home-security">
