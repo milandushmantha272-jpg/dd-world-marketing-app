@@ -75,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearSession = () => {
     setCurrentUser(null);
     safeStorage.removeItem('ddworld_current_user_v2');
+    safeStorage.removeItem('ddworld_test_mode_session_v1');
   };
 
   const establishAuthorizedSession = async (authUser: { id: string; email?: string | null }) => {
@@ -116,10 +117,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.auth.getSession();
       if (error) throw error;
       if (!data.session?.user) {
-        // No session is the normal logged-out state, not an authorization error.
+        // Restore an explicitly marked local TEST MODE session. This is only
+        // for UI testing until employee passwords are provisioned.
+        const testMode = safeStorage.getItem('ddworld_test_mode_session_v1') === 'true';
+        const storedUser = safeStorage.getItem('ddworld_current_user_v2');
+        if (testMode && storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser) as User;
+            const allowedRoles: UserRole[] = ['owner', 'team_leader', 'junior_team_leader', 'agent'];
+            if (parsed && typeof parsed.id === 'string' && allowedRoles.includes(parsed.role)) {
+              setCurrentUser(parsed);
+              setAuthError(null);
+              return;
+            }
+          } catch {
+            // Invalid local test data: fall through to the logged-out state.
+          }
+        }
         clearSession();
+        safeStorage.removeItem('ddworld_test_mode_session_v1');
         return;
       }
+      // A real Supabase session takes precedence over any local test session.
+      safeStorage.removeItem('ddworld_test_mode_session_v1');
       await establishAuthorizedSession(data.session.user);
     } catch (error) {
       clearSession();
@@ -244,6 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(demoUser);
       setAuthError(null);
       safeStorage.setItem('ddworld_current_user_v2', JSON.stringify(demoUser));
+      safeStorage.setItem('ddworld_test_mode_session_v1', 'true');
     } finally {
       setAuthChecking(false);
     }
