@@ -164,8 +164,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.session?.user) {
           await establishAuthorizedSession(data.session.user);
         } else {
-          clearSession();
-          setAuthError(null);
+          // Restore the explicitly marked local TEST MODE session after app restart.
+          // A missing Supabase session must not erase a valid local test login.
+          const testMode = safeStorage.getItem('ddworld_test_mode_session_v1') === 'true';
+          const storedUser = safeStorage.getItem('ddworld_current_user_v2');
+          let restoredTestUser: User | null = null;
+          if (testMode && storedUser) {
+            try {
+              const parsed = JSON.parse(storedUser) as User;
+              const allowedRoles: UserRole[] = ['owner', 'team_leader', 'junior_team_leader', 'agent'];
+              if (parsed && typeof parsed.id === 'string' && allowedRoles.includes(parsed.role)) {
+                restoredTestUser = parsed;
+              }
+            } catch {
+              // Invalid local test data is discarded below.
+            }
+          }
+          if (restoredTestUser) {
+            setCurrentUser(restoredTestUser);
+            setAuthError(null);
+          } else {
+            clearSession();
+            setAuthError(null);
+          }
         }
       } catch (error) {
         if (mounted) {
