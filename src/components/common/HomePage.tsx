@@ -23,7 +23,7 @@ export const HomePage: React.FC = () => {
       <div className="mx-auto w-full max-w-md">
         <div className="dd-home-header">
           <div className="flex min-w-0 items-center gap-2.5">
-            <div className="dd-home-logo"><span>DD</span></div>
+            <div className="dd-home-logo flex items-center justify-center overflow-hidden"><img src="/official-logo.png" alt="DD WORLD MARKETING logo" className="h-full w-full object-contain" /></div>
             <div className="min-w-0">
               <div className="truncate text-[14px] font-black text-slate-900">DD WORLD <span className="text-[#ef1d32]">MARKETING</span></div>
               <div className="text-[9px] font-bold text-slate-400">Official Employee Platform</div>
