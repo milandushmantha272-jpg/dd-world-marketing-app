@@ -1,10 +1,6 @@
 package com.ddworld.marketing.bridge
 
 object UssdActivationRouting {
-    // Dialog publishes these services as short-code IVR calls, not USSD/MMI strings.
-    const val GOVIMITHURU_CODE = "616"
-    const val SAYURU_CODE = "828"
-
     enum class Transport {
         DIRECT_USSD_REQUEST,
         PHONE_CALL
@@ -12,9 +8,7 @@ object UssdActivationRouting {
 
     fun transportFor(code: String): Transport {
         val normalized = code.trim()
-        return if (normalized == GOVIMITHURU_CODE || normalized == SAYURU_CODE) {
-            Transport.PHONE_CALL
-        } else if (normalized.startsWith("*") || normalized.startsWith("#")) {
+        return if (Regex("^[*#][0-9*#]{1,30}#$").matches(normalized)) {
             Transport.DIRECT_USSD_REQUEST
         } else {
             Transport.PHONE_CALL
