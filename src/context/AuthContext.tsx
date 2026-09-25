@@ -183,7 +183,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // initial getSession() check above; this listener only clears local state
     // when the session actually disappears.
     const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
+      // INITIAL_SESSION may legitimately carry a null Supabase session while
+      // the app is using its explicitly marked local TEST MODE session.
+      // Only a real sign-out event should clear that local session.
+      if (event === 'SIGNED_OUT') {
         clearSession();
         setAuthError(null);
         setAuthChecking(false);
