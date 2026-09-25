@@ -1,31 +1,11 @@
 import React, { useState } from 'react';
-import { BarChart3, CheckCircle2, ChevronRight, Leaf, MessageSquare, UserRound, Radio, ShieldCheck, Smartphone, Sparkles } from 'lucide-react';
+import { BarChart3, CheckCircle2, MessageSquare, UserRound, Radio, ShieldCheck, Smartphone } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const go = (page: string) => {
   window.dispatchEvent(new CustomEvent('ddworld:navigate', { detail: { page } }));
   window.scrollTo({ top: 0, behavior: 'auto' });
 };
-
-const ServiceCard: React.FC<{
-  title: string;
-  subtitle: string;
-  code: string;
-  tone: 'green' | 'purple';
-  onClick: () => void;
-}> = ({ title, subtitle, code, tone, onClick }) => (
-  <button type="button" onClick={onClick} className={`dd-home-service dd-home-service-${tone}`}>
-    <span className="dd-home-service-icon">{tone === 'green' ? <Leaf className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}</span>
-    <span className="min-w-0 flex-1 text-left">
-      <span className="block text-[12px] font-black">{title}</span>
-      <span className="mt-0.5 block text-[9px] font-semibold opacity-70">{subtitle}</span>
-    </span>
-    <span className="text-right">
-      <span className="block text-[16px] font-black">{code}</span>
-      <ChevronRight className="ml-auto mt-1 h-4 w-4 opacity-60" />
-    </span>
-  </button>
-);
 
 export const HomePage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -98,21 +78,6 @@ export const HomePage: React.FC = () => {
             <button type="button" onClick={() => go('Page 11 — Real Dial Pad')} className="dd-home-action dd-home-action-purple"><Radio className="h-5 w-5" /><span>USSD</span></button>
             <button type="button" onClick={() => go('Page 6 — Details Submit / ID Requirements')} className="dd-home-action dd-home-action-orange"><UserRound className="h-5 w-5" /><span>Profile</span></button>
           </>}
-        </div>
-
-        <div className="mt-3 flex items-center justify-between px-1">
-          <span className="text-[10px] font-black uppercase tracking-[.16em] text-slate-500">Quick Activation</span>
-          <span className="text-[9px] font-bold text-slate-400">Dialog Services</span>
-        </div>
-
-        <div className="mt-2 space-y-2">
-          <ServiceCard title="Govimithuru" subtitle="Digital Agriculture Service" code="616" tone="green" onClick={() => go('Page 11 — Real Dial Pad')} />
-          <ServiceCard title="Sayuru" subtitle="Digital Life Service" code="828" tone="purple" onClick={() => go('Page 11 — Real Dial Pad')} />
-        </div>
-
-        <div className="dd-home-usdd-row">
-          <button type="button" onClick={() => go('Page 11 — Real Dial Pad')} className="dd-home-code dd-home-code-red">616</button>
-          <button type="button" onClick={() => go('Page 11 — Real Dial Pad')} className="dd-home-code dd-home-code-blue">828</button>
         </div>
 
         <div className="dd-home-security">
