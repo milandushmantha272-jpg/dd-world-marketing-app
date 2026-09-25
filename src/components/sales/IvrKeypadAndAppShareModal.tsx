@@ -197,7 +197,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
 
     setIsDialing(false);
     setDialSuccess(
-      `✅ ${productName} USSD request එක සාර්ථකව යවා response එක ලබා ගත්තා.\nකාලය: ${timeStr} | ස්ථානය: ${district}`
+      `📲 ${productName} USSD request එක Phone/SIM එකට යොමු කළා. Phone එකේ network response එක පරීක්ෂා කර activation එක තහවුරු කරන්න.\nකාලය: ${timeStr} | ස්ථානය: ${district}`
     );
     setTimeout(() => {
       setDialSuccess(null);
