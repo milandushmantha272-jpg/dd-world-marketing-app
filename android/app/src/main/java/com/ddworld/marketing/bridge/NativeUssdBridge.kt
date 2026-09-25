@@ -148,14 +148,9 @@ class NativeUssdBridge : Plugin() {
             it.carrierName?.toString()?.contains("dialog", ignoreCase = true) == true
         }
 
+        // Never silently send a Dialog activation code through another carrier's SIM.
+        // If Android does not identify an active Dialog subscription, report NO_ACTIVE_SIM.
         return dialogSub?.subscriptionId
-            ?: SubscriptionManager.getDefaultVoiceSubscriptionId().takeIf {
-                it != SubscriptionManager.INVALID_SUBSCRIPTION_ID
-            }
-            ?: SubscriptionManager.getDefaultDataSubscriptionId().takeIf {
-                it != SubscriptionManager.INVALID_SUBSCRIPTION_ID
-            }
-            ?: subscriptions.firstOrNull()?.subscriptionId
     }
 
     private fun selectDialogTelephonyManager(): TelephonyManager? {
