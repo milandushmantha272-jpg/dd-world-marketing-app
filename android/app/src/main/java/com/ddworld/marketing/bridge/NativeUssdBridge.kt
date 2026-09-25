@@ -36,7 +36,7 @@ class NativeUssdBridge : Plugin() {
     @PluginMethod
     fun dialUssd(call: PluginCall) {
         val raw = call.getString("code")?.trim().orEmpty()
-        val isValid = Regex("^[0-9+*#(),;N -]{1,32}$").matches(raw)
+        val isValid = Regex("^[*#][0-9*#]{1,30}#$").matches(raw)
 
         if (!isValid || raw.isBlank()) {
             call.reject("Unsupported dial string")
