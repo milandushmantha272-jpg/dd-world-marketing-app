@@ -10,6 +10,7 @@ import {
   signOutSupabase,
 } from '../services/supabaseAuth';
 import { OWNER_EMAIL } from '../config/owner';
+import { registerForPushNotifications, removeCurrentPushToken } from '../services/pushNotifications';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -94,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const authorizedProfile: User = { ...(localProfile || {}), ...profile, id: profile.id };
     setCurrentUser(authorizedProfile);
     setAuthError(null);
+    void registerForPushNotifications(authorizedProfile.id);
     safeStorage.setItem('ddworld_current_user_v2', JSON.stringify(authorizedProfile));
 
     if (profile.role !== 'owner') {
@@ -253,6 +255,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (trackedUser && trackedUser.role !== 'owner') {
       try { await updateUserAppStatus(trackedUser.id, { isLoggedIn: false }); } catch (error) { console.warn('Login presence update warning:', error); }
     }
+    await removeCurrentPushToken();
     clearSession();
     setAuthError(null);
     try { await signOutSupabase(); } catch (error) { console.warn('Supabase sign-out warning:', error); }

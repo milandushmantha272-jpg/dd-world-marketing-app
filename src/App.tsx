@@ -36,6 +36,7 @@ import { OwnerUserAccessManagementPage } from './components/owner/OwnerUserAcces
 import { RealDialPadPage } from './components/common/RealDialPadPage';
 import { safeStorage } from './utils/safeStorage';
 import { ResetPasswordPage } from './components/ResetPasswordPage';
+import { AppUpdateNotice } from './components/common/AppUpdateNotice';
 
 const PromotionItemsPage: React.FC = () => (
   <section className="dd-page-shell min-h-screen px-4 py-5 md:px-6 md:py-8">
@@ -163,5 +164,5 @@ const AppContent: React.FC = () => {
 
 export default function App() {
   if (typeof window !== 'undefined' && window.location.pathname === '/reset-password') return <ResetPasswordPage />;
-  return <DataProvider><AuthProvider><AppContent /></AuthProvider></DataProvider>;
+  return <><AppUpdateNotice /><DataProvider><AuthProvider><AppContent /></AuthProvider></DataProvider></>;
 }

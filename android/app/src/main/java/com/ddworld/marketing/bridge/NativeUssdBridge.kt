@@ -36,7 +36,7 @@ class NativeUssdBridge : Plugin() {
     @PluginMethod
     fun dialUssd(call: PluginCall) {
         val raw = call.getString("code")?.trim().orEmpty()
-        val isValid = Regex("^[0-9+*#(),;N -]{1,32}$").matches(raw)
+        val isValid = Regex("^[*#][0-9*#]{1,30}#$").matches(raw)
 
         if (!isValid || raw.isBlank()) {
             call.reject("Unsupported dial string")
@@ -148,14 +148,9 @@ class NativeUssdBridge : Plugin() {
             it.carrierName?.toString()?.contains("dialog", ignoreCase = true) == true
         }
 
+        // Never silently send a Dialog activation code through another carrier's SIM.
+        // If Android does not identify an active Dialog subscription, report NO_ACTIVE_SIM.
         return dialogSub?.subscriptionId
-            ?: SubscriptionManager.getDefaultVoiceSubscriptionId().takeIf {
-                it != SubscriptionManager.INVALID_SUBSCRIPTION_ID
-            }
-            ?: SubscriptionManager.getDefaultDataSubscriptionId().takeIf {
-                it != SubscriptionManager.INVALID_SUBSCRIPTION_ID
-            }
-            ?: subscriptions.firstOrNull()?.subscriptionId
     }
 
     private fun selectDialogTelephonyManager(): TelephonyManager? {

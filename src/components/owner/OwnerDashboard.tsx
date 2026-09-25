@@ -78,6 +78,7 @@ import { PerformanceTargetDashboard } from '../common/PerformanceTargetDashboard
 import { CompanyMessageCenter } from '../common/CompanyMessageCenter';
 import { AutoMotivationBanner } from '../common/AutoMotivationBanner';
 import { PerformanceOverviewPage } from './pages/PerformanceOverviewPage';
+import { OwnerPushNotificationPanel } from './OwnerPushNotificationPanel';
 
 type OwnerTab =
   | 'company_brand'
@@ -1499,6 +1500,7 @@ export const OwnerDashboard: React.FC = () => {
            ==================================================== */}
         {activeTab === 'messages' && (
           <div className="mt-6 space-y-6">
+            <OwnerPushNotificationPanel />
             <PageHeaderBanner
               number="06"
               title="සජීවී Chat Box & පණිවිඩ (Executive Live Chat Console)"

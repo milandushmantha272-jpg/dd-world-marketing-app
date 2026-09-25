@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'com.google.gms.google-services'
 
 android {
     namespace "com.ddworld.marketing.app"
@@ -8,8 +9,8 @@ android {
         applicationId "com.ddworld.marketing.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
@@ -34,6 +35,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     implementation "com.google.android.gms:play-services-location:21.1.0"
     implementation "com.google.android.gms:play-services-auth:21.2.0"
+    implementation "com.google.firebase:firebase-messaging:24.1.2"
     implementation "androidx.appcompat:appcompat:1.6.1"
     implementation "androidx.coordinatorlayout:coordinatorlayout:1.2.0"
     implementation "androidx.core:core-splashscreen:1.0.0"

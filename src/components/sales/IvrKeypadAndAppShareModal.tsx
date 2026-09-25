@@ -46,7 +46,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
   const [activeMode, setActiveMode] = useState<'keypad' | 'app_share'>('keypad');
 
   // Keypad state
-  const [dialDisplay, setDialDisplay] = useState<string>('616');
+  const [dialDisplay, setDialDisplay] = useState<string>('#616#');
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
   const [isDialing, setIsDialing] = useState<boolean>(false);
@@ -76,7 +76,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
     setDialDisplay('');
   };
 
-  const handleQuickDial = (code: '616' | '828') => {
+  const handleQuickDial = (code: '#616#' | '#828#') => {
     setDialDisplay(code);
   };
 
@@ -90,8 +90,8 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
     setIsDialing(true);
 
     // Determine product
-    const is616 = dialDisplay.includes('616');
-    const is828 = dialDisplay.includes('828');
+    const is616 = dialDisplay.trim() === '#616#' || dialDisplay.trim() === '616';
+    const is828 = dialDisplay.trim() === '#828#' || dialDisplay.trim() === '828';
     const productType: 'ගොවිමිතුරු' | 'සයුරු' | 'අනෙකුත්' = is616
       ? 'ගොවිමිතුරු'
       : is828
@@ -148,8 +148,8 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
     // Android or the carrier has rejected the USSD request.
     if (is616 || is828) {
       try {
-        const result = await dialNativeUssd(dialDisplay as '616' | '828');
-        if (result.status !== 'STARTED' && result.status !== 'SUCCESS') {
+        const result = await dialNativeUssd(dialDisplay);
+        if (result.status !== 'STARTED' && result.status !== 'SUCCESS' && result.status !== 'DIALER_STARTED') {
           setIsDialing(false);
           setDialSuccess(`❌ ${result.message || 'USSD request failed.'}`);
           return;
@@ -197,7 +197,7 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
 
     setIsDialing(false);
     setDialSuccess(
-      `✅ ${productName} USSD request එක සාර්ථකව යවා response එක ලබා ගත්තා.\nකාලය: ${timeStr} | ස්ථානය: ${district}`
+      `📲 ${productName} USSD request එක Phone/SIM එකට යොමු කළා. Phone එකේ network response එක පරීක්ෂා කර activation එක තහවුරු කරන්න.\nකාලය: ${timeStr} | ස්ථානය: ${district}`
     );
     setTimeout(() => {
       setDialSuccess(null);
@@ -383,9 +383,9 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickDial('616')}
+                onClick={() => handleQuickDial('#616#')}
                 className={`p-3 rounded-2xl border transition-all text-left flex items-center justify-between ${
-                  dialDisplay === '616'
+                  dialDisplay === '#616#'
                     ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-2 ring-emerald-500/30'
                     : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 text-slate-300'
                 }`}
@@ -399,9 +399,9 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
 
               <button
                 type="button"
-                onClick={() => handleQuickDial('828')}
+                onClick={() => handleQuickDial('#828#')}
                 className={`p-3 rounded-2xl border transition-all text-left flex items-center justify-between ${
-                  dialDisplay === '828'
+                  dialDisplay === '#828#'
                     ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 ring-2 ring-cyan-500/30'
                     : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 text-slate-300'
                 }`}
