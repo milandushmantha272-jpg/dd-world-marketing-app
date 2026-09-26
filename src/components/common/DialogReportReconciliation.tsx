@@ -18,8 +18,8 @@ const csvRows = (text: string): string[][] => {
       if (quoted && text[i + 1] === '"') { cell += '"'; i++; }
       else quoted = !quoted;
     } else if (ch === ',' && !quoted) { row.push(cell.trim()); cell = ''; }
-    else if ((ch === '\\n' || ch === '\\r') && !quoted) {
-      if (ch === '\\r' && text[i + 1] === '\\n') i++;
+    else if ((ch === '\n' || ch === '\r') && !quoted) {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
       row.push(cell.trim()); cell = '';
       if (row.some(v => v !== '')) rows.push(row);
       row = [];
