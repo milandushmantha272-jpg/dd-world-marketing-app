@@ -3,7 +3,7 @@ import { BarChart3, CalendarDays, CheckCircle2, Clock3, Users, UserRound, Trendi
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 
-const ACTIVE = ['active', 'verified', 'confirmed', 'completed'];
+const ACTIVE = ['active', 'verified', 'confirmed', 'completed', 'sale_confirmed'];
 const statusOf = (s: any) => String(s.verificationStatus || s.status || '').toLowerCase();
 const isActiveSale = (s: any) => ACTIVE.includes(statusOf(s));
 const saleDate = (s: any) => String(s.saleDate || s.date || s.createdAt || '').slice(0, 10);
@@ -14,7 +14,7 @@ const field = (s: any, keys: string[]) => { for (const k of keys) if (s?.[k] !==
 
 export const SalesSummaryPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const { sales, users, teams } = useData();
+  const { sales, users, teams, updateProductSaleVerification } = useData();
   const [selectedTeam, setSelectedTeam] = useState('all');
   const [selectedAgent, setSelectedAgent] = useState('all');
   const today = new Date().toISOString().slice(0, 10);
@@ -67,6 +67,20 @@ export const SalesSummaryPage: React.FC = () => {
     <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4"><Kpi icon={<CalendarDays/>} label="Today Active" value={stats.today}/><Kpi icon={<Activity/>} label="Monthly Active" value={stats.monthly}/><Kpi icon={<TrendingUp/>} label="All-Time Active" value={stats.total}/><Kpi icon={<Clock3/>} label="Pending Activation" value={pending.reduce((n,s)=>n+qty(s),0)}/></div>
 
     <section className="rounded-3xl border border-slate-800 bg-slate-900 p-5"><h3 className="mb-4 flex items-center gap-2 text-sm font-black"><CalendarDays className="h-4 w-4 text-emerald-400"/> Current Month · 4 Weeks</h3><div className="grid grid-cols-2 gap-3 md:grid-cols-4">{stats.weeks.map((v,i)=><div key={i} className="rounded-2xl border border-slate-800 bg-slate-950 p-4"><div className="text-[10px] font-black uppercase text-slate-500">Week {i+1}</div><div className="mt-1 text-2xl font-black">{v}</div><div className="text-[10px] text-slate-500">Active units</div></div>)}</div></section>
+
+    {role === 'owner' && <section className="rounded-3xl border border-amber-500/30 bg-slate-900 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div><h3 className="text-sm font-black text-white">Owner · Sales Verification Queue</h3><p className="mt-1 text-xs leading-5 text-slate-400">නිල Dialog report එක සමඟ සැසඳීමෙන් පසුව පමණක් Confirm කරන්න. Confirmation සඳහා report reference එකක් අවශ්‍යයි.</p></div>
+        <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-black text-amber-300">{sales.filter((s:any)=>!['SALE_CONFIRMED','COMPLETED','CONFIRMED','REJECTED'].includes(String(s.verificationStatus||s.status||'').toUpperCase())).length} To Review</span>
+      </div>
+      <div className="mt-4 space-y-3">
+        {sales.filter((s:any)=>!['SALE_CONFIRMED','COMPLETED','CONFIRMED','REJECTED'].includes(String(s.verificationStatus||s.status||'').toUpperCase())).slice().reverse().map((sale:any)=> <div key={sale.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-2"><div><div className="text-xs font-black text-white">{sale.agentName||sale.agentId} · {sale.productType||sale.productName||'Sale'}</div><div className="mt-1 text-[11px] text-slate-400">{sale.saleDate||sale.date||'Date unavailable'} · {sale.channel||sale.activationMethod||'—'} · Qty {sale.quantity||1}</div><div className="mt-1 break-all text-[10px] text-slate-500">Customer: {sale.customerMobile||sale.msisdn||'—'} · Status: {sale.verificationStatus||sale.status||'PENDING'}</div></div>
+          <div className="flex flex-wrap gap-2"><button type="button" onClick={async()=>{const note=window.prompt('Dialog official report reference / row ID (required):');if(!note?.trim())return;const ok=await updateProductSaleVerification(sale.id,'SALE_CONFIRMED',currentUser?.name,'Dialog official report reference: '+note.trim());if(!ok)window.alert('Could not confirm sale. Please check permissions/data.');}} className="rounded-lg bg-emerald-600 px-3 py-2 text-[11px] font-black text-white">Confirm from Dialog Report</button><button type="button" onClick={async()=>{const note=window.prompt('Reason for review (required):');if(!note?.trim())return;const ok=await updateProductSaleVerification(sale.id,'REVIEW_REQUIRED',currentUser?.name,note.trim());if(!ok)window.alert('Could not mark for review.');}} className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] font-black text-amber-200">Review Required</button><button type="button" onClick={async()=>{const note=window.prompt('Reason for rejection (required):');if(!note?.trim())return;const ok=await updateProductSaleVerification(sale.id,'REJECTED',currentUser?.name,note.trim());if(!ok)window.alert('Could not reject sale.');}} className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] font-black text-rose-200">Reject</button></div></div>
+        </div>)}
+        {sales.filter((s:any)=>!['SALE_CONFIRMED','COMPLETED','CONFIRMED','REJECTED'].includes(String(s.verificationStatus||s.status||'').toUpperCase())).length===0 && <p className="rounded-xl bg-slate-950 p-4 text-xs text-slate-400">No sales are awaiting review.</p>}
+      </div>
+    </section>}
 
     <section className="rounded-3xl border border-cyan-500/20 bg-slate-900 p-5"><h3 className="mb-4 flex items-center gap-2 text-sm font-black"><CheckCircle2 className="h-4 w-4 text-cyan-400"/> Quality Signals</h3><div className="grid grid-cols-2 gap-3 md:grid-cols-4"><Quality label="Official Usage Data" value={quality.usageValues.length ? `${quality.usageGood}/${quality.usageValues.length}` : 'Not supplied'} /><Quality label="Retention Data" value={quality.retentionValues.length ? `${quality.retentionGood}/${quality.retentionValues.length}` : 'Not supplied'} /><Quality label="Revenue Quality" value={quality.revenueValues.length ? `${quality.revenueGood}/${quality.revenueValues.length}` : 'Not supplied'} /><Quality label="Complaints / Duplicate" value={`${quality.complaints} / ${quality.duplicates}`} /></div><div className={`mt-4 rounded-2xl border p-4 text-xs ${quality.hasDialogQualityData ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-200' : 'border-amber-500/20 bg-amber-500/5 text-amber-200'}`}>{quality.hasDialogQualityData ? 'Official quality fields are available in the loaded sales/report data.' : 'Dialog official Usage / Retention / Revenue Quality data has not been supplied to this dataset yet. No artificial score is calculated.'}</div></section>
 
