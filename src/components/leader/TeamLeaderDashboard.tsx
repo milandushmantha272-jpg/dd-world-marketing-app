@@ -122,7 +122,8 @@ export const TeamLeaderDashboard: React.FC = () => {
   const teamAttSummary = getAttendanceSummary(teamAttendance);
   const teamSalesSummary = getSalesSummary(teamSales);
 
-  const dateTodayStr = new Date().toISOString().split('T')[0];
+  const nowForAttendance = new Date();
+  const dateTodayStr = `${nowForAttendance.getFullYear()}-${String(nowForAttendance.getMonth() + 1).padStart(2, '0')}-${String(nowForAttendance.getDate()).padStart(2, '0')}`;
   const todayTlAttRecord = tlAttendance.find((a) => a.date === dateTodayStr);
 
   const handleTlCheckIn = () => {
