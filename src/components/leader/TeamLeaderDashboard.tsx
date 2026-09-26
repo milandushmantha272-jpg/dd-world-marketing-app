@@ -352,6 +352,18 @@ export const TeamLeaderDashboard: React.FC = () => {
       {/* Navigation Tabs - Core & Upgraded TL Features */}
       <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-900 border border-slate-800 overflow-x-auto scrollbar-none">
         <button
+          onClick={() => setActiveTab('team_agents')}
+          className={`py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'team_agents'
+              ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg shadow-purple-500/20 font-black'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>👥 Team Members ({myTeamAgents.length})</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('attendance')}
           className={`py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'attendance'
@@ -483,17 +495,7 @@ export const TeamLeaderDashboard: React.FC = () => {
           <span>📍 Day Start Work Area</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('team_agents')}
-          className={`py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
-            activeTab === 'team_agents'
-              ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg shadow-purple-500/20 font-black'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>👥 Team Members ({myTeamAgents.length})</span>
-        </button>
+
 
         <button
           onClick={() => setActiveTab('gps')}
