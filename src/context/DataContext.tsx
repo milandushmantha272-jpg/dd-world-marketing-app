@@ -280,7 +280,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (activationMethod === 'KEYPAD_DIAL' && dialCode !== '828' && dialCode !== '616') throw new Error('Invalid IVR activation code.');
       const id = input.id || crypto.randomUUID();
       const idempotencyKey = input.idempotencyKey || `${id}`;
-      const verificationStatus = input.status || (activationMethod === 'APP_LINK_SHARE' ? 'PENDING' : 'ACTIVATION_CHECK');
+      const verificationStatus = input.status || 'PENDING';
       const row = {
         id, agent_id: input.agentId, agent_code: input.agentCode || me.agent_code || null, agent_name: input.agentName || me.name,
         team_id: input.teamId || me.team_id || null, product_type: productType, product_name: input.productName || null,
@@ -312,10 +312,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: sale, error: saleError } = await supabase.from('sales').select('*').eq('id',id).maybeSingle();
       if (saleError) throw saleError;
       if (!sale) throw new Error('Sale not found.');
-      const allowed = me.role === 'owner' || String(auth.user.email || '').toLowerCase() === 'milandushmantha272@gmail.com' || (me.role === 'team_leader' && me.team_id === sale.team_id);
-      if (!allowed) throw new Error('Only Owner or the assigned Team Leader can verify this sale.');
-      const finalStatus = status === 'COMPLETED' ? 'SALE_CONFIRMED' : status;
-      const { error } = await supabase.from('sales').update({ verification_status: finalStatus, status: finalStatus, verified_at:new Date().toISOString(), verified_by:verifiedBy || me.name, verification_note:verificationNote || null }).eq('id',id);
+      const isOwner = me.role === 'owner' || String(auth.user.email || '').trim().toLowerCase() === 'milandushmantha272@gmail.com';
+      const isSelf = me.id === sale.agent_id;
+      const requestedStatus = String(status || '').trim().toUpperCase();
+      const selfReportStatuses = ['PENDING', 'REVIEW_REQUIRED'];
+      const finalStatuses = ['SALE_CONFIRMED', 'COMPLETED', 'REJECTED', 'REVIEW_REQUIRED'];
+      if (!isOwner && !(isSelf && selfReportStatuses.includes(requestedStatus))) {
+        throw new Error('Only the Owner can finalize or reject a sale. Employees may only submit their own sale for review.');
+      }
+      if (isOwner && !finalStatuses.includes(requestedStatus)) {
+        throw new Error('Invalid final verification status.');
+      }
+      const finalStatus = requestedStatus === 'COMPLETED' ? 'SALE_CONFIRMED' : requestedStatus;
+      const patch:any = {
+        verification_status: finalStatus,
+        status: finalStatus,
+        verification_note: verificationNote || null,
+      };
+      if (isOwner) {
+        patch.verified_at = new Date().toISOString();
+        patch.verified_by = me.name;
+      }
+      const { error } = await supabase.from('sales').update(patch).eq('id',id);
       if (error) throw error;
       await refreshCore();
       return true;
