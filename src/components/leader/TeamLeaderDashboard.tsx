@@ -412,18 +412,6 @@ export const TeamLeaderDashboard: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveTab('meetings')}
-          className={`py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
-            activeTab === 'meetings'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/20 font-black'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-          }`}
-        >
-          <Radio className="w-4 h-4 text-indigo-400" />
-          <span>🎥 Virtual Meetings</span>
-        </button>
-
-        <button
           onClick={() => setActiveTab('target_dashboard')}
           className={`py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'target_dashboard'
@@ -457,18 +445,6 @@ export const TeamLeaderDashboard: React.FC = () => {
         >
           <Megaphone className="w-4 h-4 text-purple-400" />
           <span>📢 Messages</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('chat')}
-          className={`py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
-            activeTab === 'chat'
-              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-lg shadow-amber-500/20 font-black'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-          }`}
-        >
-          <MessageSquare className="w-4 h-4 text-amber-400" />
-          <span>💬 Live Chat</span>
         </button>
 
         <button
@@ -997,13 +973,21 @@ export const TeamLeaderDashboard: React.FC = () => {
       {/* MASTER TAB: TARGET DASHBOARD */}
       {activeTab === 'target_dashboard' && <PerformanceTargetDashboard />}
 
-      {/* MASTER TAB: COMPANY MESSAGES */}
-      {activeTab === 'company_messages' && <CompanyMessageCenter />}
-
-      {/* MASTER TAB: LIVE CHAT */}
-      {activeTab === 'chat' && (
-        <div className="mt-6 space-y-4">
-          <InteractiveChatBox teamId={currentUser?.teamId} />
+      {/* COMBINED COMMUNICATION PAGE: MESSAGES + LIVE CHAT + VIRTUAL MEETINGS */}
+      {activeTab === 'company_messages' && (
+        <div className="space-y-6">
+          <section className="p-4 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
+            <h2 className="text-base font-black text-white flex items-center gap-2"><Megaphone className="w-5 h-5 text-purple-400" /> Messages</h2>
+            <CompanyMessageCenter />
+          </section>
+          <section className="p-4 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
+            <h2 className="text-base font-black text-white flex items-center gap-2"><MessageSquare className="w-5 h-5 text-emerald-400" /> Live Chat</h2>
+            <InteractiveChatBox teamId={currentUser?.teamId} />
+          </section>
+          <section className="p-4 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
+            <h2 className="text-base font-black text-white flex items-center gap-2"><Radio className="w-5 h-5 text-indigo-400" /> Virtual Meetings</h2>
+            <VirtualMeetingHub />
+          </section>
         </div>
       )}
 
