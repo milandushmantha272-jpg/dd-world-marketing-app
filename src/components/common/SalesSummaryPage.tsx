@@ -3,7 +3,7 @@ import { BarChart3, CalendarDays, CheckCircle2, Clock3, Users, UserRound, Trendi
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 
-const ACTIVE = ['active', 'verified', 'confirmed', 'completed', 'sale_confirmed'];
+const ACTIVE = ['sale_confirmed'];
 const statusOf = (s: any) => String(s.verificationStatus || s.status || '').toLowerCase();
 const isActiveSale = (s: any) => ACTIVE.includes(statusOf(s));
 const saleDate = (s: any) => String(s.saleDate || s.date || s.createdAt || '').slice(0, 10);
@@ -30,7 +30,7 @@ export const SalesSummaryPage: React.FC = () => {
 
   const filtered = useMemo(() => scoped.filter((s: any) => (selectedTeam === 'all' || s.teamId === selectedTeam) && (selectedAgent === 'all' || s.agentId === selectedAgent)), [scoped, selectedTeam, selectedAgent]);
   const active = useMemo(() => filtered.filter(isActiveSale), [filtered]);
-  const pending = useMemo(() => filtered.filter((s: any) => !isActiveSale(s)), [filtered]);
+  const pending = useMemo(() => filtered.filter((s: any) => !isActiveSale(s) && statusOf(s) !== 'rejected'), [filtered]);
   const current = useMemo(() => active.filter((s: any) => monthOf(saleDate(s)) === month), [active, month]);
 
   const quality = useMemo(() => {
