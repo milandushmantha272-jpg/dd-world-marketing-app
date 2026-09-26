@@ -201,6 +201,68 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUserAppStatus = async (id:string,patch:any) => {try{const {data:session}=await supabase.auth.getSession();const authEmail=String(session.session?.user?.email || '').trim().toLowerCase();if(authEmail !== 'milandushmantha272@gmail.com'){const {data:self,error:selfError}=await supabase.from('users').select('id,auth_user_id,role').eq('auth_user_id',session.session?.user?.id || '').maybeSingle();if(selfError)throw selfError;if(!self || self.id !== id)throw new Error('Only the Owner or the employee themselves can update app/login tracking.');}const dbPatch:any={};if('isLoggedIn' in patch)dbPatch.is_logged_in=Boolean(patch.isLoggedIn);if('isAppDownloaded' in patch)dbPatch.is_app_downloaded=Boolean(patch.isAppDownloaded);if('lastLoginAt' in patch)dbPatch.last_login_at=patch.lastLoginAt || null;if('appVersion' in patch)dbPatch.app_version=patch.appVersion || null;if(Object.keys(dbPatch).length){const {error}=await supabase.from('users').update(dbPatch).eq('id',id);if(error)throw error;await refreshCore();}}catch(error:any){console.warn('App/login tracking update:',error?.message || error);}};
 
+  // Record employee attendance in Supabase. Check-in creates today's row;
+  // check-out updates that same row rather than creating a duplicate.
+  const addAttendanceRecord = async (input:any) => {
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) throw new Error('Authentication required.');
+      const { data: me, error: meError } = await supabase
+        .from('users')
+        .select('id, role, team_id, auth_user_id')
+        .eq('auth_user_id', auth.user.id)
+        .maybeSingle();
+      if (meError) throw meError;
+      if (!me) throw new Error('Employee profile not found.');
+      if (me.id !== input.agentId && me.role !== 'owner') {
+        throw new Error('You can only mark your own attendance.');
+      }
+
+      const date = input.date || new Date().toLocaleDateString('en-CA');
+      const { data: existing, error: lookupError } = await supabase
+        .from('attendance')
+        .select('id, check_in_time, check_out_time')
+        .eq('user_id', input.agentId)
+        .eq('date', date)
+        .maybeSingle();
+      if (lookupError) throw lookupError;
+
+      const patch:any = {};
+      if (input.checkInTime) {
+        if (existing?.check_in_time) throw new Error('Today\'s check-in is already recorded.');
+        Object.assign(patch, {
+          user_id: input.agentId,
+          agent_id: input.agentId,
+          agent_name: input.agentName || me.id,
+          agent_code: input.agentCode || null,
+          team_id: input.teamId || me.team_id || null,
+          team_name: input.teamName || null,
+          date,
+          status: input.status || 'present',
+          check_in_time: input.checkInTime,
+        });
+      } else if (input.checkOutTime) {
+        if (!existing?.id || !existing.check_in_time) throw new Error('Check in before checking out.');
+        if (existing.check_out_time) throw new Error('Today\'s check-out is already recorded.');
+        patch.check_out_time = input.checkOutTime;
+        patch.status = input.status || 'completed';
+      } else {
+        throw new Error('Attendance action is missing.');
+      }
+
+      const result = input.checkInTime
+        ? await supabase.from('attendance').insert(patch)
+        : await supabase.from('attendance').update(patch).eq('id', existing.id);
+      if (result.error) throw result.error;
+      await refreshCore();
+      return { success: true };
+    } catch (error:any) {
+      const message = error?.message || 'Unable to save attendance.';
+      setDataError(message);
+      return { success: false, message };
+    }
+  };
+
   const addProductSale = async (input:any) => {
     try {
       const { data: auth } = await supabase.auth.getUser();
@@ -264,7 +326,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value:any = {
     users,teams,attendance,sales,ivrEntries,leaves,messages,meetings,securityAlerts,coldArchives,knowledge,verifications,monthlyTargets,teamTargets,agentTargets,companyWeeklyReports,vaultFiles,marketingPosts,webAiMessages,systemDoctorLogs,smsLogs,activeCall,locationLogs,locationConfig,motivationBanners,companyMessages,dialogPerformanceRecords,trainingProgress,quizResults,workAreas,employeeIdAuditLogs,dataError,retryData,sendMessage,
-    addVaultFile:async()=>{},deleteVaultFile:async()=>{},addMarketingPost:async()=>{},deleteMarketingPost:async()=>{},sendWebAiMessage:async()=>{},runSystemDoctorAutoHeal:async()=>{},getDailyJobRoleReports:async()=>[],
+    addAttendanceRecord,\n    addVaultFile:async()=>{},deleteVaultFile:async()=>{},addMarketingPost:async()=>{},deleteMarketingPost:async()=>{},sendWebAiMessage:async()=>{},runSystemDoctorAutoHeal:async()=>{},getDailyJobRoleReports:async()=>[],
     addAgent,addTeamLeader,updateAgentCode,deleteAgent,updateEmploymentStatus,deleteUser,changeUserTeam,changeUserRole,updateUserGps,
     updateLeaveStatus:async()=>{},createMeeting:async()=>{},cancelMeeting:async()=>{},addProductSale,updateProductSaleVerification,startCall:async()=>{},updateUserAppStatus,acceptCall:async()=>{},rejectCall:async()=>{},endCall:async()=>{}
   };
