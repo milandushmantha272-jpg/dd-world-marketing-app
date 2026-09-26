@@ -122,13 +122,18 @@ export const DialogReportReconciliation: React.FC<{ sales: ProductSale[]; users:
       }));
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) throw new Error('Login required.');
-      const { error: deleteError } = await supabase.from('dialog_report_import_rows').delete()
+      const { data: previousRows, error: previousError } = await supabase.from('dialog_report_import_rows').select('id')
         .eq('report_period', period).eq('product', product).eq('method', method).eq('dimension', dimension);
-      if (deleteError) throw deleteError;
+      if (previousError) throw previousError;
       const payload = imported.map(r => ({ ...r, imported_by: auth.user!.id }));
-      const { error } = await supabase.from('dialog_report_import_rows').insert(payload);
+      const { data: insertedRows, error } = await supabase.from('dialog_report_import_rows').insert(payload).select('id');
       if (error) throw error;
-      setRows(imported);
+      const oldIds = (previousRows || []).map((r: any) => r.id);
+      if (oldIds.length) {
+        const { error: cleanupError } = await supabase.from('dialog_report_import_rows').delete().in('id', oldIds);
+        if (cleanupError) throw cleanupError;
+      }
+      setRows((insertedRows || []).map((r: any, i: number) => ({ ...imported[i], id: r.id })));
       setMessage(`Imported ${imported.length} rows from ${file.name}. This is aggregate reconciliation, not individual-subscriber matching.`);
     } catch (e: any) {
       setMessage(e?.message || 'Report import failed.');
