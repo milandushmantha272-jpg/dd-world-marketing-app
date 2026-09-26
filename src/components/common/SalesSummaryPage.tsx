@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { BarChart3, CalendarDays, CheckCircle2, Clock3, Users, UserRound, TrendingUp, ShieldCheck, Activity, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { DialogReportReconciliation } from './DialogReportReconciliation';
 
 const ACTIVE = ['sale_confirmed'];
 const statusOf = (s: any) => String(s.verificationStatus || s.status || '').toLowerCase();
@@ -61,6 +62,8 @@ export const SalesSummaryPage: React.FC = () => {
     <section className="rounded-3xl border border-emerald-500/20 bg-slate-900 p-5 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-emerald-400"><ShieldCheck className="h-4 w-4"/> Page 4 · Sales Quality & Performance Center</div><h2 className="mt-1 text-2xl font-black text-white">Sales → Activation → Usage → Retention → Quality</h2><p className="mt-1 max-w-3xl text-xs leading-5 text-slate-400">Sales quantity alone is not the company success measure. Official Dialog usage, retention and revenue-quality information is shown only when supplied by an official report/data source; the App never invents these values.</p></div><div className="rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-right"><div className="text-[10px] font-bold text-slate-500">TODAY</div><div className="font-mono text-sm font-black text-white">{today}</div></div></div>
     </section>
+
+    <DialogReportReconciliation sales={sales} users={users} isOwner={role === 'owner'} />
 
     {role === 'owner' && <div className="grid gap-3 sm:grid-cols-2"><select value={selectedTeam} onChange={e => {setSelectedTeam(e.target.value);setSelectedAgent('all');}} className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-xs font-bold text-white"><option value="all">All Teams</option>{teams.map((t:any)=><option key={t.id} value={t.id}>{t.name}</option>)}</select><select value={selectedAgent} onChange={e=>setSelectedAgent(e.target.value)} className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-xs font-bold text-white"><option value="all">All Agents</option>{agents.filter((a:any)=>selectedTeam==='all'||a.teamId===selectedTeam).map((a:any)=><option key={a.id} value={a.id}>{a.agentCode||'Agent'} — {a.name}</option>)}</select></div>}
 
