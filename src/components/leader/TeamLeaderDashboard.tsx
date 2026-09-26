@@ -110,16 +110,25 @@ export const TeamLeaderDashboard: React.FC = () => {
   const myTeamUsers = [currentUser, ...myTeamAgents];
   const myTeamUserIds = myTeamUsers.map((u) => u.id);
 
-  // Filter Attendance & Sales for the entire team
+  // Keep Team Leader personal sales separate from Agent team sales.
   const teamAttendance = attendance.filter((a) => myTeamUserIds.includes(a.agentId));
-  const teamSales = sales.filter((s) => myTeamUserIds.includes(s.agentId));
+  const tlSales = sales.filter((s) => s.agentId === currentUser.id);
+  const teamSales = sales.filter((s) => myTeamAgents.some((u) => u.id === s.agentId));
 
   // TL Own Attendance & Sales
   const tlAttendance = attendance.filter((a) => a.agentId === currentUser.id);
 
-  // Summaries
+  // Summaries: Agent team totals exclude the Team Leader's own sales.
   const teamAttSummary = getAttendanceSummary(teamAttendance);
   const teamSalesSummary = getSalesSummary(teamSales);
+  const tlSalesSummary = getSalesSummary(tlSales);
+  const submittedSalesCount = [...tlSales, ...teamSales].length;
+  const reviewRequiredCount = [...tlSales, ...teamSales].filter((s) =>
+    String(s.verificationStatus || s.status || '').toUpperCase() === 'REVIEW_REQUIRED'
+  ).length;
+  const appMarkedConfirmedCount = [...tlSales, ...teamSales].filter((s) =>
+    ['SALE_CONFIRMED', 'CONFIRMED', 'COMPLETED'].includes(String(s.verificationStatus || s.status || '').toUpperCase())
+  ).length;
 
   const nowForAttendance = new Date();
   const dateTodayStr = `${nowForAttendance.getFullYear()}-${String(nowForAttendance.getMonth() + 1).padStart(2, '0')}-${String(nowForAttendance.getDate()).padStart(2, '0')}`;
@@ -603,6 +612,33 @@ export const TeamLeaderDashboard: React.FC = () => {
                 {teamAttSummary.monthlyPresent} Days Present Total
               </span>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="p-4 rounded-2xl bg-slate-950 border border-indigo-500/30">
+                <span className="text-[10px] text-indigo-300 font-bold uppercase block">TL Personal Sales</span>
+                <span className="text-2xl font-black text-white mt-1 block">{tlSalesSummary.monthlyQuantity}</span>
+                <span className="text-[10px] text-slate-400">Team Leaderගේම සටහන්</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-950 border border-purple-500/30">
+                <span className="text-[10px] text-purple-300 font-bold uppercase block">Agent Team Sales</span>
+                <span className="text-2xl font-black text-white mt-1 block">{teamSalesSummary.monthlyQuantity}</span>
+                <span className="text-[10px] text-slate-400">Agentsගේ සටහන් පමණයි</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-950 border border-sky-500/30">
+                <span className="text-[10px] text-sky-300 font-bold uppercase block">Submitted Records</span>
+                <span className="text-2xl font-black text-white mt-1 block">{submittedSalesCount}</span>
+                <span className="text-[10px] text-slate-400">වාර්තා කළ sales records</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-950 border border-amber-500/30">
+                <span className="text-[10px] text-amber-300 font-bold uppercase block">Review Required</span>
+                <span className="text-2xl font-black text-white mt-1 block">{reviewRequiredCount}</span>
+                <span className="text-[10px] text-slate-400">පරීක්ෂා කළ යුතු records</span>
+              </div>
+            </div>
+            <p className="rounded-xl border border-amber-500/20 bg-amber-950/20 p-3 text-[11px] leading-5 text-amber-100">
+              සටහන: මෙහි පෙන්වන්නේ app එකේ sales records සහ app verification status පමණි. Dialog නිල report එක සමඟ reconcile කර නොමැති බැවින් මෙය නිල confirmed/payable ගණනක් ලෙස නොසලකන්න.
+              App එකේ status අනුව Confirmed ලෙස සටහන් වී ඇති records: <strong>{appMarkedConfirmedCount}</strong>.
+            </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center">
