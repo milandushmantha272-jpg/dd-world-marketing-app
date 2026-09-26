@@ -262,10 +262,10 @@ export const IvrKeypadAndAppShareModal: React.FC<IvrKeypadAndAppShareModalProps>
       alert('පළමුව Customer App Link එක Share කරන්න.');
       return;
     }
-    const ok = await updateProductSaleVerification(pendingAppSaleId, 'COMPLETED', currentUser.name, `Customer confirmed ${getAppName()} installed/activated.`);
+    const ok = await updateProductSaleVerification(pendingAppSaleId, 'PENDING', currentUser.name, `Agent-reported: customer confirmed ${getAppName()} installed/activated. Awaiting Owner review against the official Dialog report.`);
     if (ok) {
       setPendingAppSaleId(null);
-      setAppShareSuccess('✅ Customer App activation තහවුරු විය. Sale එක දැන් Count වේ.');
+      setAppShareSuccess('✅ Sale එක review සඳහා submit කළා. Dialog නිල report එකෙන් Owner තහවුරු කරන තුරු payable/confirmed ලෙස count නොවේ.');
       setTimeout(() => setAppShareSuccess(null), 5000);
     }
   };
