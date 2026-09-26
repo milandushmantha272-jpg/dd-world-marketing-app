@@ -83,7 +83,7 @@ export const TeamLeaderDashboard: React.FC = () => {
   const [showKeypadModal, setShowKeypadModal] = useState(false);
   const [webViewChannel, setWebViewChannel] = useState<'website' | 'facebook' | 'whatsapp' | 'dialog'>('website');
 
-  const [activeTab, setActiveTab] = useState<TlTab>('attendance');
+  const [activeTab, setActiveTab] = useState<TlTab>('team_agents');
 
   // TL Own Attendance Form
   const [attStatus, setAttStatus] = useState<'present' | 'half_day'>('present');
