@@ -231,39 +231,37 @@ export const TeamLeaderDashboard: React.FC = () => {
     );
   };
 
-  const handleSaleSubmit = (e: React.FormEvent) => {
+  const handleSaleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = productType === 'ගොවිමිතුරු' ? '616' : productType === 'සයුරු' ? '828' : 'Other';
     const parsedQty = parseInt(quantity, 10);
-    const finalQty = !isNaN(parsedQty) && parsedQty > 0 ? parsedQty : 1;
-
-    let sellerId = currentUser.id;
-    let sellerName = currentUser.name;
-    let sellerCode = currentUser.agentCode || '';
-
-    if (targetUser !== 'ME') {
-      const foundAg = myTeamAgents.find((a) => a.id === targetUser);
-      if (foundAg) {
-        sellerId = foundAg.id;
-        sellerName = foundAg.name;
-        sellerCode = foundAg.agentCode || '';
-      }
+    if (!Number.isInteger(parsedQty) || parsedQty < 1) {
+      setSaleSuccess(false);
+      setSaleNotes('ප්‍රමාණය 1 හෝ ඊට වැඩි පූර්ණ සංඛ්‍යාවක් විය යුතුයි.');
+      return;
     }
 
-    addProductSale({
-      agentId: sellerId,
-      agentName: sellerName,
-      agentCode: sellerCode,
+    const result = await addProductSale({
+      agentId: currentUser.id,
+      agentName: currentUser.name,
+      agentCode: currentUser.agentCode || '',
       teamId: currentUser.teamId || '',
       productType,
       channel,
-      quantity: finalQty,
+      quantity: parsedQty,
       productName: `${productType} (${code}) [${channel}]`,
       customerName: '',
       customerMobile: '',
       amount: 0,
       notes: saleNotes,
     });
+
+    if (!result?.success) {
+      setSaleSuccess(false);
+      setAttMessage(result?.message || 'අලෙවිය සුරැකීමට නොහැකි විය. නැවත උත්සාහ කරන්න.');
+      setTimeout(() => setAttMessage(null), 5000);
+      return;
+    }
 
     setSaleSuccess(true);
     setSaleNotes('');
