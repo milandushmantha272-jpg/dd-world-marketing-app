@@ -323,6 +323,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isOwner && !finalStatuses.includes(requestedStatus)) {
         throw new Error('Invalid final verification status.');
       }
+      if (isOwner && ['SALE_CONFIRMED', 'COMPLETED'].includes(requestedStatus) && !String(verificationNote || '').toLowerCase().includes('dialog official report reference:')) {
+        throw new Error('A Dialog official report reference is required before confirming a sale.');
+      }
       const finalStatus = requestedStatus === 'COMPLETED' ? 'SALE_CONFIRMED' : requestedStatus;
       const patch:any = {
         verification_status: finalStatus,
