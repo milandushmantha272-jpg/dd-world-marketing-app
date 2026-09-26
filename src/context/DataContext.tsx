@@ -72,10 +72,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (firstError) throw firstError;
     const teamRows = t.data || [];
     const teamMap = new Map(teamRows.map((r:any) => [r.id, r]));
+    const currentProfile = (u.data || []).find((r:any) => r.auth_user_id === session.session!.user.id);
+    const ownerView = currentProfile?.role === 'owner' || String(session.session.user.email || '').trim().toLowerCase() === 'milandushmantha272@gmail.com';
+    let customerRows:any[] = [];
+    if (ownerView) {
+      const { data, error } = await supabase.from('sale_customer_details').select('*');
+      if (error) throw error;
+      customerRows = data || [];
+    }
+    const customerBySale = new Map(customerRows.map((r:any) => [r.sale_id, r]));
     setUsers((u.data || []).map((r:any) => mapRow(r, teamMap)));
     setTeams(teamRows.map((r:any) => ({ ...r, leaderId:r.leader_id, createdAt:r.created_at })));
     setAttendance((a.data || []).map((r:any) => ({ ...r, userId:r.user_id, gpsLocation:r.gps_location, checkInTime:r.check_in_time, checkOutTime:r.check_out_time })));
-    setSales((s.data || []).map((r:any) => ({ ...r, agentId:r.agent_id, agentCode:r.agent_code, agentName:r.agent_name, productType:r.product_type, productName:r.product_name, saleDate:r.sale_date, verificationStatus:r.verification_status, activationMethod:r.activation_method, dialCode:r.dial_code, appShareChannel:r.app_share_channel, customerName:r.customer_name, customerMobile:r.customer_mobile, saleTime:r.sale_time, verifiedAt:r.verified_at, verifiedBy:r.verified_by, verificationNote:r.verification_note })));
+    setSales((s.data || []).map((r:any) => {
+      const customer:any = customerBySale.get(r.id);
+      return { ...r, agentId:r.agent_id, agentCode:r.agent_code, agentName:r.agent_name, productType:r.product_type, productName:r.product_name, saleDate:r.sale_date, verificationStatus:r.verification_status, activationMethod:r.activation_method, dialCode:r.dial_code, appShareChannel:r.app_share_channel, customerName:customer?.customer_name || undefined, customerMobile:customer?.customer_mobile || undefined, msisdn:customer?.msisdn || undefined, saleTime:r.sale_time, verifiedAt:r.verified_at, verifiedBy:r.verified_by, verificationNote:r.verification_note };
+    }));
     setMessages((m.data || []).map((r:any) => ({ ...r, senderId:r.sender_id, receiverId:r.receiver_id, timestamp:r.timestamp })));
     setLeaves((l.data || []).map((r:any) => ({ ...r, userId:r.user_id, startDate:r.start_date, endDate:r.end_date })));
     setSecurityAlerts((sa.data || []).map((r:any) => ({ ...r, userId:r.user_id, timestamp:r.timestamp })));
@@ -284,8 +296,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const row = {
         id, agent_id: input.agentId, agent_code: input.agentCode || me.agent_code || null, agent_name: input.agentName || me.name,
         team_id: input.teamId || me.team_id || null, product_type: productType, product_name: input.productName || null,
-        channel, quantity: Number(input.quantity || 1), msisdn: input.msisdn || null, customer_name: input.customerName || null,
-        customer_mobile: input.customerMobile || null, latitude: input.latitude ?? null, longitude: input.longitude ?? null,
+        channel, quantity: Number(input.quantity || 1), msisdn: null, customer_name: null,
+        customer_mobile: null, latitude: input.latitude ?? null, longitude: input.longitude ?? null,
         district: input.district || null, location: input.location || null, sale_date: input.saleDate || new Date().toISOString().slice(0,10),
         sale_time: input.time || new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}), status: input.status || verificationStatus,
         verification_status: verificationStatus, amount: Number(input.amount || 0), notes: input.notes || null,
@@ -294,6 +306,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       const { error } = await supabase.from('sales').insert(row);
       if (error) throw error;
+      const customerName = String(input.customerName || '').trim();
+      const customerMobile = String(input.customerMobile || '').trim();
+      const msisdn = String(input.msisdn || '').trim();
+      if (customerName || customerMobile || msisdn) {
+        const { error: customerError } = await supabase.from('sale_customer_details').insert({
+          sale_id: id, agent_id: input.agentId, customer_name: customerName || null,
+          customer_mobile: customerMobile || null, msisdn: msisdn || null
+        });
+        if (customerError) throw customerError;
+      }
       await refreshCore();
       return { success:true, id, status:verificationStatus };
     } catch (error:any) {
