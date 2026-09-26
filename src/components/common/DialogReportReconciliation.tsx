@@ -30,7 +30,10 @@ const csvRows = (text: string): string[][] => {
   return rows;
 };
 const methodOf = (s: ProductSale): Method | null => {
-  const raw = clean([s.activationMethod, s.channel, s.dialCode, s.productName].join(' '));
+  const activation = clean(s.activationMethod);
+  if (activation.includes('keypaddial') || activation.includes('ivr') || activation.includes('ussd')) return 'ivr';
+  if (activation.includes('app') || activation.includes('linkshare')) return 'app';
+  const raw = clean([s.channel, s.dialCode, s.productName].join(' '));
   if (raw.includes('ivr') || raw.includes('keypaddial') || raw.includes('ussd')) return 'ivr';
   if (raw.includes('app') || raw.includes('appshare') || raw.includes('linkshare')) return 'app';
   return null;
