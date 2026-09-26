@@ -280,7 +280,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (activationMethod === 'KEYPAD_DIAL' && dialCode !== '828' && dialCode !== '616') throw new Error('Invalid IVR activation code.');
       const id = input.id || crypto.randomUUID();
       const idempotencyKey = input.idempotencyKey || `${id}`;
-      const verificationStatus = input.status || 'PENDING';
+      const verificationStatus = 'PENDING';
       const row = {
         id, agent_id: input.agentId, agent_code: input.agentCode || me.agent_code || null, agent_name: input.agentName || me.name,
         team_id: input.teamId || me.team_id || null, product_type: productType, product_name: input.productName || null,
