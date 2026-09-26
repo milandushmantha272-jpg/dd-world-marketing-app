@@ -89,8 +89,7 @@ export const TeamLeaderDashboard: React.FC = () => {
   const [attStatus, setAttStatus] = useState<'present' | 'half_day'>('present');
   const [attMessage, setAttMessage] = useState<string | null>(null);
 
-  // TL Sales Form (For TL directly or adding on behalf of Team Agent)
-  const [targetUser, setTargetUser] = useState<string>('ME');
+  // TL Sales Form (Team Leader's own direct sales)
   const [productType, setProductType] = useState<'ගොවිමිතුරු' | 'සයුරු' | 'අනෙකුත්'>('ගොවිමිතුරු');
   const [channel, setChannel] = useState<'IVR' | 'APP'>('IVR');
   const [quantity, setQuantity] = useState<string>('1');
@@ -237,7 +236,8 @@ export const TeamLeaderDashboard: React.FC = () => {
     const parsedQty = parseInt(quantity, 10);
     if (!Number.isInteger(parsedQty) || parsedQty < 1) {
       setSaleSuccess(false);
-      setSaleNotes('ප්‍රමාණය 1 හෝ ඊට වැඩි පූර්ණ සංඛ්‍යාවක් විය යුතුයි.');
+      setAttMessage('ප්‍රමාණය 1 හෝ ඊට වැඩි පූර්ණ සංඛ්‍යාවක් විය යුතුයි.');
+      setTimeout(() => setAttMessage(null), 5000);
       return;
     }
 
