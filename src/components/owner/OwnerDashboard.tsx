@@ -529,7 +529,7 @@ export const OwnerDashboard: React.FC = () => {
     setTimeout(() => setDeleteMsg(null), 4000);
   };
 
-  const handleAddOwnerSale = (e: React.FormEvent) => {
+  const handleAddOwnerSale = async (e: React.FormEvent) => {
     e.preventDefault();
 
     let targetId = currentUser.id;
@@ -547,7 +547,7 @@ export const OwnerDashboard: React.FC = () => {
       }
     }
 
-    addProductSale({
+    const result = await addProductSale({
       agentId: targetId,
       agentName: targetName,
       agentCode: targetCode,
@@ -560,6 +560,11 @@ export const OwnerDashboard: React.FC = () => {
       notes: ownerNotes,
     });
 
+    if (!result?.success) {
+      setOwnerSaleSuccess(false);
+      window.alert(result?.message || 'Sale could not be saved.');
+      return;
+    }
     setOwnerNotes('');
     setOwnerSaleSuccess(true);
     setTimeout(() => setOwnerSaleSuccess(false), 3000);
@@ -3700,8 +3705,8 @@ export const OwnerDashboard: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => {
-                    const res = updateAgentCode(agentToConfirmCode.id, newCodeInput);
+                  onClick={async () => {
+                    const res = await updateAgentCode(agentToConfirmCode.id, newCodeInput);
                     setCodeConfirmResult({
                       type: res.success ? 'success' : 'error',
                       text: res.message,
