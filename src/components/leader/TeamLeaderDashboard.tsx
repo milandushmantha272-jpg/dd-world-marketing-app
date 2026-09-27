@@ -464,7 +464,7 @@ export const TeamLeaderDashboard: React.FC = () => {
           }`}
         >
           <Megaphone className="w-4 h-4 text-purple-400" />
-          <span>📢 Messages</span>
+          <span>5️⃣ Page 5 — Messages &amp; Team Communication</span>
         </button>
 
         <button
@@ -1013,6 +1013,11 @@ export const TeamLeaderDashboard: React.FC = () => {
       {/* COMBINED COMMUNICATION PAGE: MESSAGES + LIVE CHAT + VIRTUAL MEETINGS */}
       {activeTab === 'company_messages' && (
         <div className="space-y-6">
+          <header className="rounded-2xl border border-purple-500/30 bg-gradient-to-r from-purple-950/70 to-slate-900 p-4 sm:p-5">
+            <p className="text-[10px] font-black uppercase tracking-[.18em] text-purple-300">TEAM LEADER • PAGE 5</p>
+            <h2 className="mt-1 text-lg font-black text-white">Messages, Notifications &amp; Team Communication</h2>
+            <p className="mt-1 text-xs text-slate-300">Company announcements, Team Chat and Virtual Meetings in one place.</p>
+          </header>
           <section className="p-4 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
             <h2 className="text-base font-black text-white flex items-center gap-2"><Megaphone className="w-5 h-5 text-purple-400" /> Messages</h2>
             <CompanyMessageCenter />
