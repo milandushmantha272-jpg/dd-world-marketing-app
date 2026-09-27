@@ -21,6 +21,7 @@ export const MainNavigation: React.FC = () => {
       : [{ label: 'Home', icon: Home, page: 'Home' }, { label: 'Sales', icon: BarChart3, page: 'Page 3 — Sales Activation' }, { label: 'Verify', icon: ShieldCheck, page: 'Page 6 — Details Submit / ID Requirements' }];
   const moreItems = isOwner
     ? [
+        { label: 'Owner Dashboard', icon: UserCog, page: 'Role Dashboard' },
         { label: 'All Reports', icon: FileText, page: 'Page 4 — Sales Summary / Reports' },
         { label: 'Owner Profile', icon: User, page: 'Page 6 — Details Submit / ID Requirements' },
         { label: 'Attendance Control', icon: CalendarCheck, page: 'Page 2 — Attendance' },
@@ -30,6 +31,7 @@ export const MainNavigation: React.FC = () => {
         { label: 'User Access', icon: UserCog, page: 'Owner — User & Access Control' },
       ]
     : [
+        { label: isLeader ? 'Team Dashboard' : 'Agent Dashboard', icon: UserCog, page: 'Role Dashboard' },
         { label: 'Reports', icon: FileText, page: 'Page 4 — Sales Summary / Reports' },
         { label: 'My Details', icon: User, page: 'Page 6 — Details Submit / ID Requirements' },
         { label: 'Payment', icon: Wallet, page: 'Page 7 — Commission / Payment' },
