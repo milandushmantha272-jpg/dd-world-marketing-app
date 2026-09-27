@@ -41,6 +41,7 @@ import { CompanyMessageCenter } from '../common/CompanyMessageCenter';
 import { InteractiveChatBox } from '../common/InteractiveChatBox';
 import { DialogPerformanceManager } from '../common/DialogPerformanceManager';
 import { DigitalEmployeeIdCard } from '../common/DigitalEmployeeIdCard';
+import { PersonalProfileKycPage } from '../common/PersonalProfileKycPage';
 import { DayStartWorkAreaModal } from '../common/DayStartWorkAreaModal';
 import { GamifiedLeaderboard } from '../common/GamifiedLeaderboard';
 import { VirtualMeetingHub } from '../common/VirtualMeetingHub';
@@ -61,6 +62,7 @@ type TlTab =
   | 'chat'
   | 'dialog_performance'
   | 'digital_id'
+  | 'profile_kyc'
   | 'work_area'
   | 'leaderboard'
   | 'meetings';
@@ -477,6 +479,18 @@ export const TeamLeaderDashboard: React.FC = () => {
         >
           <Award className="w-4 h-4 text-blue-400" />
           <span>📊 Dialog Records</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('profile_kyc')}
+          className={`py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'profile_kyc'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 shadow-lg shadow-cyan-500/20 font-black'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          }`}
+        >
+          <IdCard className="w-4 h-4 text-cyan-400" />
+          <span>7️⃣ Page 7 — Profile / KYC</span>
         </button>
 
         <button
@@ -1038,6 +1052,7 @@ export const TeamLeaderDashboard: React.FC = () => {
 
       {/* MASTER TAB: DIGITAL EMPLOYEE ID CARD */}
       {activeTab === 'digital_id' && <DigitalEmployeeIdCard />}
+      {activeTab === 'profile_kyc' && <PersonalProfileKycPage />}
 
       {/* MASTER TAB: DAY START WORK AREA */}
       {activeTab === 'work_area' && <DayStartWorkAreaModal onClose={() => setActiveTab('attendance')} />}
