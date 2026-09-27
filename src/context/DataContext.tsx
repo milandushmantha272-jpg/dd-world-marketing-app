@@ -369,7 +369,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value:any = {
     users,teams,attendance,sales,ivrEntries,leaves,messages,meetings,securityAlerts,coldArchives,knowledge,verifications,monthlyTargets,teamTargets,agentTargets,companyWeeklyReports,vaultFiles,marketingPosts,webAiMessages,systemDoctorLogs,smsLogs,activeCall,locationLogs,locationConfig,motivationBanners,companyMessages,dialogPerformanceRecords,trainingProgress,quizResults,workAreas,employeeIdAuditLogs,dataError,retryData,sendMessage,
-    addAttendanceRecord,\n    addVaultFile:async()=>{},deleteVaultFile:async()=>{},addMarketingPost:async()=>{},deleteMarketingPost:async()=>{},sendWebAiMessage:async()=>{},runSystemDoctorAutoHeal:async()=>{},getDailyJobRoleReports:async()=>[],
+    addAttendanceRecord,
+    addVaultFile:async()=>{},deleteVaultFile:async()=>{},addMarketingPost:async()=>{},deleteMarketingPost:async()=>{},sendWebAiMessage:async()=>{},runSystemDoctorAutoHeal:async()=>{},getDailyJobRoleReports:async()=>[],
     addAgent,addTeamLeader,updateAgentCode,deleteAgent,updateEmploymentStatus,deleteUser,changeUserTeam,changeUserRole,updateUserGps,
     updateLeaveStatus:async()=>{},createMeeting:async()=>{},cancelMeeting:async()=>{},addProductSale,updateProductSaleVerification,startCall:async()=>{},updateUserAppStatus,acceptCall:async()=>{},rejectCall:async()=>{},endCall:async()=>{}
   };
