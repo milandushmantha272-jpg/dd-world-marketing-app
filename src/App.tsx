@@ -26,7 +26,6 @@ import { CallNotificationModal } from './components/common/CallNotificationModal
 import { ActiveCallOverlay } from './components/common/ActiveCallOverlay';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
 import { DialogLiaisonHub } from './components/common/DialogLiaisonHub';
-import { OwnerDialogOfficerMessenger } from './components/common/OwnerDialogOfficerMessenger';
 import { WeeklySalesSheetWorkflow } from './components/common/WeeklySalesSheetWorkflow';
 import { MainNavigation } from './components/common/MainNavigation';
 import { HomePage } from './components/common/HomePage';
@@ -154,7 +153,6 @@ const AppContent: React.FC = () => {
       <WeeklySalesSheetWorkflow />
     </main>
     {!isPromotionPage && <DialogLiaisonHub />}
-    <OwnerDialogOfficerMessenger />
     <GlobalCallContainer />
     <MainNavigation />
     <OfflineIndicator />
