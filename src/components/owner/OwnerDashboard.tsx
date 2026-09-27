@@ -520,9 +520,10 @@ export const OwnerDashboard: React.FC = () => {
     }
   };
 
-  const handleConfirmPermanentDelete = () => {
+  const handleConfirmPermanentDelete = async () => {
     if (!agentToDelete) return;
-    const res = deleteAgent(agentToDelete.id);
+    const target = agentToDelete;
+    const res = await deleteAgent(target.id);
     setAgentToDelete(null);
     setDeleteMsg(res.message);
     setTimeout(() => setDeleteMsg(null), 4000);
