@@ -84,6 +84,7 @@ type OwnerTab =
   | 'target_plan'
   | 'summaries'
   | 'performance_overview'
+  | 'owner_reports'
   | 'teams'
   | 'team_detail'
   | 'id_card_creator'
@@ -829,6 +830,15 @@ export const OwnerDashboard: React.FC = () => {
             <span>📞 #828# / #616# &amp; App සක්‍රිය කිරීම්</span>
           </button>
 
+          {/* Owner consolidated reports */}
+          <button
+            onClick={() => setActiveTab('owner_reports')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition whitespace-nowrap ${activeTab === 'owner_reports' ? 'bg-cyan-600 text-white' : 'bg-slate-900 text-cyan-300 border border-cyan-500/30 hover:bg-slate-800'}`}
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Attendance / Sales / Team Reports
+          </button>
+
           {/* CORE 4: REAL-TIME GPS MAP */}
           <button
             onClick={() => setActiveTab('gps')}
@@ -1064,6 +1074,41 @@ export const OwnerDashboard: React.FC = () => {
           </div>
         )}
 
+
+        {activeTab === 'owner_reports' && (() => {
+          const today = new Date();
+          const todayKey = today.toISOString().slice(0, 10);
+          const weekStart = new Date(today);
+          weekStart.setDate(today.getDate() - 6);
+          const weekKey = weekStart.toISOString().slice(0, 10);
+          const monthKey = todayKey.slice(0, 7);
+          const dateOf = (x: any) => String(x.date || x.createdAt || x.created_at || '').slice(0, 10);
+          const inToday = (x: any) => dateOf(x) === todayKey;
+          const inWeek = (x: any) => dateOf(x) >= weekKey && dateOf(x) <= todayKey;
+          const inMonth = (x: any) => dateOf(x).startsWith(monthKey);
+          const units = (list: any[]) => list.reduce((n, x) => n + (Number(x.quantity) || 1), 0);
+          const amount = (list: any[]) => list.reduce((n, x) => n + (Number(x.amount) || 0), 0);
+          const agents = users.filter((u) => u.role === 'agent');
+          const leaders = users.filter((u) => u.role === 'team_leader');
+          const Stat = ({ title, value }: { title: string; value: string | number }) => (
+            <div className="rounded-xl border border-slate-700 bg-slate-900 p-4"><p className="text-xs text-slate-400">{title}</p><p className="mt-2 text-xl font-black text-white">{value}</p></div>
+          );
+          return <div className="mt-6 space-y-6">
+            <div><h2 className="text-xl font-black text-white">Owner — Complete Reports</h2><p className="mt-1 text-xs text-slate-400">Attendance, activation/sales, agent and team summaries from currently loaded app records.</p></div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <Stat title="All Agents" value={agents.length} /><Stat title="Team Leaders" value={leaders.length} />
+              <Stat title="Live GPS records" value={gpsAgents.length} /><Stat title="Promotion items" value={marketingPosts.length} />
+            </div>
+            <section className="rounded-xl border border-slate-800 bg-slate-950 p-4"><h3 className="mb-3 font-bold text-white">Sales / Activations — Day, 7 Days, Month</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[["Today", sales.filter(inToday)], ["Last 7 Days", sales.filter(inWeek)], ["This Month", sales.filter(inMonth)]].map(([label, list]: any) => <div key={label} className="rounded-lg border border-slate-800 bg-slate-900 p-3"><p className="text-xs text-cyan-300">{label}</p><p className="mt-2 text-lg font-bold text-white">{units(list)} units</p><p className="text-xs text-slate-400">Sales value: Rs. {amount(list).toLocaleString()}</p></div>)}
+              </div><p className="mt-3 text-[11px] text-slate-500">Date grouping uses the date/createdAt field available on each sales record. Confirmed commission values are not inferred from sales value.</p>
+            </section>
+            <section className="rounded-xl border border-slate-800 bg-slate-950 p-4"><h3 className="mb-3 font-bold text-white">Team-wise Sales & Attendance</h3><div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="text-slate-400"><tr><th className="p-2">Team</th><th className="p-2">Agents</th><th className="p-2">Sales units</th><th className="p-2">Sales value</th><th className="p-2">Attendance records</th></tr></thead><tbody>{teams.map((team) => { const teamAgents = agents.filter((a) => a.teamId === team.id); const ids = new Set(teamAgents.map((a) => a.id)); const teamSales = sales.filter((sale: any) => sale.teamId === team.id || ids.has(sale.agentId) || ids.has(sale.userId)); const teamAttendance = attendance.filter((a: any) => ids.has(a.userId) || ids.has(a.agentId)); return <tr key={team.id} className="border-t border-slate-800 text-slate-200"><td className="p-2">{team.name}</td><td className="p-2">{teamAgents.length}</td><td className="p-2">{units(teamSales)}</td><td className="p-2">Rs. {amount(teamSales).toLocaleString()}</td><td className="p-2">{teamAttendance.length}</td></tr>; })}</tbody></table></div></section>
+            <section className="rounded-xl border border-slate-800 bg-slate-950 p-4"><h3 className="mb-3 font-bold text-white">Attendance Summary</h3><div className="grid grid-cols-1 sm:grid-cols-3 gap-3"><Stat title="Today" value={attendance.filter(inToday).length} /><Stat title="Last 7 Days" value={attendance.filter(inWeek).length} /><Stat title="This Month" value={attendance.filter(inMonth).length} /></div></section>
+            <section className="rounded-xl border border-slate-800 bg-slate-950 p-4"><h3 className="mb-3 font-bold text-white">GPS / Promotions / Commission</h3><p className="text-sm text-slate-300">GPS: open the existing <b>Live GPS Location Map</b> page for available device coordinates ({gpsAgents.length} agent records currently have coordinates).</p><p className="mt-2 text-sm text-slate-300">Promotion items: {marketingPosts.length} records available in the existing promotion/marketing module.</p><p className="mt-2 text-sm text-amber-300">Commission: this report does not calculate commission because a verified commission-rate/commission field was not confirmed in the current data model.</p></section>
+          </div>;
+        })()}
 
         {/* ====================================================
             OVERVIEW TAB
