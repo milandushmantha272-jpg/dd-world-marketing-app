@@ -85,6 +85,8 @@ type OwnerTab =
   | 'summaries'
   | 'performance_overview'
   | 'owner_reports'
+  | 'agent_app_details'
+  | 'team_leader_app_details'
   | 'teams'
   | 'team_detail'
   | 'id_card_creator'
@@ -830,6 +832,10 @@ export const OwnerDashboard: React.FC = () => {
             <span>📞 #828# / #616# &amp; App සක්‍රිය කිරීම්</span>
           </button>
 
+          {/* Separate role app inspection pages */}
+          <button onClick={() => setActiveTab('agent_app_details')} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap ${activeTab === 'agent_app_details' ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-emerald-300 border border-emerald-500/30'}`}><Users className="w-4 h-4" /> Agent App — Pages & Data</button>
+          <button onClick={() => setActiveTab('team_leader_app_details')} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap ${activeTab === 'team_leader_app_details' ? 'bg-violet-600 text-white' : 'bg-slate-900 text-violet-300 border border-violet-500/30'}`}><UserCheck className="w-4 h-4" /> Team Leader App — Pages & Data</button>
+
           {/* Owner consolidated reports */}
           <button
             onClick={() => setActiveTab('owner_reports')}
@@ -1074,6 +1080,20 @@ export const OwnerDashboard: React.FC = () => {
           </div>
         )}
 
+
+        {activeTab === 'agent_app_details' && (() => {
+          const agentIds = new Set(users.filter((u) => u.role === 'agent').map((u) => u.id));
+          const roleSales = sales.filter((r: any) => agentIds.has(r.agentId) || agentIds.has(r.userId));
+          const roleAttendance = attendance.filter((r: any) => agentIds.has(r.agentId) || agentIds.has(r.userId));
+          const pages = ['Attendance Mark', 'Sales Mark', '828 / 616 Keypad & App Activation', 'Leaderboard', 'Virtual Meetings', 'Targets & Rs.30 Rule', 'Product Knowledge Center', 'Company Messages', 'Live Chat', 'Dialog Records / Performance', 'Digital Employee ID', 'Quick Replies & Scripts', 'Day Start Work Area', 'My GPS Map'];
+          return <div className="mt-6 space-y-5"><div><h2 className="text-xl font-black text-white">Agent App — Owner View</h2><p className="text-xs text-slate-400 mt-1">Agent app එකේ පිටු වෙනම ලැයිස්තුවක් ලෙස සහ Ownerට ලබාගත හැකි අදාළ දත්ත.</p></div><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[['Agents', agentIds.size], ['Sales records', roleSales.length], ['Attendance records', roleAttendance.length], ['Agents with GPS', gpsAgents.length]].map(([label,value]: any)=><div key={label} className="rounded-xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs text-slate-400">{label}</p><p className="text-xl font-black text-white mt-2">{value}</p></div>)}</div><div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><h3 className="font-bold text-white mb-3">Agent App Pages</h3><div className="grid sm:grid-cols-2 gap-2">{pages.map((p,i)=><div key={p} className="flex gap-3 rounded-lg bg-slate-900 border border-slate-800 p-3"><span className="text-emerald-400 font-bold">{String(i+1).padStart(2,'0')}</span><span className="text-sm text-slate-200">{p}</span></div>)}</div></div><div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><h3 className="font-bold text-white mb-3">Agent List & Team Mapping</h3><div className="overflow-x-auto"><table className="w-full text-xs text-left"><thead className="text-slate-400"><tr><th className="p-2">Agent</th><th className="p-2">Code</th><th className="p-2">Team</th><th className="p-2">Sales records</th><th className="p-2">Attendance</th><th className="p-2">GPS</th></tr></thead><tbody>{users.filter((u)=>u.role==='agent').map((u)=><tr key={u.id} className="border-t border-slate-800 text-slate-200"><td className="p-2">{u.name}</td><td className="p-2">{u.agentCode || '—'}</td><td className="p-2">{teams.find((t)=>t.id===u.teamId)?.name || 'Unassigned'}</td><td className="p-2">{sales.filter((r:any)=>r.agentId===u.id || r.userId===u.id).length}</td><td className="p-2">{attendance.filter((r:any)=>r.agentId===u.id || r.userId===u.id).length}</td><td className="p-2">{u.latitude != null && u.longitude != null ? 'Coordinates available' : 'No coordinates'}</td></tr>)}</tbody></table></div></div></div>;
+        })()}
+
+        {activeTab === 'team_leader_app_details' && (() => {
+          const leaders = users.filter((u) => u.role === 'team_leader');
+          const pages = ['Team Agents', 'Attendance Mark / Team Attendance', 'Sales Mark / Team Sales', '828 / 616 Keypad & App Activation', 'IVR & App Activations Hub', 'Team GPS Map', 'Product Knowledge Center', 'Targets & Team Target Dashboard', 'Company Messages', 'Live Chat', 'Dialog Records / Performance', 'Digital Employee ID', 'Personal Profile / KYC', 'Day Start Work Area', 'Leaderboard', 'Virtual Meetings'];
+          return <div className="mt-6 space-y-5"><div><h2 className="text-xl font-black text-white">Team Leader App — Owner View</h2><p className="text-xs text-slate-400 mt-1">Team Leader app එකේ පිටු වෙනම පෙන්වා, එක් එක් Leaderගේ team data Ownerට පෙන්වයි.</p></div><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[['Team Leaders',leaders.length],['Teams',teams.length],['Team sales records',sales.filter((r:any)=>teams.some((t)=>t.id===r.teamId)).length],['Team attendance records',attendance.length]].map(([label,value]:any)=><div key={label} className="rounded-xl border border-slate-800 bg-slate-900 p-4"><p className="text-xs text-slate-400">{label}</p><p className="text-xl font-black text-white mt-2">{value}</p></div>)}</div><div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><h3 className="font-bold text-white mb-3">Team Leader App Pages</h3><div className="grid sm:grid-cols-2 gap-2">{pages.map((p,i)=><div key={p} className="flex gap-3 rounded-lg bg-slate-900 border border-slate-800 p-3"><span className="text-violet-400 font-bold">{String(i+1).padStart(2,'0')}</span><span className="text-sm text-slate-200">{p}</span></div>)}</div></div><div className="rounded-xl border border-slate-800 bg-slate-950 p-4"><h3 className="font-bold text-white mb-3">Leader-wise Team Summary</h3><div className="overflow-x-auto"><table className="w-full text-xs text-left"><thead className="text-slate-400"><tr><th className="p-2">Team Leader</th><th className="p-2">Team</th><th className="p-2">Agents</th><th className="p-2">Sales records</th><th className="p-2">Attendance records</th></tr></thead><tbody>{leaders.map((leader)=>{const team=teams.find((t:any)=>t.leaderId===leader.id);const members=users.filter((u)=>u.role==='agent'&&(u.teamLeaderId===leader.id||(team&&u.teamId===team.id)));const ids=new Set(members.map((u)=>u.id));return <tr key={leader.id} className="border-t border-slate-800 text-slate-200"><td className="p-2">{leader.name}</td><td className="p-2">{team?.name || 'No team linked'}</td><td className="p-2">{members.length}</td><td className="p-2">{sales.filter((r:any)=>ids.has(r.agentId)||ids.has(r.userId)|| (team&&r.teamId===team.id)).length}</td><td className="p-2">{attendance.filter((r:any)=>ids.has(r.agentId)||ids.has(r.userId)).length}</td></tr>})}</tbody></table></div></div></div>;
+        })()}
 
         {activeTab === 'owner_reports' && (() => {
           const today = new Date();
