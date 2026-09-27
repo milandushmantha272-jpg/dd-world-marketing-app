@@ -418,7 +418,6 @@ export const INITIAL_USERS: User[] = [
     createdAt: '2026-02-01',
   },
   {
-  {
     id: 'ag-9183',
     name: 'G.P.G. Pathirana',
     email: 'pathirana9183@ddworld.local',
