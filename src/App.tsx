@@ -78,6 +78,7 @@ const AppContent: React.FC = () => {
       const page = (event as CustomEvent<{ page?: string }>).detail?.page || '';
       if (page === 'Home') { setStandalonePage(null); setShowHome(true); window.scrollTo({ top: 0, behavior: 'auto' }); return; }
       setShowHome(false);
+      if (page === 'Role Dashboard') { setStandalonePage('Role Dashboard'); window.scrollTo({ top: 0, behavior: 'auto' }); return; }
       if (page === 'Page 1 — ID') setStandalonePage('ID');
       else if (page === 'Page 2 — Attendance' || page === 'Attendance' || page === 'Work & Attendance') setStandalonePage('Attendance');
       else if (page === 'Page 3 — Sales Activation') setStandalonePage('Sales Activation');
@@ -117,8 +118,8 @@ const AppContent: React.FC = () => {
   React.useEffect(() => {
     if (!currentUser || !standalonePage) return;
     const allowedStandalone = currentUser.role === 'owner'
-      ? ['ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad','Data Retention & History','Career & Team Management','User & Access Control']
-      : ['ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad'];
+      ? ['Role Dashboard','ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad','Data Retention & History','Career & Team Management','User & Access Control']
+      : ['Role Dashboard','ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad'];
     if (!allowedStandalone.includes(standalonePage)) { setStandalonePage(null); setShowHome(true); }
   }, [currentUser, standalonePage]);
 
@@ -134,6 +135,7 @@ const AppContent: React.FC = () => {
     {updateNotice && <div className="dd-header text-white text-xs font-bold py-2 px-4 text-center shadow-lg z-50">{updateNotice}</div>}
     <main className="flex-1 pb-20">
       {!standalonePage && showHome ? <HomePage />
+        : standalonePage === 'Role Dashboard' ? <>{currentUser.role === 'owner' && <OwnerDashboard />}{(currentUser.role === 'team_leader' || currentUser.role === 'junior_team_leader') && <TeamLeaderDashboard />}{currentUser.role === 'agent' && <AgentDashboard />}</>
         : standalonePage === 'ID' ? <div className="mx-auto w-full max-w-6xl px-4 py-6"><DigitalEmployeeIdCard /></div>
         : standalonePage === 'Attendance' ? <AttendancePage />
         : standalonePage === 'Sales Activation' ? <IvrAndAppActivationsHub currentUser={currentUser} />
