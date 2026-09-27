@@ -86,17 +86,17 @@ export const HomePage: React.FC = () => {
             <button type="button" onClick={() => go('Owner — Career & Team Management')} className="dd-home-action dd-home-action-blue"><UserRound className="h-5 w-5" /><span>Teams</span></button>
             <button type="button" onClick={() => go('Page 4 — Sales Summary / Reports')} className="dd-home-action dd-home-action-green"><BarChart3 className="h-5 w-5" /><span>Reports</span></button>
             <button type="button" onClick={() => go('Owner — User & Access Control')} className="dd-home-action dd-home-action-purple"><ShieldCheck className="h-5 w-5" /><span>User Access</span></button>
-            <button type="button" onClick={() => go('Page 6 — Details Submit / ID Requirements')} className="dd-home-action dd-home-action-orange"><UserRound className="h-5 w-5" /><span>Owner Profile</span></button>
+            <button type="button" onClick={() => go('Role Dashboard')} className="dd-home-action dd-home-action-orange"><UserRound className="h-5 w-5" /><span>Owner Dashboard</span></button>
           </> : isLeader ? <>
             <button type="button" onClick={() => go('Page 3 — Sales Activation')} className="dd-home-action dd-home-action-blue"><BarChart3 className="h-5 w-5" /><span>Team Sales</span></button>
             <button type="button" onClick={() => go('Page 4 — Sales Summary / Reports')} className="dd-home-action dd-home-action-green"><CheckCircle2 className="h-5 w-5" /><span>Team Reports</span></button>
             <button type="button" onClick={() => go('Page 2 — Attendance')} className="dd-home-action dd-home-action-purple"><Radio className="h-5 w-5" /><span>Attendance</span></button>
-            <button type="button" onClick={() => go('Page 6 — Details Submit / ID Requirements')} className="dd-home-action dd-home-action-orange"><UserRound className="h-5 w-5" /><span>My Profile</span></button>
+            <button type="button" onClick={() => go('Role Dashboard')} className="dd-home-action dd-home-action-orange"><UserRound className="h-5 w-5" /><span>Team Dashboard</span></button>
           </> : <>
             <button type="button" onClick={() => go('Page 3 — Sales Activation')} className="dd-home-action dd-home-action-blue"><BarChart3 className="h-5 w-5" /><span>Sales</span></button>
             <button type="button" onClick={() => go('Page 6 — Details Submit / ID Requirements')} className="dd-home-action dd-home-action-green"><CheckCircle2 className="h-5 w-5" /><span>Verification</span></button>
             <button type="button" onClick={() => go('Page 11 — Real Dial Pad')} className="dd-home-action dd-home-action-purple"><Radio className="h-5 w-5" /><span>USSD</span></button>
-            <button type="button" onClick={() => go('Page 6 — Details Submit / ID Requirements')} className="dd-home-action dd-home-action-orange"><UserRound className="h-5 w-5" /><span>Profile</span></button>
+            <button type="button" onClick={() => go('Role Dashboard')} className="dd-home-action dd-home-action-orange"><UserRound className="h-5 w-5" /><span>Agent Dashboard</span></button>
           </>}
         </div>
 
