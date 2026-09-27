@@ -238,6 +238,93 @@ export const ProductKnowledgeCenter: React.FC = () => {
         </div>
       </div>
 
+      {/* CUSTOMER-FIRST FIELD SALES & PROFESSIONAL TRAINING */}
+      <section className="rounded-3xl border border-amber-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/30 p-5 sm:p-6 space-y-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <span className="inline-flex rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-[10px] font-black tracking-wide text-amber-300">DD WORLD MARKETING • FIELD PLAYBOOK</span>
+            <h2 className="mt-2 text-xl font-black text-white">Customer First — Customer is Our King</h2>
+            <p className="mt-1 text-sm text-slate-300">ඉලක්කය වැදගත්. නමුත් පාරිභෝගික විශ්වාසය, නිවැරදි තොරතුරු සහ අවසරය ඊටත් වඩා වැදගත්.</p>
+          </div>
+          <ShieldCheck className="h-8 w-8 text-amber-300" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <article className="rounded-2xl border border-slate-700 bg-slate-950/70 p-4">
+            <h3 className="font-black text-emerald-300">1. Customer Care — පාරිභෝගිකයා අපේ රජු</h3>
+            <ol className="mt-2 list-decimal list-inside space-y-2 text-sm leading-relaxed text-slate-300">
+              <li>සුහදව ආචාර කර, කතා කිරීමට සුදුසු වේලාවක්දැයි අසන්න.</li>
+              <li>පාරිභෝගිකයාගේ අවශ්‍යතාව සහ ඔහුට/ඇයට ගැළපෙන සේවාව හඳුනාගන්න.</li>
+              <li>සරල, පැහැදිලි සහ සත්‍ය තොරතුරු පමණක් ලබා දෙන්න.</li>
+              <li>ප්‍රශ්නවලට ඉවසීමෙන් පිළිතුරු දෙන්න; තීරණය ගැනීමට බලපෑම් නොකරන්න.</li>
+              <li>අවසානයේ ස්තුති කර, අවශ්‍ය உதவிக்கාරී සම්බන්ධතාව ලබා දෙන්න.</li>
+            </ol>
+          </article>
+          <article className="rounded-2xl border border-slate-700 bg-slate-950/70 p-4">
+            <h3 className="font-black text-cyan-300">2. Product Knowledge & Activation</h3>
+            <ul className="mt-2 list-disc list-inside space-y-2 text-sm leading-relaxed text-slate-300">
+              <li>ගොවිමිතුරු — Agent activation code: <strong className="text-white">#616#</strong></li>
+              <li>සයුරු — Agent activation code: <strong className="text-white">#828#</strong></li>
+              <li>IVR සහ App සේවා අතර වෙනස, ප්‍රයෝජන, ගාස්තු සහ අදාළ කොන්දේසි තේරුම් ගන්න.</li>
+              <li>ගාස්තු/කොන්දේසි ගැන සැකයක් ඇත්නම් අනුමාන නොකර Team Leader හරහා තහවුරු කරන්න.</li>
+              <li>Activation එකෙන් පසු තත්ත්වය තහවුරු කර, අසාර්ථක නම් නැවත නැවත උත්සාහ කිරීමට පෙර පරීක්ෂා කරන්න.</li>
+            </ul>
+          </article>
+          <article className="rounded-2xl border border-rose-500/25 bg-slate-950/70 p-4">
+            <h3 className="font-black text-rose-300">3. Consent, Privacy & Customer Protection</h3>
+            <ul className="mt-2 list-disc list-inside space-y-2 text-sm leading-relaxed text-slate-300">
+              <li><strong className="text-white">පාරිභෝගිකයාගේ පැහැදිලි කැමැත්ත නැතිව කිසිදු සේවාවක් activate නොකරන්න.</strong></li>
+              <li>සේවාව, ගාස්තුව සහ කොන්දේසි පැහැදිලි කර, අවබෝධයෙන් පසු කැමැත්ත ලබාගන්න.</li>
+              <li>වැරදි තොරතුරු, ව්‍යාජ පොරොන්දු, බලහත්කාරය හෝ අනුමැතිය නැති activation තහනම්.</li>
+              <li>Customer PIN/OTP හෝ අනවශ්‍ය පුද්ගලික තොරතුරු ඉල්ලා නොගන්න; දත්ත රහස්‍යව තබන්න.</li>
+              <li>පැමිණිල්ලක් හෝ වැරදි activation එකක් වහාම Team Leader වෙත දන්වන්න.</li>
+            </ul>
+          </article>
+          <article className="rounded-2xl border border-slate-700 bg-slate-950/70 p-4">
+            <h3 className="font-black text-violet-300">4. Professional Appearance & Discipline</h3>
+            <ul className="mt-2 list-disc list-inside space-y-2 text-sm leading-relaxed text-slate-300">
+              <li>පිරිසිදු, පිළිවෙළ සහිත, රැකියාවට ගැළපෙන ඇඳුමකින් සහ නිල ID එක සමඟ සිටින්න.</li>
+              <li>වේලාවට පැමිණීම, ගෞරවයෙන් කතා කිරීම සහ සමාගමේ උපදෙස් පිළිපැදීම අනිවාර්යයි.</li>
+              <li>නිෂ්පාදන දැනුම, විශ්වාසයෙන් කතා කිරීම සහ වගකීමෙන් වැඩ කිරීමෙන් වෘත්තීයභාවය පෙන්වන්න.</li>
+              <li>Target ලබාගැනීම සඳහා customer trust හෝ service quality කිසිවිටෙකත් කැප නොකරන්න.</li>
+            </ul>
+          </article>
+        </div>
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+          <h3 className="font-black text-emerald-300">5. Field Sales — දිනපතා ක්‍රියාකාරී ක්‍රමය</h3>
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+            <div className="rounded-xl bg-slate-950/70 p-3"><strong className="text-white">Before Field</strong><p className="mt-1 text-slate-300">Product/USSD දැනුම, අද ප්‍රදේශය සහ target සූදානම් කරගන්න.</p></div>
+            <div className="rounded-xl bg-slate-950/70 p-3"><strong className="text-white">Approach</strong><p className="mt-1 text-slate-300">සුහදව හඳුන්වා දී, අවශ්‍යතාව අසා, ගැළපෙන සේවාව පැහැදිලි කරන්න.</p></div>
+            <div className="rounded-xl bg-slate-950/70 p-3"><strong className="text-white">Explain & Ask</strong><p className="mt-1 text-slate-300">ප්‍රයෝජන, ගාස්තු, කොන්දේසි කියා පැහැදිලි කැමැත්ත ලබාගන්න.</p></div>
+            <div className="rounded-xl bg-slate-950/70 p-3"><strong className="text-white">Verify & Record</strong><p className="mt-1 text-slate-300">Activation තහවුරු කර, නිවැරදිව සටහන් කර, follow-up අවශ්‍යද බලන්න.</p></div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-blue-500/25 bg-blue-500/5 p-4">
+          <h3 className="font-black text-blue-300">6. Objection Handling — පාරිභෝගික ප්‍රශ්නවලට පිළිතුරු</h3>
+          <div className="mt-3 space-y-3 text-sm text-slate-300">
+            <p><strong className="text-white">“මට අවශ්‍ය නැහැ.”</strong> — “හරි, ඔබේ තීරණයට ගරු කරනවා. ඔබේ කාලය ලබාදුන්නාට ස්තුතියි.”</p>
+            <p><strong className="text-white">“ගාස්තුව කොපමණද?”</strong> — තහවුරු කළ නිවැරදි ගාස්තුව සහ අදාළ බදු/කොන්දේසි පැහැදිලි කරන්න. නොදන්නේ නම් තහවුරු කර පසුව කියන්න.</p>
+            <p><strong className="text-white">“මේකෙන් මට ලැබෙන්නේ මොනවාද?”</strong> — පාරිභෝගිකයාගේ අවශ්‍යතාවට අදාළ ප්‍රයෝජන පමණක් සත්‍ය ලෙස පැහැදිලි කරන්න.</p>
+          </div>
+        </div>
+        {isOwnerOrTL && (
+          <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
+            <h3 className="font-black text-purple-300">7. Team Leader Daily Coaching & Qualification</h3>
+            <ul className="mt-2 list-disc list-inside space-y-2 text-sm text-slate-300">
+              <li><strong className="text-white">Morning:</strong> දවසේ target, ප්‍රදේශය, product knowledge සහ customer-consent නීති මතක් කරන්න.</li>
+              <li><strong className="text-white">Field observation:</strong> Agent ගේ customer approach, නිවැරදි පැහැදිලි කිරීම සහ consent practice නිරීක්ෂණය කරන්න.</li>
+              <li><strong className="text-white">Midday:</strong> Sales progress පමණක් නොව, customer quality සහ ගැටලුද පරීක්ෂා කරන්න.</li>
+              <li><strong className="text-white">End of day:</strong> ප්‍රතිඵල, වැරදි, ඉගෙනගත් පාඩම් සහ හෙට වැඩිදියුණු කළ යුතු කරුණු සමාලෝචනය කරන්න.</li>
+              <li><strong className="text-white">Qualification:</strong> Product quiz, practical role-play, activation knowledge සහ customer-protection checklist මත පුහුණුව/ඇගයීම සටහන් කරන්න.</li>
+            </ul>
+            <p className="mt-3 text-xs text-purple-200">Suggested status: Training → Assessment → Qualified → Refresher Training (අවශ්‍ය විට).</p>
+          </div>
+        )}
+        <div className="border-t border-slate-700 pt-4 text-center">
+          <p className="text-base font-black text-white">CUSTOMER FIRST • QUALITY BEFORE QUANTITY</p>
+          <p className="mt-1 text-xs text-amber-200">විශ්වාසය දිනාගන්න. නිවැරදි සේවාවක් ලබාදෙන්න. දිගුකාලීන සාර්ථකත්වය ගොඩනගන්න.</p>
+        </div>
+      </section>
+
       {/* Product Selector Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <button
