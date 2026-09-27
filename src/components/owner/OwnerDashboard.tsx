@@ -476,14 +476,14 @@ export const OwnerDashboard: React.FC = () => {
     return matchesTeam && matchesSearch;
   });
 
-  const handleCreateAgent = (e: React.FormEvent) => {
+  const handleCreateAgent = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddMsg(null);
 
     let res: { success: boolean; message: string };
 
     if (addStaffRole === 'team_leader') {
-      res = addTeamLeader({
+      res = await addTeamLeader({
         name: agName,
         code: agCode,
         mobile: agMobile,
@@ -494,7 +494,7 @@ export const OwnerDashboard: React.FC = () => {
       const selectedTeam = teams.find((t) => t.id === agTeamId);
       const teamLeaderId = selectedTeam ? selectedTeam.leaderId : 'tl-1';
 
-      res = addAgent({
+      res = await addAgent({
         name: agName,
         agentCode: agCode,
         mobile: agMobile,
