@@ -8,17 +8,18 @@ import { safeStorage } from '../utils/safeStorage';
 import { sendOwnerPasswordReset } from '../services/supabaseAuth';
 
 const blockedStatuses = new Set(['BLOCKED', 'SUSPENDED', 'EXITED', 'TEMPORARY_SUSPENDED', 'RESIGNED', 'TERMINATED', 'blocked']);
-const roleMeta: Record<Exclude<UserRole, 'dialog_officer'>, { label: string; icon: React.ElementType }> = {
+const roleMeta: Record<UserRole, { label: string; icon: React.ElementType }> = {
   owner: { label: 'Owner', icon: UserRound },
   team_leader: { label: 'Team Leader', icon: Users },
   junior_team_leader: { label: 'Junior Team Leader', icon: Users },
   agent: { label: 'Agent', icon: BriefcaseBusiness },
+  dialog_officer: { label: 'Dialog Officer', icon: ShieldCheck },
 };
 
-type LoginRole = Exclude<UserRole, 'dialog_officer'>;
+type LoginRole = UserRole;
 
 export const LoginModal: React.FC = () => {
-  const { login, loginWithoutCredentials, authError, retryAuth } = useAuth();
+  const { login, authError, retryAuth } = useAuth();
   const { users } = useData();
   const [selectedRole, setSelectedRole] = useState<LoginRole>('owner');
   const [identifier, setIdentifier] = useState('');
@@ -108,11 +109,6 @@ export const LoginModal: React.FC = () => {
           })}
         </div>
 
-        <button type="button" aria-label="Test Mode Login" onClick={() => { void loginWithoutCredentials(selectedRole); }}
-          style={{width:'100%',minHeight:54,marginTop:14,border:0,borderRadius:14,background:'linear-gradient(90deg,#ef1d32,#1477e8)',color:'#fff',fontSize:14,fontWeight:900,touchAction:'manipulation',WebkitTapHighlightColor:'transparent',cursor:'pointer'}}>
-          🧪 TEST MODE — Login
-        </button>
-
         {authError && <div style={{marginTop:10,padding:10,borderRadius:12,background:'#fff8e7',border:'1px solid #f0d59a',color:'#8a5b00',fontSize:11}}>
           {authError} <button type="button" onClick={() => void retryAuth()} style={{marginLeft:8,padding:'5px 9px',borderRadius:8,border:0,background:'#fff',fontWeight:800}}>Retry</button>
         </div>}
@@ -137,7 +133,7 @@ export const LoginModal: React.FC = () => {
             {busy ? 'Authenticating…' : 'Secure Login'}
           </button>
         </form>
-        <div style={{marginTop:12,textAlign:'center',fontSize:9,color:'#8795a8'}}>TEST MODE is temporary for app checking.</div>
+        <div style={{marginTop:12,textAlign:'center',fontSize:9,color:'#8795a8'}}>All roles require a valid Supabase account and Owner-approved ACTIVE status.</div>
       </div>
     </div>
   );
