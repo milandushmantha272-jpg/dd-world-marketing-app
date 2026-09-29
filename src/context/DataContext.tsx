@@ -173,11 +173,67 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (email !== 'milandushmantha272@gmail.com') throw new Error('Owner authorization required.');
   };
 
-  const addAgent = async (input:any) => { try { await ownerGuard(); const {error}=await supabase.from('users').insert({id:input.id || `agent-${input.agentCode || Date.now()}`,name:input.name,email:input.email || null,role:'agent',agent_code:input.agentCode || null,phone:input.phone || input.mobile || null,team_id:input.teamId || null,status:input.status || 'active',employment_status:input.employmentStatus || 'ACTIVE',id_approval_status:input.idApprovalStatus || 'APPROVED'}); if(error)throw error; await refreshCore(); return {success:true,message:'Agent added successfully.'}; } catch(error:any){return {success:false,message:error?.message || 'Unable to add agent.'};} };
-  const addTeamLeader = async (input:any) => { try { await ownerGuard(); const team=teams.find((t:any)=>t.id===input.teamId || t.name===input.teamName); const {data,error}=await supabase.from('users').insert({id:input.id || `team-leader-${Date.now()}`,name:input.name,email:input.email || null,role:'team_leader',agent_code:input.code || input.agentCode || null,phone:input.phone || input.mobile || null,team_id:team?.id || input.teamId || null,status:'active',employment_status:'ACTIVE',id_approval_status:'APPROVED'}).select().single(); if(error)throw error; if(data&&team?.id){const r=await supabase.from('teams').update({leader_id:data.id});if(r.error)throw r.error;} await refreshCore(); return {success:true,message:'Team Leader added successfully.'}; } catch(error:any){return {success:false,message:error?.message || 'Unable to add Team Leader.'};} };
+  const callOwnerUserAdmin = async (action:string, payload:any = {}) => {
+    const { data: session } = await supabase.auth.getSession();
+    const accessToken = session.session?.access_token;
+    if (!accessToken) throw new Error('Authentication required.');
+    const { data, error } = await supabase.functions.invoke('owner-user-admin', {
+      body: { action, ...payload },
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (error) throw error;
+    if (!data?.ok) throw new Error(data?.error || 'Owner employee action failed.');
+    await refreshCore();
+    return data;
+  };
+
+  const addEmployeeSecure = async (input:any) => {
+    try {
+      return await callOwnerUserAdmin('create', {
+        name: input.name,
+        email: input.email,
+        password: input.password,
+        role: input.role,
+        agentCode: input.agentCode,
+        phone: input.phone || input.mobile,
+        teamId: input.teamId,
+      });
+    } catch (error:any) {
+      return { success:false, message:error?.message || 'Unable to create employee account.' };
+    }
+  };
+
+  const updateEmployeeStatusSecure = async (id:string, status:string) => {
+    try {
+      return await callOwnerUserAdmin('set_status', { id, status });
+    } catch (error:any) {
+      setDataError(error?.message || 'Unable to update employee status.');
+      return { success:false, message:error?.message || 'Unable to update employee status.' };
+    }
+  };
+
+  const resetEmployeePasswordSecure = async (id:string, password:string) => {
+    try {
+      return await callOwnerUserAdmin('reset_password', { id, password });
+    } catch (error:any) {
+      return { success:false, message:error?.message || 'Unable to reset employee password.' };
+    }
+  };
+
+  const addAgent = async (input:any) => {
+    const result = await addEmployeeSecure({ ...input, role:'agent' });
+    return result?.success === false ? result : { success:true, message:result?.message || 'Agent account created. Pending Owner approval.' };
+  };
+
+  const addTeamLeader = async (input:any) => {
+    const team = teams.find((t:any)=>t.id===input.teamId || t.name===input.teamName);
+    const result = await addEmployeeSecure({ ...input, role:'team_leader', teamId:team?.id || input.teamId });
+    return result?.success === false ? result : { success:true, message:result?.message || 'Team Leader account created. Pending Owner approval.' };
+  };
+
   const updateAgentCode = async (id:string,code:string) => { try {await ownerGuard();const {error}=await supabase.from('users').update({agent_code:code.trim()}).eq('id',id);if(error)throw error;await refreshCore();return {success:true,message:'Agent Code updated.'};}catch(error:any){return {success:false,message:error?.message || 'Unable to update Agent Code.'};} };
-  const updateEmploymentStatus = async (id:string,status:any) => { try {await ownerGuard();const normalized=status==='BLOCKED'?{status:'blocked',employment_status:'INACTIVE',id_approval_status:'REJECTED'}:status==='SUSPENDED'?{status:'suspended',employment_status:'SUSPENDED',id_approval_status:'APPROVED'}:status==='EXITED'?{status:'exited',employment_status:'EXITED',id_approval_status:'REJECTED'}:{status:'active',employment_status:'ACTIVE',id_approval_status:'APPROVED'};const {error}=await supabase.from('users').update(normalized).eq('id',id).neq('role','owner');if(error)throw error;await refreshCore();return {success:true,message:`Status updated to ${status}.`};}catch(error:any){setDataError(error?.message || 'Unable to update employee status.');return {success:false,message:error?.message || 'Unable to update employee status.'};} };
-  const deleteUser = async (id:string) => { try { await ownerGuard(); const { error } = await supabase.from('users').delete().eq('id', id).neq('role', 'owner'); if (error) throw error; await refreshCore(); return { success: true, message: 'Employee deleted successfully.' }; } catch (error:any) { const message = error?.message || 'Unable to delete employee.'; setDataError(message); return { success: false, message }; } };
+  const updateEmploymentStatus = async (id:string,status:any) => updateEmployeeStatusSecure(id, String(status).toUpperCase());
+  const deleteUser = async (id:string) => updateEmployeeStatusSecure(id, 'EXITED');
   const deleteAgent = (id:string) => deleteUser(id);
   const changeUserTeam = async (id:string,teamId:string|null) => {try{await ownerGuard();const {error}=await supabase.from('users').update({team_id:teamId}).eq('id',id).neq('role','owner');if(error)throw error;await refreshCore();const team=teamId?teams.find((t:any)=>t.id===teamId):null;return {success:true,message:team?`Moved to ${team.name}.`:'Team assignment removed.'};}catch(error:any){return {success:false,message:error?.message || 'Unable to change team.'};}};
   const changeUserRole = async (id:string,role:UserRole) => {try{await ownerGuard();if(id==='owner-1'||role==='owner')throw new Error('Owner role is protected.');const {error}=await supabase.from('users').update({role}).eq('id',id);if(error)throw error;await refreshCore();return {success:true,message:`Role changed to ${role}.`};}catch(error:any){return {success:false,message:error?.message || 'Unable to change role.'};}};
@@ -371,7 +427,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     users,teams,attendance,sales,ivrEntries,leaves,messages,meetings,securityAlerts,coldArchives,knowledge,verifications,monthlyTargets,teamTargets,agentTargets,companyWeeklyReports,vaultFiles,marketingPosts,webAiMessages,systemDoctorLogs,smsLogs,activeCall,locationLogs,locationConfig,motivationBanners,companyMessages,dialogPerformanceRecords,trainingProgress,quizResults,workAreas,employeeIdAuditLogs,dataError,retryData,sendMessage,
     addAttendanceRecord,
     addVaultFile:async()=>{},deleteVaultFile:async()=>{},addMarketingPost:async()=>{},deleteMarketingPost:async()=>{},sendWebAiMessage:async()=>{},runSystemDoctorAutoHeal:async()=>{},getDailyJobRoleReports:async()=>[],
-    addAgent,addTeamLeader,updateAgentCode,deleteAgent,updateEmploymentStatus,deleteUser,changeUserTeam,changeUserRole,updateUserGps,
+    addAgent,addTeamLeader,addEmployeeSecure,updateEmployeeStatusSecure,resetEmployeePasswordSecure,updateAgentCode,deleteAgent,updateEmploymentStatus,deleteUser,changeUserTeam,changeUserRole,updateUserGps,
     updateLeaveStatus:async()=>{},createMeeting:async()=>{},cancelMeeting:async()=>{},addProductSale,updateProductSaleVerification,startCall:async()=>{},updateUserAppStatus,acceptCall:async()=>{},rejectCall:async()=>{},endCall:async()=>{}
   };
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

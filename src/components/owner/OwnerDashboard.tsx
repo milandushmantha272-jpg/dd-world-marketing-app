@@ -78,6 +78,7 @@ import { PerformanceTargetDashboard } from '../common/PerformanceTargetDashboard
 import { CompanyMessageCenter } from '../common/CompanyMessageCenter';
 import { AutoMotivationBanner } from '../common/AutoMotivationBanner';
 import { PerformanceOverviewPage } from './pages/PerformanceOverviewPage';
+import { OwnerEmployeeManagement } from './OwnerEmployeeManagement';
 
 type OwnerTab =
   | 'company_brand'
@@ -145,6 +146,9 @@ export const OwnerDashboard: React.FC = () => {
     addProductSale,
     startCall,
     updateUserAppStatus,
+    addEmployeeSecure,
+    updateEmployeeStatusSecure,
+    resetEmployeePasswordSecure,
   } = useData();
 
   const [activeTab, setActiveTab] = useState<OwnerTab>('overview');
@@ -200,6 +204,7 @@ export const OwnerDashboard: React.FC = () => {
   const [agCode, setAgCode] = useState('');
   const [agMobile, setAgMobile] = useState('');
   const [agEmail, setAgEmail] = useState('');
+  const [agPassword, setAgPassword] = useState('');
   const [agTeamId, setAgTeamId] = useState('');
   const [tlTeamName, setTlTeamName] = useState('');
   const [addMsg, setAddMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -491,6 +496,7 @@ export const OwnerDashboard: React.FC = () => {
         code: agCode,
         mobile: agMobile,
         email: agEmail,
+        password: agPassword,
         teamName: tlTeamName || `${agName} Team`,
       });
     } else {
@@ -502,6 +508,7 @@ export const OwnerDashboard: React.FC = () => {
         agentCode: agCode,
         mobile: agMobile,
         email: agEmail,
+        password: agPassword,
         teamId: agTeamId,
         teamLeaderId,
       });
@@ -512,6 +519,7 @@ export const OwnerDashboard: React.FC = () => {
       setAgName('');
       setAgMobile('');
       setAgEmail('');
+      setAgPassword('');
       setTlTeamName('');
       setAgCode(addStaffRole === 'team_leader' ? `TL-00${teams.length + 2}` : `AG-00${activeAgents.length + 2}`);
       setTimeout(() => {
@@ -1021,7 +1029,8 @@ export const OwnerDashboard: React.FC = () => {
             EMPLOYEE STATUS MANAGEMENT
            ==================================================== */}
         {activeTab === 'employee_status' && (
-          <div className="mt-6">
+          <div className="mt-6 space-y-6">
+            <OwnerEmployeeManagement />
             <EmployeeStatusManagement />
           </div>
         )}
@@ -1282,6 +1291,7 @@ export const OwnerDashboard: React.FC = () => {
            ==================================================== */}
         {activeTab === 'agents' && (
           <div className="mt-6 space-y-6">
+            <OwnerEmployeeManagement />
             {/* Top filter bar + Add Agent button */}
             <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
               <div className="flex flex-wrap items-center gap-3">
@@ -3574,8 +3584,12 @@ export const OwnerDashboard: React.FC = () => {
                   Temporary Password
                 </label>
                 <input
-                  type="text"
+                  type="password"
+                  value={agPassword}
+                  onChange={(e) => setAgPassword(e.target.value)}
+                  minLength={8}
                   required
+                  placeholder="Minimum 8 characters"
                   className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 text-xs font-mono"
                 />
               </div>
