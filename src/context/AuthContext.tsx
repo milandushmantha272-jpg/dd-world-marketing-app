@@ -82,6 +82,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await bootstrapOwnerProfileIfMissing(authUser);
     }
     const profile = await getAuthenticatedEmployeeProfile(authUser.id);
+    const appTarget = String(import.meta.env.VITE_APP_TARGET || '').trim();
+    if (appTarget) {
+      const { data: bundleGuard, error: bundleGuardError } = await supabase.functions.invoke('app-bundle-guard', { body: { app_target: appTarget } });
+      if (bundleGuardError) throw bundleGuardError;
+      if (!bundleGuard?.authorized) throw new Error('This application bundle is not authorized for this account.');
+    }
     if (!isApprovedActiveEmployee(profile)) {
       await signOutSupabase();
       clearSession();
