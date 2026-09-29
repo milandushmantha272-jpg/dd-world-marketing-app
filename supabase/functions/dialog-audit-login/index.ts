@@ -1,0 +1,25 @@
+import { createClient } from 'npm:@supabase/supabase-js@2';
+const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS'};
+const json=(b:Record<string,unknown>,s=200)=>new Response(JSON.stringify(b),{status:s,headers:{...cors,'Content-Type':'application/json'}});
+const clean=(v:unknown)=>String(v??'').trim();
+const AUDIT_USERNAME='dialog_audit_officer';
+const AUDIT_EMAIL='dialog_audit_officer@ddworld.internal';
+Deno.serve(async req=>{
+ if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
+ if(req.method!=='POST')return json({error:'POST required.'},405);
+ const body=await req.json().catch(()=>({})); const username=clean(body.username); const password=clean(body.password);
+ if(username!==AUDIT_USERNAME||!password)return json({error:'Invalid audit credentials.'},401);
+ const expected=Deno.env.get('DIALOG_AUDIT_PASSWORD'); if(!expected)return json({error:'Audit authentication is not configured on the server.'},503);
+ if(password!==expected)return json({error:'Invalid audit credentials.'},401);
+ const url=Deno.env.get('SUPABASE_URL')!; const keys=JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS')||'{}'); const secret=keys.default||Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'); if(!secret)return json({error:'Server authentication is not configured.'},500);
+ const admin=createClient(url,secret,{auth:{autoRefreshToken:false,persistSession:false}});
+ const {data:profile,error}=await admin.from('users').select('id,auth_user_id,email,role,status,employment_status,id_approval_status').eq('email',AUDIT_EMAIL).maybeSingle();
+ if(error||!profile)return json({error:'Approved Dialog Officer profile is not provisioned.'},403);
+ if(profile.role!=='dialog_officer'||profile.status!=='active'||profile.employment_status!=='ACTIVE'||profile.id_approval_status!=='APPROVED')return json({error:'Audit account is not active and approved.'},403);
+ if(!profile.auth_user_id)return json({error:'Dialog Officer Auth identity is not provisioned.'},503);
+ const {data:session,error:signInError}=await admin.auth.signInWithPassword({email:AUDIT_EMAIL,password});
+ if(signInError||!session.session)return json({error:'Audit authentication failed.'},401);
+ const {data:owner}=await admin.from('users').select('id').eq('email','milandushmantha272@gmail.com').maybeSingle();
+ if(owner?.id)await admin.from('notifications').insert({user_id:owner.id,title:'Dialog Audit Access',body:'Dialog Officer signed into the Audit App.',type:'security',page:'Audit Portal',data:{action:'login',actor_user_id:profile.auth_user_id}});
+ return json({access_token:session.session.access_token,refresh_token:session.session.refresh_token});
+});

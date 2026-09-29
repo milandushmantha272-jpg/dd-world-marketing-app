@@ -17,6 +17,7 @@ interface AuthContextType {
   retryAuth: () => Promise<void>;
   login: (userOrId: User | string, password?: string, expectedRole?: UserRole) => Promise<void>;
   loginAsUser: (userOrId: User | string, password?: string) => Promise<void>;
+  loginDialogOfficer: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -221,31 +222,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginAsUser = async (userOrId: User | string, password?: string) => login(userOrId, password);
-  // Temporary UI-testing mode: creates a local in-app session without Supabase credentials.
-  // Disable this before any production release.
-  const loginWithoutCredentials = async (role: UserRole) => {
-    setAuthError(null);
-    setAuthChecking(true);
+  const loginDialogOfficer = async (username: string, password: string) => {
+    setAuthError(null); setAuthChecking(true);
     try {
-      const target = users.find((u) => u.role === role && isApprovedActiveEmployee(u));
-      const demoUser: User = target ? { ...target } : ({
-        id: 'test-' + role,
-        name: role === 'team_leader' ? 'Test Team Leader' : role === 'junior_team_leader' ? 'Test Junior Team Leader' : role === 'agent' ? 'Test Agent' : 'Test Owner',
-        email: 'test.' + role + '@ddworld.local',
-        role,
-        status: 'active',
-        employmentStatus: 'ACTIVE',
-        idApprovalStatus: 'APPROVED',
-      } as User);
-      setCurrentUser(demoUser);
-      setAuthError(null);
-      safeStorage.setItem('ddworld_current_user_v2', JSON.stringify(demoUser));
-    } finally {
-      setAuthChecking(false);
-    }
+      if (username.trim() !== 'dialog_audit_officer') throw new Error('Audit username is invalid.');
+      if (!password) throw new Error('Password is required.');
+      const { data, error } = await supabase.functions.invoke('dialog-audit-login', { body: { username: username.trim(), password } });
+      if (error) throw error;
+      if (!data?.access_token || !data?.refresh_token) throw new Error('Audit authentication session was not returned.');
+      const { data: sessionData, error: sessionError } = await supabase.auth.setSession({ access_token:data.access_token, refresh_token:data.refresh_token });
+      if (sessionError) throw sessionError;
+      if (!sessionData.user) throw new Error('Audit authentication user was not returned.');
+      const profile = await establishAuthorizedSession(sessionData.user);
+      if (profile.role !== 'dialog_officer') { await signOutSupabase(); clearSession(); throw new Error('This account is not authorized for the Audit App.'); }
+    } catch (error) { clearSession(); const formatted=formatAuthError(error); setAuthError(formatted); throw error; }
+    finally { setAuthChecking(false); }
   };
 
+  const loginAsUser = async (userOrId: User | string, password?: string) => login(userOrId, password);
 
   const logout = async () => {
     const trackedUser = currentUser;
@@ -257,7 +251,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try { await signOutSupabase(); } catch (error) { console.warn('Supabase sign-out warning:', error); }
   };
 
-  return <AuthContext.Provider value={{ currentUser, authError, retryAuth, login, loginAsUser, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ currentUser, authError, retryAuth, login, loginAsUser, loginDialogOfficer, logout }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

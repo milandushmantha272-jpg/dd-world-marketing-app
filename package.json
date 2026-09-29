@@ -10,7 +10,10 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "./node_modules/.bin/tsc --noEmit"
+    "lint": "./node_modules/.bin/tsc --noEmit",
+    "build:agent": "VITE_APP_TARGET=agent vite build",
+    "build:management": "VITE_APP_TARGET=management vite build",
+    "build:audit": "VITE_APP_TARGET=audit vite build"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
