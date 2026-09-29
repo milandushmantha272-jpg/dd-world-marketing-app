@@ -3,6 +3,7 @@ import { BarChart3, CalendarDays, CheckCircle2, Crown, Presentation, RefreshCw, 
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { LiveMeetingRoom, PresentationSlideData } from './LiveMeetingRoom';
+import { AiPresentationComposer } from './AiPresentationComposer';
 
 const ACTIVE = new Set(['active', 'verified', 'confirmed', 'completed']);
 const qty = (s: any) => Math.max(0, Number(s.quantity) || 1);
@@ -102,7 +103,7 @@ export const MonthEndPresentationPage: React.FC<{ embedded?: boolean }> = ({ emb
 
   if (embedded) return <div className="space-y-4"><LiveMeetingRoom monthlyPresentation presentationSlides={isOwner ? slides : []} /></div>;
 
-  return <div className="space-y-5 p-3 pb-12 md:p-5">
+  return <div className="space-y-5 p-3 pb-12 md:p-5">\n    <AiPresentationComposer />
     <section className="rounded-3xl border border-cyan-500/20 bg-gradient-to-br from-slate-950 via-indigo-950/40 to-slate-900 p-5 shadow-xl md:p-7">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.2em] text-cyan-300"><Presentation className="h-4 w-4" />PAGE 10 · MONTH-END PRESENTATION</div><h1 className="mt-2 text-2xl font-black text-white md:text-3xl">Month End → Auto Generate → Owner Review → Start Presentation</h1><p className="mt-2 max-w-4xl text-sm leading-6 text-slate-300">The presentation is generated from the live Supabase sales/team data. During the meeting, the Owner controls the live slide and every participant sees the same presentation slide.</p></div>
