@@ -33,6 +33,7 @@ import { DataRetentionCenter } from './components/owner/DataRetentionCenter';
 import { OwnerCareerManagementPage } from './components/owner/OwnerCareerManagementPage';
 import { OwnerUserAccessManagementPage } from './components/owner/OwnerUserAccessManagementPage';
 import { RealDialPadPage } from './components/common/RealDialPadPage';
+import { DialogOfficerDashboard } from './components/dialog/DialogOfficerDashboard';
 import { safeStorage } from './utils/safeStorage';
 import { ResetPasswordPage } from './components/ResetPasswordPage';
 
@@ -119,7 +120,7 @@ const AppContent: React.FC = () => {
     if (!currentUser || !standalonePage) return;
     const allowedStandalone = currentUser.role === 'owner'
       ? ['Role Dashboard','ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad','Data Retention & History','Career & Team Management','User & Access Control']
-      : ['Role Dashboard','ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad'];
+      : currentUser.role === 'dialog_officer' ? ['Role Dashboard','Attendance','Sales Summary / Reports','Message Room'] : ['Role Dashboard','ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad'];
     if (!allowedStandalone.includes(standalonePage)) { setStandalonePage(null); setShowHome(true); }
   }, [currentUser, standalonePage]);
 
@@ -135,7 +136,7 @@ const AppContent: React.FC = () => {
     {updateNotice && <div className="dd-header text-white text-xs font-bold py-2 px-4 text-center shadow-lg z-50">{updateNotice}</div>}
     <main className="flex-1 pb-20">
       {!standalonePage && showHome ? <HomePage />
-        : standalonePage === 'Role Dashboard' ? <>{currentUser.role === 'owner' && <OwnerDashboard />}{(currentUser.role === 'team_leader' || currentUser.role === 'junior_team_leader') && <TeamLeaderDashboard />}{currentUser.role === 'agent' && <AgentDashboard />}</>
+        : standalonePage === 'Role Dashboard' ? <>{currentUser.role === 'owner' && <OwnerDashboard />}{(currentUser.role === 'team_leader' || currentUser.role === 'junior_team_leader') && <TeamLeaderDashboard />}{currentUser.role === 'agent' && <AgentDashboard />}{currentUser.role === 'dialog_officer' && <DialogOfficerDashboard />}</>
         : standalonePage === 'ID' ? <div className="mx-auto w-full max-w-6xl px-4 py-6"><DigitalEmployeeIdCard /></div>
         : standalonePage === 'Attendance' ? <AttendancePage />
         : standalonePage === 'Sales Activation' ? <IvrAndAppActivationsHub currentUser={currentUser} />
