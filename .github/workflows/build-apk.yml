@@ -3,7 +3,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-permissions: {contents: read}
+permissions:
+  contents: read
 concurrency:
   group: dd-world-multi-app-build-${{ github.ref }}
   cancel-in-progress: false
@@ -14,31 +15,46 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {target: agent, app_id: com.ddworld.agent.app, artifact: DD-World-Agent-App}
-          - {target: management, app_id: com.ddworld.management.app, artifact: DD-World-Management-App}
-          - {target: audit, app_id: com.ddworld.audit.app, artifact: DD-World-Audit-Portal}
+          - target: agent
+            app_id: com.ddworld.agent.app
+            artifact: DD-World-Agent-App
+          - target: management
+            app_id: com.ddworld.management.app
+            artifact: DD-World-Management-App
+          - target: audit
+            app_id: com.ddworld.audit.app
+            artifact: DD-World-Audit-Portal
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
-        with: {node-version: '22', cache: npm}
+        with:
+          node-version: '22'
+          cache: npm
       - run: npm install --include=dev --no-audit --no-fund
       - name: TypeScript
         run: ./node_modules/.bin/tsc --noEmit
       - name: Build target
-        env: {VITE_APP_TARGET: ${{ matrix.target }}}
+        env:
+          VITE_APP_TARGET: ${{ matrix.target }}
         run: npm run build:${{ matrix.target }}
       - uses: actions/setup-java@v6
-        with: {distribution: temurin, java-version: '21'}
+        with:
+          distribution: temurin
+          java-version: '21'
       - uses: android-actions/setup-android@v4
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
           accept-android-sdk-licenses: true
-      - name: Sync Capacitor and set bundle
-        env: {DD_WORLD_APP_TARGET: ${{ matrix.target }}}
+      - name: Sync Capacitor
+        env:
+          DD_WORLD_APP_TARGET: ${{ matrix.target }}
+        run: npx cap sync android
+      - name: Enforce bundle identity
         run: |
-          npx cap sync android
           sed -i 's/applicationId ".*"/applicationId "${{ matrix.app_id }}"/' android/app/build.gradle
           sed -i 's/namespace ".*"/namespace "${{ matrix.app_id }}"/' android/app/build.gradle
+          grep -q 'applicationId "${{ matrix.app_id }}"' android/app/build.gradle
+          grep -q 'namespace "${{ matrix.app_id }}"' android/app/build.gradle
       - name: Android unit tests
         run: cd android && chmod +x gradlew && ./gradlew testDebugUnitTest --no-daemon
       - name: Build APK
