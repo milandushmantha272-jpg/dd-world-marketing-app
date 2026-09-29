@@ -17,7 +17,6 @@ interface AuthContextType {
   retryAuth: () => Promise<void>;
   login: (userOrId: User | string, password?: string, expectedRole?: UserRole) => Promise<void>;
   loginAsUser: (userOrId: User | string, password?: string) => Promise<void>;
-  loginWithoutCredentials: (role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -258,7 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try { await signOutSupabase(); } catch (error) { console.warn('Supabase sign-out warning:', error); }
   };
 
-  return <AuthContext.Provider value={{ currentUser, authError, retryAuth, login, loginAsUser, loginWithoutCredentials, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ currentUser, authError, retryAuth, login, loginAsUser, logout }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
