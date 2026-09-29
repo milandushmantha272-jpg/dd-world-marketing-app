@@ -420,6 +420,31 @@ export const OwnerDashboard: React.FC = () => {
     setAiAuditLoading(true);
 
     try {
+      const apkRequest = /(?:download\s*link|latest\s*apk|\bapk\b|අලුත්\s*apk|download\s*apk)/i.test(q);
+      if (apkRequest) {
+        if (currentUser.role !== 'owner') {
+          setAiResponse('🔒 APK download is restricted to the Owner account. ඔබට මෙම administrative download action සඳහා අවසර නොමැත.');
+          return;
+        }
+        const { supabase } = await import('../../services/supabase');
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) throw new Error('Owner session is missing.');
+        const { data, error } = await supabase.functions.invoke('owner-apk-fetch', {
+          headers: { Authorization: 'Bearer ' + token },
+          body: { query: q },
+        });
+        if (error || !data?.ok) throw new Error(data?.message || error?.message || 'APK lookup failed.');
+        setAiResponse(
+          '🔐 [Owner-only APK]\n' +
+          data.markdown_link +
+          '\n\nArtifact: ' + data.artifact_name +
+          '\nBuild: ' + data.run_number +
+          '\nCommit: ' + data.commit_sha +
+          '\nSHA-256: ' + data.digest
+        );
+        return;
+      }
       const { askKnowledgeBot } = await import('../../services/gemini');
       const ans = await askKnowledgeBot(q);
       const formattedAns = `🧠 [Executive AI Answer]\n${ans}`;
