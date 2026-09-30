@@ -37,6 +37,7 @@ import { DialogOfficerDashboard } from './components/dialog/DialogOfficerDashboa
 import { safeStorage } from './utils/safeStorage';
 import { ResetPasswordPage } from './components/ResetPasswordPage';
 import { AnnualArchivePage } from './components/common/AnnualArchivePage';
+import { EmployeeHubPage } from './components/common/EmployeeHubPage';
 
 const PromotionItemsPage: React.FC = () => (
   <section className="dd-page-shell min-h-screen px-4 py-5 md:px-6 md:py-8">
@@ -93,6 +94,7 @@ const AppContent: React.FC = () => {
       else if (page === 'Page 10 — Month-End Presentation') setStandalonePage('Month-End Presentation');
       else if (page === 'Page 11 — Real Dial Pad') setStandalonePage('Real Dial Pad');
       else if (page === 'Owner — Data Retention & History') setStandalonePage('Data Retention & History');
+      else if (page === 'Employee Hub') setStandalonePage('Employee Hub');
       else if (page === 'Owner — Career & Team Management') setStandalonePage('Career & Team Management');
       else if (page === 'Owner — User & Access Control') setStandalonePage('User & Access Control');
       else setStandalonePage(null);
@@ -121,7 +123,7 @@ const AppContent: React.FC = () => {
     if (!currentUser || !standalonePage) return;
     const allowedStandalone = currentUser.role === 'owner'
       ? ['Role Dashboard','ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad','Data Retention & History','Annual Archive','Career & Team Management','User & Access Control']
-      : currentUser.role === 'dialog_officer' ? ['Role Dashboard','Attendance','Sales Summary / Reports','Message Room','Annual Archive'] : ['Role Dashboard','ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad'];
+       : currentUser.role === 'dialog_officer' ? ['Role Dashboard','Attendance','Sales Summary / Reports','Message Room','Annual Archive','Employee Hub'] : ['Role Dashboard','ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad','Employee Hub'];
     if (!allowedStandalone.includes(standalonePage)) { setStandalonePage(null); setShowHome(true); }
   }, [currentUser, standalonePage]);
 
@@ -151,6 +153,7 @@ const AppContent: React.FC = () => {
         : standalonePage === 'Real Dial Pad' ? <RealDialPadPage />
         : standalonePage === 'Data Retention & History' ? <DataRetentionCenter />
         : standalonePage === 'Annual Archive' ? <AnnualArchivePage role={currentUser.role === 'dialog_officer' ? 'dialog_officer' : 'owner'} />
+        : standalonePage === 'Employee Hub' ? <EmployeeHubPage />
         : standalonePage === 'Career & Team Management' ? <OwnerCareerManagementPage />
         : standalonePage === 'User & Access Control' ? <OwnerUserAccessManagementPage />
         : <>{currentUser.role === 'owner' && <OwnerDashboard />}{(currentUser.role === 'team_leader' || currentUser.role === 'junior_team_leader') && <TeamLeaderDashboard />}{currentUser.role === 'agent' && <AgentDashboard />}</>}
