@@ -6,8 +6,7 @@ export const isOwnerDoc = (user: any, targetId?: string): boolean => {
   if (!user && !targetId) return false;
   const id = user?.id || targetId;
   const role = user?.role;
-  const email = String(user?.email || '').trim().toLowerCase();
-  return id === 'owner-1' || targetId === 'owner-1' || role === 'owner' || role === 'MASTER_LEADER' || email === 'milandushmantha272@gmail.com' || email === 'owner@ddworld.local';
+  return id === 'owner-1' || targetId === 'owner-1' || role === 'owner' || role === 'MASTER_LEADER';
 };
 
 interface DataContextType {
@@ -169,8 +168,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const ownerGuard = async () => {
     const { data: session } = await supabase.auth.getSession();
-    const email = String(session.session?.user?.email || '').trim().toLowerCase();
-    if (email !== 'milandushmantha272@gmail.com') throw new Error('Owner authorization required.');
+    const authUserId = session.session?.user?.id || '';
+    if (!authUserId) throw new Error('Authentication required.');
+    const { data: profile, error } = await supabase
+      .from('users')
+      .select('role,status,employment_status')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!profile || profile.role !== 'owner' || profile.status !== 'active' || profile.employment_status !== 'ACTIVE') {
+      throw new Error('Owner authorization required.');
+    }
   };
 
   const callOwnerUserAdmin = async (action:string, payload:any = {}) => {
@@ -241,9 +249,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data: session } = await supabase.auth.getSession();
       const authUserId = session.session?.user?.id || '';
-      const authEmail = String(session.session?.user?.email || '').trim().toLowerCase();
       if (!authUserId) throw new Error('Authentication required.');
-      if (authEmail !== 'milandushmantha272@gmail.com') {
+      const { data: selfProfile, error: selfProfileError } = await supabase.from('users').select('id,role,status,employment_status').eq('auth_user_id', authUserId).maybeSingle();
+      if (selfProfileError) throw selfProfileError;
+      if (!selfProfile || selfProfile.role !== 'owner' || selfProfile.status !== 'active' || selfProfile.employment_status !== 'ACTIVE') {
         const { data: self, error: selfError } = await supabase
           .from('users')
           .select('id,auth_user_id')
@@ -267,7 +276,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateUserAppStatus = async (id:string,patch:any) => {try{const {data:session}=await supabase.auth.getSession();const authEmail=String(session.session?.user?.email || '').trim().toLowerCase();if(authEmail !== 'milandushmantha272@gmail.com'){const {data:self,error:selfError}=await supabase.from('users').select('id,auth_user_id,role').eq('auth_user_id',session.session?.user?.id || '').maybeSingle();if(selfError)throw selfError;if(!self || self.id !== id)throw new Error('Only the Owner or the employee themselves can update app/login tracking.');}const dbPatch:any={};if('isLoggedIn' in patch)dbPatch.is_logged_in=Boolean(patch.isLoggedIn);if('isAppDownloaded' in patch)dbPatch.is_app_downloaded=Boolean(patch.isAppDownloaded);if('lastLoginAt' in patch)dbPatch.last_login_at=patch.lastLoginAt || null;if('appVersion' in patch)dbPatch.app_version=patch.appVersion || null;if(Object.keys(dbPatch).length){const {error}=await supabase.from('users').update(dbPatch).eq('id',id);if(error)throw error;await refreshCore();}}catch(error:any){console.warn('App/login tracking update:',error?.message || error);}};
+  const updateUserAppStatus = async (id:string,patch:any) => {try{const {data:session}=await supabase.auth.getSession();const authUserId=session.session?.user?.id || '';if(!authUserId) throw new Error('Authentication required.');const {data:selfProfile,error:selfProfileError}=await supabase.from('users').select('id,role,status,employment_status').eq('auth_user_id',authUserId).maybeSingle();if(selfProfileError)throw selfProfileError;if(!selfProfile || (selfProfile.role !== 'owner' && selfProfile.id !== id) || selfProfile.status !== 'active' || selfProfile.employment_status !== 'ACTIVE'){const {data:self,error:selfError}=await supabase.from('users').select('id,auth_user_id,role').eq('auth_user_id',session.session?.user?.id || '').maybeSingle();if(selfError)throw selfError;if(!self || self.id !== id)throw new Error('Only the Owner or the employee themselves can update app/login tracking.');}const dbPatch:any={};if('isLoggedIn' in patch)dbPatch.is_logged_in=Boolean(patch.isLoggedIn);if('isAppDownloaded' in patch)dbPatch.is_app_downloaded=Boolean(patch.isAppDownloaded);if('lastLoginAt' in patch)dbPatch.last_login_at=patch.lastLoginAt || null;if('appVersion' in patch)dbPatch.app_version=patch.appVersion || null;if(Object.keys(dbPatch).length){const {error}=await supabase.from('users').update(dbPatch).eq('id',id);if(error)throw error;await refreshCore();}}catch(error:any){console.warn('App/login tracking update:',error?.message || error);}};
 
   // Record employee attendance in Supabase. Check-in creates today's row;
   // check-out updates that same row rather than creating a duplicate.
@@ -338,7 +347,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: me, error: meError } = await supabase.from('users').select('*').eq('auth_user_id', auth.user.id).maybeSingle();
       if (meError) throw meError;
       if (!me) throw new Error('Employee profile not found.');
-      const isOwner = me.role === 'owner' || String(auth.user.email || '').toLowerCase() === 'milandushmantha272@gmail.com';
+      const isOwner = me.role === 'owner';
       const isSelf = me.id === input.agentId;
       if (!isOwner && !isSelf) throw new Error('Sales activation is only allowed for your own account.');
       const channel = input.channel || (input.activationMethod === 'APP_LINK_SHARE' ? 'APP' : 'IVR');
@@ -390,7 +399,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: sale, error: saleError } = await supabase.from('sales').select('*').eq('id',id).maybeSingle();
       if (saleError) throw saleError;
       if (!sale) throw new Error('Sale not found.');
-      const isOwner = me.role === 'owner' || String(auth.user.email || '').trim().toLowerCase() === 'milandushmantha272@gmail.com';
+      const isOwner = me.role === 'owner';
       const isSelf = me.id === sale.agent_id;
       const requestedStatus = String(status || '').trim().toUpperCase();
       const selfReportStatuses = ['PENDING', 'REVIEW_REQUIRED'];
