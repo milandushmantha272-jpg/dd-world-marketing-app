@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, BarChart3, CalendarCheck, MessageSquare, MoreHorizontal, FileText, User, Wallet, UserPlus, Presentation, X, UserCog, ShieldCheck } from 'lucide-react';
+import { Home, BarChart3, CalendarCheck, MessageSquare, MoreHorizontal, FileText, User, Wallet, UserPlus, Presentation, X, UserCog, ShieldCheck, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const navigate = (page: string) => {
@@ -27,6 +27,7 @@ export const MainNavigation: React.FC = () => {
         { label: 'Attendance Control', icon: CalendarCheck, page: 'Page 2 — Attendance' },
         { label: 'IVR & Activations', icon: BarChart3, page: 'Page 3 — Sales Activation' },
         { label: 'Data History', icon: FileText, page: 'Owner — Data Retention & History' },
+        { label: 'Employee Hub', icon: Users, page: 'Employee Hub' },
         { label: 'Career & Teams', icon: UserPlus, page: 'Owner — Career & Team Management' },
         { label: 'User Access', icon: UserCog, page: 'Owner — User & Access Control' },
       ]
@@ -39,6 +40,7 @@ export const MainNavigation: React.FC = () => {
         { label: 'New Agent', icon: UserPlus, page: 'Page 9 — New Agent Join (Requirements)' },
         { label: 'Month End', icon: Presentation, page: 'Page 10 — Month-End Presentation' },
         { label: 'USSD', icon: BarChart3, page: 'Page 11 — Real Dial Pad' },
+        { label: 'Employee Hub', icon: Users, page: 'Employee Hub' },
       ];
 
   return (
