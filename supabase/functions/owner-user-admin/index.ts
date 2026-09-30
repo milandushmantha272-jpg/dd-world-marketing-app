@@ -173,7 +173,7 @@ Deno.serve(async (req: Request) => {
 
       const password = clean(body.password);
       if (password) {
-        if (password.length < 8) return json({ error: 'Password must be at least 8 characters.' }, 400);
+        if (password.length < 12) return json({ error: 'Password must be at least 12 characters.' }, 400);
         authPatch.password = password;
       }
 
@@ -190,7 +190,7 @@ Deno.serve(async (req: Request) => {
 
     if (action === 'reset_password') {
       const password = clean(body.password);
-      if (password.length < 8) return json({ error: 'Password must be at least 8 characters.' }, 400);
+      if (password.length < 12) return json({ error: 'Password must be at least 12 characters.' }, 400);
       const { error } = await admin.auth.admin.updateUserById(authUserId, { password });
       if (error) throw error;
       return json({ ok: true, message: 'Employee password reset successfully.' });
