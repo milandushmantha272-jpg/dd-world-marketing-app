@@ -50,7 +50,6 @@ Deno.serve(async (req: Request) => {
 
     if (ownerError) throw ownerError;
     if (!ownerRow || ownerRow.role !== 'owner' ||
-        clean(ownerRow.email).toLowerCase() !== OWNER_EMAIL ||
         ownerRow.status !== 'active' ||
         ownerRow.employment_status !== 'ACTIVE') {
       return json({ error: 'Owner authorization required.' }, 403);
@@ -89,7 +88,7 @@ Deno.serve(async (req: Request) => {
       const role = clean(body.role);
       const agentCode = clean(body.agentCode);
       if (!name || !email || !password) return json({ error: 'Name, email and password are required.' }, 400);
-      if (password.length < 8) return json({ error: 'Password must be at least 8 characters.' }, 400);
+      if (password.length < 12) return json({ error: 'Password must be at least 12 characters.' }, 400);
       if (!['agent', 'team_leader'].includes(role)) return json({ error: 'Only Agent or Team Leader accounts can be created here.' }, 400);
 
       if (agentCode) {
@@ -107,7 +106,7 @@ Deno.serve(async (req: Request) => {
         email,
         password,
         email_confirm: true,
-        user_metadata: { name, role },
+        user_metadata: { name },
       });
       if (createError || !created.user) throw createError || new Error('Unable to create Auth account.');
 
