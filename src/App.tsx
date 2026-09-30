@@ -122,7 +122,7 @@ const AppContent: React.FC = () => {
   React.useEffect(() => {
     if (!currentUser || !standalonePage) return;
     const allowedStandalone = currentUser.role === 'owner'
-      ? ['Role Dashboard','ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad','Data Retention & History','Annual Archive','Career & Team Management','User & Access Control']
+      ? ['Role Dashboard','ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad','Data Retention & History','Annual Archive','Career & Team Management','User & Access Control','Employee Hub']
        : currentUser.role === 'dialog_officer' ? ['Role Dashboard','Attendance','Sales Summary / Reports','Message Room','Annual Archive','Employee Hub'] : ['Role Dashboard','ID','Attendance','Sales Activation','Sales Summary / Reports','Message Room','Details Submit / ID Requirements','Commission / Payment','Promotion Items','New Agent Join (Requirements)','Month-End Presentation','Real Dial Pad','Employee Hub'];
     if (!allowedStandalone.includes(standalonePage)) { setStandalonePage(null); setShowHome(true); }
   }, [currentUser, standalonePage]);
