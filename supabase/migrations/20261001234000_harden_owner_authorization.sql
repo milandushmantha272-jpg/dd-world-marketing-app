@@ -22,4 +22,8 @@ $$;
 revoke all on function public.is_owner() from public;
 grant execute on function public.is_owner() to authenticated;
 
+-- This helper changes only login/app presence fields and must never be callable anonymously.
+revoke execute on function public.update_app_status(uuid, boolean, boolean, timestamptz, text) from anon;
+grant execute on function public.update_app_status(uuid, boolean, boolean, timestamptz, text) to authenticated;
+
 notify pgrst, 'reload schema';
