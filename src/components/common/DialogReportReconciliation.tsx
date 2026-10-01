@@ -6,7 +6,23 @@ import type { ProductSale, User } from '../../types';
 type Product = 'govimithuru' | 'sayuru';
 type Method = 'ivr' | 'app';
 type Dimension = 'agent' | 'mobile_prefix';
-type ReportRow = { id?: string; report_period: string; product: Product; method: Method; dimension: Dimension; label: string; subscriber_count: number; source_filename?: string; imported_at?: string };
+type ReportRow = {
+  id?: string | number;
+  created_at?: string;
+  agent_code?: string | null;
+  agent_name?: string | null;
+  product_type?: string;
+  activation_count?: number;
+  report_month?: string;
+  report_period: string;
+  product: Product;
+  method: Method;
+  dimension: Dimension;
+  label: string;
+  subscriber_count: number;
+  source_filename?: string;
+  imported_at?: string;
+};
 
 const clean = (v: unknown) => String(v ?? '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 const csvRows = (text: string): string[][] => {
