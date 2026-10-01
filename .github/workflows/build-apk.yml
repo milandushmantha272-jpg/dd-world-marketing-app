@@ -1,74 +1,173 @@
 name: Build DD WORLD Multi-App Android
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: read
+
 concurrency:
-  group: dd-world-multi-app-build-${{ github.ref }}
+  group: dd-world-multi-app-${{ github.ref }}
   cancel-in-progress: false
+
 jobs:
   build:
+    name: ${{ matrix.target }} APK
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     strategy:
       fail-fast: false
+      max-parallel: 3
       matrix:
         include:
           - target: agent
             app_id: com.ddworld.agent.app
+            app_name: DD WORLD Agent App
             artifact: DD-World-Agent-App
           - target: management
             app_id: com.ddworld.management.app
+            app_name: DD WORLD Management App
             artifact: DD-World-Management-App
           - target: audit
             app_id: com.ddworld.audit.app
+            app_name: DD WORLD Audit Portal
             artifact: DD-World-Audit-Portal
+    env:
+      CI: true
+      DD_WORLD_APP_TARGET: ${{ matrix.target }}
+      VITE_APP_TARGET: ${{ matrix.target }}
+      DD_WORLD_APP_ID: ${{ matrix.app_id }}
+      DD_WORLD_APP_NAME: ${{ matrix.app_name }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: npm
-      - run: npm install --include=dev --no-audit --no-fund
+
+      - name: Install dependencies
+        run: npm install --include=dev --no-audit --no-fund
+
       - name: TypeScript
-        run: ./node_modules/.bin/tsc --noEmit
-      - name: Build target
-        env:
-          VITE_APP_TARGET: ${{ matrix.target }}
+        run: npm run lint
+
+      - name: Build isolated web target
         run: npm run build:${{ matrix.target }}
-      - uses: actions/setup-java@v6
+
+      - name: Verify isolated web target
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/index.html
+          case "${VITE_APP_TARGET}" in
+            agent) grep -q "DD WORLD Agent App" dist/index.html ;;
+            management) grep -q "DD WORLD Management App" dist/index.html ;;
+            audit) grep -q "DD WORLD Audit Portal" dist/index.html ;;
+            *) echo "Unsupported target ${VITE_APP_TARGET}" >&2; exit 1 ;;
+          esac
+          find dist -maxdepth 2 -type f -print | sort | head -100
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v4
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
           accept-android-sdk-licenses: true
-      - name: Sync Capacitor
-        env:
-          DD_WORLD_APP_TARGET: ${{ matrix.target }}
+
+      - name: Sync target into Capacitor Android project
         run: npx cap sync android
-      - name: Enforce bundle identity
+
+      - name: Apply target-native identity
+        shell: bash
         run: |
-          sed -i 's/applicationId ".*"/applicationId "${{ matrix.app_id }}"/' android/app/build.gradle
-          sed -i 's/namespace ".*"/namespace "${{ matrix.app_id }}"/' android/app/build.gradle
-          grep -q 'applicationId "${{ matrix.app_id }}"' android/app/build.gradle
-          grep -q 'namespace "${{ matrix.app_id }}"' android/app/build.gradle
-      - name: Android unit tests
-        run: cd android && chmod +x gradlew && ./gradlew testDebugUnitTest --no-daemon
-      - name: Build APK
-        run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
-      - name: Verify APK
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          import re
+
+          app_id = os.environ['DD_WORLD_APP_ID']
+          app_name = os.environ['DD_WORLD_APP_NAME']
+
+          gradle = Path('android/app/build.gradle')
+          text = gradle.read_text()
+          text = re.sub(r'(^\s*namespace\s+).*$', r'\1"' + app_id + '"', text, flags=re.MULTILINE)
+          text = re.sub(r'(^\s*applicationId\s+).*$', r'\1"' + app_id + '"', text, flags=re.MULTILINE)
+          gradle.write_text(text)
+
+          strings = Path('android/app/src/main/res/values/strings.xml')
+          s = strings.read_text()
+          replacements = {
+              'app_name': app_name,
+              'title_activity_main': app_name,
+              'custom_url_scheme': app_id,
+          }
+          for key, value in replacements.items():
+              pattern = r'(<string\s+name="' + re.escape(key) + r'">)[^<]*(</string>)'
+              s, count = re.subn(pattern, r'\1' + value + r'\2', s, flags=re.MULTILINE)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one {key} string, found {count}')
+          strings.write_text(s)
+          PY
+          grep -q "namespace \"${DD_WORLD_APP_ID}\"" android/app/build.gradle
+          grep -q "applicationId \"${DD_WORLD_APP_ID}\"" android/app/build.gradle
+          grep -q "<string name=\"custom_url_scheme\">${DD_WORLD_APP_ID}</string>" android/app/src/main/res/values/strings.xml
+
+      - name: Verify Firebase-native configuration is not required
+        shell: bash
         run: |
-          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          set -euo pipefail
+          if grep -R "com.google.gms.google-services" -n android --exclude-dir=build --exclude-dir=.gradle; then
+            echo "Google Services plugin found unexpectedly; this build intentionally uses the Supabase/JS Firebase-free native path." >&2
+            exit 1
+          fi
+          test ! -f android/app/google-services.json
+
+      - name: Unit tests
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew clean assembleDebug -PddWorldAppId="${DD_WORLD_APP_ID}" --no-daemon --stacktrace
+
+      - name: Verify APK identity and contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK='android/app/build/outputs/apk/debug/app-debug.apk'
           test -s "$APK"
-          unzip -l "$APK" | grep -q classes.dex
-          sha256sum "$APK" | tee apk-sha256.txt
-      - uses: actions/upload-artifact@v6
+          AAPT="${ANDROID_HOME}/build-tools/35.0.0/aapt"
+          PACKAGE_LINE="$($AAPT dump badging "$APK" | grep -m1 '^package:')"
+          echo "$PACKAGE_LINE"
+          echo "$PACKAGE_LINE" | grep -q "name='${DD_WORLD_APP_ID}'"
+          unzip -l "$APK" | grep -q 'classes.dex'
+          unzip -l "$APK" | grep -q 'AndroidManifest.xml'
+          SHA="$(sha256sum "$APK" | cut -d' ' -f1)"
+          printf 'target=%s\napp_id=%s\ncommit=%s\nsha256=%s\n' \
+            "$VITE_APP_TARGET" "$DD_WORLD_APP_ID" "${GITHUB_SHA}" "$SHA" \
+            | tee 'apk-build-info.txt'
+
+      - name: Upload target APK
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact }}
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
-            apk-sha256.txt
+            apk-build-info.txt
           if-no-files-found: error
+          retention-days: 14
