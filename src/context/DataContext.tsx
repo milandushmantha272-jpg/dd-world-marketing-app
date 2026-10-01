@@ -70,26 +70,70 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const firstError = [u,t,a,s,m,l,sa].find(x => x.error)?.error;
     if (firstError) throw firstError;
     const teamRows = t.data || [];
-    const teamMap = new Map(teamRows.map((r:any) => [r.id, r]));
-    const currentProfile = (u.data || []).find((r:any) => r.auth_user_id === session.session!.user.id);
-    const ownerView = currentProfile?.role === 'owner' || String(session.session.user.email || '').trim().toLowerCase() === 'milandushmantha272@gmail.com';
+    const allUserRows = u.data || [];
+    const currentProfile = allUserRows.find((r:any) => r.auth_user_id === session.session!.user.id);
+    const role = String(currentProfile?.role || '').trim().toLowerCase();
+    const ownerView = role === 'owner' || String(session.session.user.email || '').trim().toLowerCase() === 'milandushmantha272@gmail.com';
+    const teamSupervisorView = role === 'team_leader' || role === 'junior_team_leader';
+    const currentUserId = currentProfile?.id || null;
+    const currentTeamId = currentProfile?.team_id || null;
+
+    // Defense-in-depth client boundary: the database RLS is authoritative, but
+    // management state is additionally narrowed so a reused component cannot
+    // accidentally render another team's members or corporate-wide metrics.
+    const visibleUserRows = ownerView
+      ? allUserRows
+      : teamSupervisorView
+        ? allUserRows.filter((r:any) =>
+            r.auth_user_id === session.session!.user.id ||
+            (
+              ['agent', 'junior_team_leader'].includes(String(r.role || '').toLowerCase()) &&
+              !!currentTeamId &&
+              r.team_id === currentTeamId
+            )
+          )
+        : allUserRows.filter((r:any) => r.auth_user_id === session.session!.user.id);
+
+    const visibleUserIds = new Set(visibleUserRows.map((r:any) => r.id));
+    const visibleTeamRows = ownerView
+      ? teamRows
+      : teamRows.filter((r:any) => !!currentTeamId && r.id === currentTeamId);
+
     let customerRows:any[] = [];
     if (ownerView) {
       const { data, error } = await supabase.from('sale_customer_details').select('*');
       if (error) throw error;
       customerRows = data || [];
     }
+
     const customerBySale = new Map(customerRows.map((r:any) => [r.sale_id, r]));
-    setUsers((u.data || []).map((r:any) => mapRow(r, teamMap)));
-    setTeams(teamRows.map((r:any) => ({ ...r, leaderId:r.leader_id, createdAt:r.created_at })));
-    setAttendance((a.data || []).map((r:any) => ({ ...r, userId:r.user_id, gpsLocation:r.gps_location, checkInTime:r.check_in_time, checkOutTime:r.check_out_time })));
-    setSales((s.data || []).map((r:any) => {
+    const visibleAttendanceRows = ownerView
+      ? (a.data || [])
+      : (a.data || []).filter((r:any) => visibleUserIds.has(r.user_id));
+    const visibleSalesRows = ownerView
+      ? (s.data || [])
+      : (s.data || []).filter((r:any) => visibleUserIds.has(r.agent_id));
+    const visibleMessageRows = ownerView
+      ? (m.data || [])
+      : (m.data || []).filter((r:any) => visibleUserIds.has(r.sender_id) && visibleUserIds.has(r.receiver_id));
+    const visibleLeaveRows = ownerView
+      ? (l.data || [])
+      : (l.data || []).filter((r:any) => visibleUserIds.has(r.user_id));
+    const visibleSecurityRows = ownerView
+      ? (sa.data || [])
+      : (sa.data || []).filter((r:any) => visibleUserIds.has(r.user_id));
+
+    const teamMap = new Map(visibleTeamRows.map((r:any) => [r.id, r]));
+    setUsers(visibleUserRows.map((r:any) => mapRow(r, teamMap)));
+    setTeams(visibleTeamRows.map((r:any) => ({ ...r, leaderId:r.leader_id, createdAt:r.created_at })));
+    setAttendance(visibleAttendanceRows.map((r:any) => ({ ...r, userId:r.user_id, gpsLocation:r.gps_location, checkInTime:r.check_in_time, checkOutTime:r.check_out_time })));
+    setSales(visibleSalesRows.map((r:any) => {
       const customer:any = customerBySale.get(r.id);
       return { ...r, agentId:r.agent_id, agentCode:r.agent_code, agentName:r.agent_name, productType:r.product_type, productName:r.product_name, saleDate:r.sale_date, verificationStatus:r.verification_status, activationMethod:r.activation_method, dialCode:r.dial_code, appShareChannel:r.app_share_channel, customerName:customer?.customer_name || undefined, customerMobile:customer?.customer_mobile || undefined, msisdn:customer?.msisdn || undefined, saleTime:r.sale_time, verifiedAt:r.verified_at, verifiedBy:r.verified_by, verificationNote:r.verification_note };
     }));
-    setMessages((m.data || []).map((r:any) => ({ ...r, senderId:r.sender_id, receiverId:r.receiver_id, timestamp:r.timestamp })));
-    setLeaves((l.data || []).map((r:any) => ({ ...r, userId:r.user_id, startDate:r.start_date, endDate:r.end_date })));
-    setSecurityAlerts((sa.data || []).map((r:any) => ({ ...r, userId:r.user_id, timestamp:r.timestamp })));
+    setMessages(visibleMessageRows.map((r:any) => ({ ...r, senderId:r.sender_id, receiverId:r.receiver_id, timestamp:r.timestamp })));
+    setLeaves(visibleLeaveRows.map((r:any) => ({ ...r, userId:r.user_id, startDate:r.start_date, endDate:r.end_date })));
+    setSecurityAlerts(visibleSecurityRows.map((r:any) => ({ ...r, userId:r.user_id, timestamp:r.timestamp })));
   }, []);
 
   useEffect(() => {
