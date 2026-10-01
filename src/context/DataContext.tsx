@@ -320,7 +320,46 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateUserAppStatus = async (id:string,patch:any) => {try{const {data:session}=await supabase.auth.getSession();const authUserId=session.session?.user?.id || '';if(!authUserId) throw new Error('Authentication required.');const {data:selfProfile,error:selfProfileError}=await supabase.from('users').select('id,role,status,employment_status').eq('auth_user_id',authUserId).maybeSingle();if(selfProfileError)throw selfProfileError;if(!selfProfile || (selfProfile.role !== 'owner' && selfProfile.id !== id) || selfProfile.status !== 'active' || selfProfile.employment_status !== 'ACTIVE'){const {data:self,error:selfError}=await supabase.from('users').select('id,auth_user_id,role').eq('auth_user_id',session.session?.user?.id || '').maybeSingle();if(selfError)throw selfError;if(!self || self.id !== id)throw new Error('Only the Owner or the employee themselves can update app/login tracking.');}const dbPatch:any={};if('isLoggedIn' in patch)dbPatch.is_logged_in=Boolean(patch.isLoggedIn);if('isAppDownloaded' in patch)dbPatch.is_app_downloaded=Boolean(patch.isAppDownloaded);if('lastLoginAt' in patch)dbPatch.last_login_at=patch.lastLoginAt || null;if('appVersion' in patch)dbPatch.app_version=patch.appVersion || null;if(Object.keys(dbPatch).length){const {error}=await supabase.from('users').update(dbPatch).eq('id',id);if(error)throw error;await refreshCore();}}catch(error:any){console.warn('App/login tracking update:',error?.message || error);}};
+  const updateUserAppStatus = async (id:string, patch:any) => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const authUserId = session.session?.user?.id || '';
+      if (!authUserId) throw new Error('Authentication required.');
+
+      const { data: selfProfile, error: selfProfileError } = await supabase
+        .from('users')
+        .select('id,role,status,employment_status,team_id')
+        .eq('auth_user_id', authUserId)
+        .maybeSingle();
+
+      if (selfProfileError) throw selfProfileError;
+      if (!selfProfile) throw new Error('Employee profile not found.');
+
+      const role = String(selfProfile.role || '').toLowerCase();
+      const isOwner = role === 'owner';
+      const isSupervisor = role === 'team_leader' || role === 'junior_team_leader';
+
+      const payload = {
+        target_user_id: id,
+        p_is_logged_in: 'isLoggedIn' in patch ? Boolean(patch.isLoggedIn) : null,
+        p_is_app_downloaded: 'isAppDownloaded' in patch ? Boolean(patch.isAppDownloaded) : null,
+        p_last_login_at: 'lastLoginAt' in patch ? (patch.lastLoginAt || null) : null,
+        p_app_version: 'appVersion' in patch ? (patch.appVersion || null) : null,
+      };
+
+      if (!isOwner && !(selfProfile.id === id || isSupervisor)) {
+        throw new Error('Only the Owner, the employee themselves, or their team supervisor can update app/login tracking.');
+      }
+
+      if (isOwner || selfProfile.id === id || isSupervisor) {
+        const { error } = await supabase.rpc('update_app_status', payload);
+        if (error) throw error;
+        await refreshCore();
+      }
+    } catch (error:any) {
+      console.warn('App/login tracking update:', error?.message || error);
+    }
+  };
 
   // Record employee attendance in Supabase. Check-in creates today's row;
   // check-out updates that same row rather than creating a duplicate.
