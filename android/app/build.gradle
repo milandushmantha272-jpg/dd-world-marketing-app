@@ -1,16 +1,22 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
+def ddWorldAppId = (project.findProperty('ddWorldAppId') ?: 'com.ddworld.marketing.app').toString()
+
+if (!(ddWorldAppId ==~ /com\\.ddworld\\.(agent|management|audit)\\.app/) && ddWorldAppId != 'com.ddworld.marketing.app') {
+    throw new GradleException('Unsupported DD WORLD applicationId: ' + ddWorldAppId)
+}
+
 android {
-    namespace "com.ddworld.marketing.app"
+    namespace ddWorldAppId
     compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.ddworld.marketing.app"
+        applicationId ddWorldAppId
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        versionName '1.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         aaptOptions {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
@@ -38,10 +44,10 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:1.2.0"
     implementation "androidx.core:core-splashscreen:1.0.0"
     implementation project(':capacitor-android')
+    implementation project(':capacitor-cordova-android-plugins')
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
-    implementation project(':capacitor-cordova-android-plugins')
 }
 
 apply from: 'capacitor.build.gradle'
