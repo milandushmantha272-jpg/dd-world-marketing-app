@@ -37,7 +37,14 @@ export const MessageRoomPage: React.FC = () => {
   const contacts = useMemo(() => {
     if (!me) return [];
     if (me.role === 'owner') return users.filter(u => u.id !== me.id && ['active', 'pending'].includes(u.status || 'active'));
-    if (me.role === 'team_leader' || me.role === 'junior_team_leader') return users.filter(u => u.id !== me.id && (u.role === 'owner' || u.team_id === me.team_id));
+    if (me.role === 'team_leader' || me.role === 'junior_team_leader') {
+      return users.filter(
+        u => u.id !== me.id &&
+          (u.role === 'agent' || u.role === 'junior_team_leader') &&
+          !!me.team_id &&
+          u.team_id === me.team_id
+      );
+    }
     const teamLeaderIds = users.filter(u => (u.role === 'team_leader' || u.role === 'junior_team_leader') && u.team_id === me.team_id).map(u => u.id);
     return users.filter(u => u.id !== me.id && (u.role === 'owner' || teamLeaderIds.includes(u.id)));
   }, [me, users]);
