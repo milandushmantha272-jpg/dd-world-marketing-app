@@ -9,7 +9,6 @@ import com.ddworld.marketing.bridge.NativeGpsBridge;
 import com.ddworld.marketing.bridge.NativeUssdBridge;
 
 public class MainActivity extends BridgeActivity {
-    private static final String APP_RESET_SCHEME = "com.ddworld.marketing.app";
     private static final String APP_RESET_HOST = "reset-password";
     private static final String APP_RESET_PATH = "https://localhost/reset-password";
 
@@ -37,7 +36,7 @@ public class MainActivity extends BridgeActivity {
     private void handleResetIntent(Intent intent) {
         Uri data = intent == null ? null : intent.getData();
         if (data == null
-                || !APP_RESET_SCHEME.equalsIgnoreCase(data.getScheme())
+                || !getPackageName().equalsIgnoreCase(data.getScheme())
                 || !APP_RESET_HOST.equalsIgnoreCase(data.getHost())) {
             return;
         }
