@@ -101,7 +101,7 @@ export const TeamLeaderDashboard: React.FC = () => {
   // GPS Refresh State
   const [gpsRefreshing, setGpsRefreshing] = useState(false);
 
-  if (!currentUser) return null;
+  if (!currentUser || !['team_leader', 'junior_team_leader'].includes(currentUser.role)) return null;
 
   // Team Agents list
   const myTeamAgents = users.filter(
