@@ -3,7 +3,7 @@ const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'au
 const json=(b:Record<string,unknown>,s=200)=>new Response(JSON.stringify(b),{status:s,headers:{...cors,'Content-Type':'application/json'}});
 const clean=(v:unknown)=>String(v??'').trim();
 const AUDIT_USERNAME='dialog_audit_officer';
-const AUDIT_EMAIL='dialog_audit_officer@ddworld.internal';
+const AUDIT_EMAIL='audit@ddworld.local';
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
  if(req.method!=='POST')return json({error:'POST required.'},405);
