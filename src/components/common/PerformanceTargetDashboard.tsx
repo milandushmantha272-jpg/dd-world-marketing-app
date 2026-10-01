@@ -15,7 +15,7 @@ export const PerformanceTargetDashboard: React.FC = () => {
 
   const mySales = sales.filter((s) => {
     if (currentUser.role === 'owner') return true;
-    if (currentUser.role === 'team_leader') {
+    if (currentUser.role === 'team_leader' || currentUser.role === 'junior_team_leader') {
       return s.teamId === currentUser.teamId || s.agentId === currentUser.id;
     }
     return s.agentId === currentUser.id;
