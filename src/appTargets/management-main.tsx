@@ -42,6 +42,7 @@ export const ManagementAppShell:React.FC=()=>{
   if(tab==='devices')return isOwner?<AppDownloadStatusMonitor/>:<TeamLeaderDashboard/>;
   if(tab==='messages')return <MessageRoomPage/>;
   if(tab==='presentation')return <MonthEndPresentationPage/>;
+  if(tab==='payments')return <OwnerCommissionControl/>;
   if(tab==='history')return isOwner?<><DataRetentionCenter/><AnnualArchivePage role="owner"/></>:<AnnualArchivePage role="dialog_officer"/>;
   return <SettingsPage/>;
  };
