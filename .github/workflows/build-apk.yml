@@ -24,14 +24,17 @@ jobs:
         include:
           - target: agent
             app_id: com.ddworld.agent.app
+            reset_scheme: com.ddworld.agent.app
             app_name: DD WORLD Agent App
             artifact: DD-World-Agent-App
           - target: management
             app_id: com.ddworld.management.app
+            reset_scheme: com.ddworld.marketing.app
             app_name: DD WORLD Management App
             artifact: DD-World-Management-App
           - target: audit
             app_id: com.ddworld.audit.app
+            reset_scheme: com.ddworld.audit.app
             app_name: DD WORLD Audit Portal
             artifact: DD-World-Audit-Portal
     env:
@@ -39,6 +42,7 @@ jobs:
       DD_WORLD_APP_TARGET: ${{ matrix.target }}
       VITE_APP_TARGET: ${{ matrix.target }}
       DD_WORLD_APP_ID: ${{ matrix.app_id }}
+      DD_WORLD_RESET_SCHEME: ${{ matrix.reset_scheme }}
       DD_WORLD_APP_NAME: ${{ matrix.app_name }}
     steps:
       - name: Checkout
@@ -98,6 +102,7 @@ jobs:
 
           app_id = os.environ['DD_WORLD_APP_ID']
           app_name = os.environ['DD_WORLD_APP_NAME']
+          reset_scheme = os.environ['DD_WORLD_RESET_SCHEME']
 
           gradle = Path('android/app/build.gradle')
           text = gradle.read_text()
@@ -110,7 +115,7 @@ jobs:
           replacements = {
               'app_name': app_name,
               'title_activity_main': app_name,
-              'custom_url_scheme': app_id,
+              'custom_url_scheme': reset_scheme,
           }
           for key, value in replacements.items():
               pattern = r'(<string\s+name="' + re.escape(key) + r'">)[^<]*(</string>)'
@@ -121,7 +126,7 @@ jobs:
           PY
           grep -q "namespace \"${DD_WORLD_APP_ID}\"" android/app/build.gradle
           grep -q "applicationId \"${DD_WORLD_APP_ID}\"" android/app/build.gradle
-          grep -q "<string name=\"custom_url_scheme\">${DD_WORLD_APP_ID}</string>" android/app/src/main/res/values/strings.xml
+          grep -q "<string name=\"custom_url_scheme\">${DD_WORLD_RESET_SCHEME}</string>" android/app/src/main/res/values/strings.xml
 
       - name: Verify Firebase-native configuration is not required
         shell: bash
@@ -143,7 +148,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew clean assembleDebug -PddWorldAppId="${DD_WORLD_APP_ID}" --no-daemon --stacktrace
+          ./gradlew clean assembleDebug -PddWorldAppId="${DD_WORLD_APP_ID}" -PddWorldResetScheme="${DD_WORLD_RESET_SCHEME}" --no-daemon --stacktrace
 
       - name: Verify APK identity and contents
         shell: bash
@@ -158,8 +163,8 @@ jobs:
           unzip -l "$APK" | grep -q 'classes.dex'
           unzip -l "$APK" | grep -q 'AndroidManifest.xml'
           SHA="$(sha256sum "$APK" | cut -d' ' -f1)"
-          printf 'target=%s\napp_id=%s\ncommit=%s\nsha256=%s\n' \
-            "$VITE_APP_TARGET" "$DD_WORLD_APP_ID" "${GITHUB_SHA}" "$SHA" \
+          printf 'target=%s\napp_id=%s\nreset_scheme=%s\ncommit=%s\nsha256=%s\n' \
+            "$VITE_APP_TARGET" "$DD_WORLD_APP_ID" "$DD_WORLD_RESET_SCHEME" "${GITHUB_SHA}" "$SHA" \
             | tee 'apk-build-info.txt'
 
       - name: Upload target APK
