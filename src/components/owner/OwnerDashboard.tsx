@@ -111,7 +111,7 @@ type OwnerTab =
   | 'company_messages'
   | 'overview';
 
-export const OwnerDashboard: React.FC = () => {
+export const OwnerDashboard: React.FC<{ hideNavigation?: boolean }> = ({ hideNavigation = false }) => {
   const { currentUser } = useAuth();
   const {
     users,
@@ -153,6 +153,10 @@ export const OwnerDashboard: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<OwnerTab>('overview');
   const [selectedTeamIdForPage, setSelectedTeamIdForPage] = useState<string>('');
+
+  React.useEffect(() => {
+    if (hideNavigation) setActiveTab('overview');
+  }, [hideNavigation]);
 
   // Vault upload state
   const [vaultTitle, setVaultTitle] = useState('');
@@ -708,7 +712,7 @@ export const OwnerDashboard: React.FC = () => {
         <AutoMotivationBanner />
 
         {/* Navigation Tabs - Core Owner Operational Sections */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800 scrollbar-none">
+        {!hideNavigation && <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800 scrollbar-none">
           {/* CORE 1: APP LOGGED IN & DOWNLOAD STATUS */}
           <button
             onClick={() => setActiveTab('app_download_status')}
@@ -980,7 +984,7 @@ export const OwnerDashboard: React.FC = () => {
           >
             Agent Mgt ({activeAgents.length})
           </button>
-        </div>
+        </div>}
 
         {/* Delete notification banner */}
         {deleteMsg && (
