@@ -92,7 +92,7 @@ export const ManagementAppShell: React.FC = () => {
   const { currentUser } = useAuth();
   const isOwner = currentUser?.role === 'owner';
   const nav = useMemo(() => (isOwner ? ownerNav : leaderNav), [isOwner]);
-  const [route, setRoute] = useState<ManagementRoute>(() => routeForPath(window.location.pathname, isOwner));
+  const [route, setRoute] = useState<ManagementRoute>('dashboard');
 
   useEffect(() => {
     const onPopState = () => setRoute(routeForPath(window.location.pathname, isOwner));
@@ -102,12 +102,13 @@ export const ManagementAppShell: React.FC = () => {
 
   useEffect(() => {
     if (!currentUser) return;
-    const nextPath = pathForRoute(route, nav);
-    if (window.location.pathname !== nextPath) {
-      window.history.replaceState({}, '', nextPath);
-      setRoute(routeForPath(nextPath, isOwner));
+    const requested = routeForPath(window.location.pathname, isOwner);
+    const requestedPath = pathForRoute(requested, nav);
+    if (window.location.pathname !== requestedPath) {
+      window.history.replaceState({}, '', requestedPath);
     }
-  }, [currentUser, isOwner, nav, route]);
+    setRoute(requested);
+  }, [currentUser, isOwner, nav]);
 
   if (!currentUser) return null;
 
