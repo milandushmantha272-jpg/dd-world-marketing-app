@@ -32,7 +32,7 @@ export const ManagementAppShell:React.FC=()=>{
  if(!currentUser)return null;
  const isOwner=currentUser.role==='owner'; const tabs=isOwner?ownerTabs:leaderTabs;
  const render=()=>{
-  if(tab==='dashboard')return isOwner?<OwnerDashboard/>:<TeamLeaderDashboard/>;
+  if(tab==='dashboard')return isOwner?<OwnerDashboard hideNavigation/>:<TeamLeaderDashboard/>;
   if(tab==='targets')return isOwner?<MonthlyTargetPlanPage/>:<TeamLeaderDashboard/>;
   if(tab==='attendance')return <AttendancePage/>;
   if(tab==='sales')return isOwner?<IvrAndAppActivationsHub currentUser={currentUser}/>:<SalesSummaryPage/>;
