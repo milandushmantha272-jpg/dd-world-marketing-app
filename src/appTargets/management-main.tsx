@@ -151,19 +151,30 @@ export const ManagementAppShell: React.FC = () => {
         </div>
       </header>
 
-      <nav aria-label="Quick Navigation Index" className="mx-auto max-w-7xl px-3 pt-3">
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      <nav aria-label="Management navigation" className="mx-auto max-w-7xl px-3 pt-3">
+        <div className="hidden gap-2 overflow-x-auto pb-1 md:flex">
           {nav.map(({ id, path, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
               onClick={() => navigate(path)}
               aria-current={route === id ? 'page' : undefined}
-              className={`shrink-0 rounded-xl border px-3 py-2 text-[11px] font-black flex items-center gap-1.5 ${route === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600'}`}
+              className={`shrink-0 whitespace-nowrap rounded-xl border px-3 py-2 text-[11px] font-black flex items-center gap-1.5 ${route === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600'}`}
             >
-              <Icon className="h-4 w-4" />{label}
+              <Icon className="h-4 w-4 shrink-0" />{label}
             </button>
           ))}
+        </div>
+        <div className="md:hidden">
+          <label htmlFor="management-route" className="sr-only">Open management section</label>
+          <select
+            id="management-route"
+            value={route}
+            onChange={(e) => navigate(pathForRoute(e.target.value as ManagementRoute, nav))}
+            className="w-full min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-800 shadow-sm"
+          >
+            {nav.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}
+          </select>
         </div>
       </nav>
 
