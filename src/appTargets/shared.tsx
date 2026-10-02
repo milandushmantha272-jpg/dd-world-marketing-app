@@ -38,9 +38,9 @@ const ResetPasswordPage: React.FC = () => {
       if (data.session) {
         setReady(true);
         setMessage('Set a new Owner password.');
-        return;
+      } else {
+        setMessage('Waiting for the secure recovery session…');
       }
-      setMessage('Waiting for the secure recovery session…');
     };
     void prepare();
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -103,10 +103,6 @@ export const TargetShell: React.FC<{ target: AppTarget; children: React.ReactNod
   const handledRef = useRef<string | null>(null);
   const authorized = !!currentUser && allowedRoles[target].includes(currentUser.role);
 
-  if (typeof window !== 'undefined' && window.location.pathname === '/reset-password') {
-    return <ResetPasswordPage />;
-  }
-
   useEffect(() => {
     if (!currentUser || authorized) return;
     const key = `${target}:${currentUser.id}`;
@@ -115,6 +111,7 @@ export const TargetShell: React.FC<{ target: AppTarget; children: React.ReactNod
     void logout();
   }, [authorized, currentUser, logout, target]);
 
+  if (typeof window !== 'undefined' && window.location.pathname === '/reset-password') return <ResetPasswordPage />;
   if (!currentUser) return <LoginModal />;
   if (!authorized) return <FatalDenied target={target} />;
   return <>{children}</>;
