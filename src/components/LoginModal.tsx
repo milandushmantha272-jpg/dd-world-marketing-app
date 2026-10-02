@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { ArrowRight, LockKeyhole, ShieldCheck, UserRound, Users, BriefcaseBusiness, Mail, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, LockKeyhole, ShieldCheck, UserRound, Users, BriefcaseBusiness } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { UserRole } from '../types';
-import { DdWorldLogo } from './common/DdWorldLogo';
-import { safeStorage } from '../utils/safeStorage';
 import { sendOwnerPasswordReset } from '../services/supabaseAuth';
+import { safeStorage } from '../utils/safeStorage';
 
 const blockedStatuses = new Set(['BLOCKED', 'SUSPENDED', 'EXITED', 'TEMPORARY_SUSPENDED', 'RESIGNED', 'TERMINATED', 'blocked']);
 const roleMeta: Record<UserRole, { label: string; icon: React.ElementType }> = {
@@ -18,10 +17,19 @@ const roleMeta: Record<UserRole, { label: string; icon: React.ElementType }> = {
 
 type LoginRole = UserRole;
 
+const target = String(import.meta.env.VITE_APP_TARGET || '').trim().toLowerCase();
+const targetRoles: LoginRole[] = target === 'agent'
+  ? ['agent']
+  : target === 'management'
+    ? ['owner', 'team_leader', 'junior_team_leader']
+    : target === 'audit'
+      ? ['dialog_officer']
+      : (Object.keys(roleMeta) as LoginRole[]);
+
 export const LoginModal: React.FC = () => {
   const { login, authError, retryAuth } = useAuth();
   const { users } = useData();
-  const [selectedRole, setSelectedRole] = useState<LoginRole>('owner');
+  const [selectedRole, setSelectedRole] = useState<LoginRole>(targetRoles[0] || 'owner');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -35,39 +43,42 @@ export const LoginModal: React.FC = () => {
     setError('');
     setResetSent(false);
     const value = identifier.trim().toLowerCase();
-    // Preserve the exact password; whitespace can be part of a valid password.
     if (!value || !password) {
       setError('Employee ID / Agent Code / Email සහ Password දෙකම ඇතුළත් කරන්න.');
       return;
     }
 
-    const target = users.find((user) =>
+    const targetUser = users.find((user) =>
       user.id.toLowerCase() === value ||
       user.agentCode?.trim().toLowerCase() === value ||
       user.employeeId?.trim().toLowerCase() === value ||
       user.email?.trim().toLowerCase() === value,
     );
-    if (!target && !value.includes('@')) {
+    if (!targetUser && !value.includes('@')) {
       setError('Employee account එක හමු නොවීය. Registered email එකෙන් login කරන්න.');
       return;
     }
-    if (target && target.role !== selectedRole) {
-      setError(`මෙම account එක ${roleMeta[target.role as LoginRole]?.label || target.role} role එකට අයත්ය.`);
+    if (targetUser && !targetRoles.includes(targetUser.role as LoginRole)) {
+      setError(`මෙම account එක ${roleMeta[targetUser.role as LoginRole]?.label || targetUser.role} APK එක සඳහා නොවේ.`);
       return;
     }
-    if (target && (blockedStatuses.has(String(target.employmentStatus || '')) || target.status === 'blocked')) {
+    if (targetUser && targetUser.role !== selectedRole) {
+      setError(`මෙම account එක ${roleMeta[targetUser.role as LoginRole]?.label || targetUser.role} role එකට අයත්ය.`);
+      return;
+    }
+    if (targetUser && (blockedStatuses.has(String(targetUser.employmentStatus || '')) || targetUser.status === 'blocked')) {
       setError('මෙම account එක Owner විසින් BLOCK / SUSPEND / EXIT කර ඇත. Login denied.');
       return;
     }
-    if (target && !target.email?.trim()) {
+    if (targetUser && !targetUser.email?.trim()) {
       setError('මෙම employee account එකට registered email එකක් නැත.');
       return;
     }
 
     setBusy(true);
     try {
-      await login(target?.email?.trim().toLowerCase() || value, password, selectedRole);
-      safeStorage.setItem('ddworld_last_login_id', target?.id || value);
+      await login(targetUser?.email?.trim().toLowerCase() || value, password, selectedRole);
+      safeStorage.setItem('ddworld_last_login_id', targetUser?.id || value);
     } catch (err: any) {
       setError(err?.message || 'Secure authentication අසාර්ථකයි.');
     } finally {
@@ -98,8 +109,8 @@ export const LoginModal: React.FC = () => {
           <div style={{marginTop:4,fontSize:12,color:'#718099'}}>Secure Employee Portal</div>
         </div>
 
-        <div style={{marginTop:16,display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-          {(Object.keys(roleMeta) as LoginRole[]).map((role) => {
+        {targetRoles.length > 1 && <div style={{marginTop:16,display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          {targetRoles.map((role) => {
             const Icon = roleMeta[role].icon;
             const selected = selectedRole === role;
             return <button key={role} type="button" onClick={() => { setSelectedRole(role); setError(''); setResetSent(false); }}
@@ -107,7 +118,7 @@ export const LoginModal: React.FC = () => {
               <Icon style={{width:16,height:16,margin:'0 auto 3px'}} />{roleMeta[role].label}
             </button>;
           })}
-        </div>
+        </div>}
 
         {authError && <div style={{marginTop:10,padding:10,borderRadius:12,background:'#fff8e7',border:'1px solid #f0d59a',color:'#8a5b00',fontSize:11}}>
           {authError} <button type="button" onClick={() => void retryAuth()} style={{marginLeft:8,padding:'5px 9px',borderRadius:8,border:0,background:'#fff',fontWeight:800}}>Retry</button>
@@ -119,10 +130,16 @@ export const LoginModal: React.FC = () => {
               style={{display:'block',width:'100%',boxSizing:'border-box',marginTop:6,padding:'13px 14px',borderRadius:12,border:'1px solid #d6e1ed',background:'#f9fbfe',color:'#14213d',fontSize:14}} />
           </label>
           <label style={{display:'block',marginTop:12,fontSize:12,fontWeight:700,color:'#34435b'}}>Password
-            <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" placeholder="Enter password"
-              style={{display:'block',width:'100%',boxSizing:'border-box',marginTop:6,padding:'13px 14px',borderRadius:12,border:'1px solid #d6e1ed',background:'#f9fbfe',color:'#14213d',fontSize:14}} />
+            <div style={{position:'relative'}}>
+              <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" placeholder="Enter password"
+                style={{display:'block',width:'100%',boxSizing:'border-box',marginTop:6,padding:'13px 42px 13px 14px',borderRadius:12,border:'1px solid #d6e1ed',background:'#f9fbfe',color:'#14213d',fontSize:14}} />
+              <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'}
+                style={{position:'absolute',right:8,top:8,border:0,background:'transparent',padding:7,color:'#64748b'}}>
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </label>
-          {selectedRole === 'owner' && <button type="button" onClick={resetOwnerPassword} disabled={resetBusy}
+          {targetRoles.includes('owner') && selectedRole === 'owner' && <button type="button" onClick={resetOwnerPassword} disabled={resetBusy}
             style={{width:'100%',marginTop:12,padding:11,borderRadius:12,border:'1px solid #c8dcf5',background:'#f3f8ff',color:'#1462b5',fontWeight:800}}>
             {resetBusy ? 'Sending…' : 'Forgot Owner Password'}
           </button>}
@@ -133,7 +150,7 @@ export const LoginModal: React.FC = () => {
             {busy ? 'Authenticating…' : 'Secure Login'}
           </button>
         </form>
-        <div style={{marginTop:12,textAlign:'center',fontSize:9,color:'#8795a8'}}>All roles require a valid Supabase account and Owner-approved ACTIVE status.</div>
+        <div style={{marginTop:12,textAlign:'center',fontSize:9,color:'#8795a8'}}>This APK only permits its assigned role family. Backend authorization remains authoritative.</div>
       </div>
     </div>
   );
