@@ -2,9 +2,14 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 def ddWorldAppId = (project.findProperty('ddWorldAppId') ?: 'com.ddworld.marketing.app').toString()
+def ddWorldResetScheme = (project.findProperty('ddWorldResetScheme') ?: ddWorldAppId).toString()
 
 if (!(ddWorldAppId ==~ /com\.ddworld\.(agent|management|audit)\.app/) && ddWorldAppId != 'com.ddworld.marketing.app') {
     throw new GradleException('Unsupported DD WORLD applicationId: ' + ddWorldAppId)
+}
+
+if (!(ddWorldResetScheme ==~ /com\.ddworld\.(agent|management|audit|marketing)\.app/)) {
+    throw new GradleException('Unsupported DD WORLD reset deep-link scheme: ' + ddWorldResetScheme)
 }
 
 android {
@@ -17,6 +22,7 @@ android {
         versionCode 1
         versionName '1.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        manifestPlaceholders = [ddWorldResetScheme: ddWorldResetScheme]
         aaptOptions {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
@@ -47,7 +53,7 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
-    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoVersion"
 }
 
 apply from: 'capacitor.build.gradle'
