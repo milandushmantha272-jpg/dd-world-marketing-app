@@ -141,7 +141,7 @@ export const ManagementAppShell: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f5f8fc] text-[#14213d] pb-24">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur px-4 py-3 shadow-sm">
+      <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950 px-4 py-3 shadow-lg">
         <div className="mx-auto max-w-7xl flex items-center justify-between gap-3">
           <div>
             <h1 className="text-lg font-black">DD WORLD Management App</h1>
