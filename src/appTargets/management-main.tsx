@@ -142,12 +142,20 @@ export const ManagementAppShell: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#f5f8fc] text-[#14213d] pb-24">
       <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950 px-4 py-3 shadow-lg">
-        <div className="mx-auto max-w-7xl flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-lg font-black">DD WORLD Management App</h1>
-            <p className="text-[11px] text-slate-500">{isOwner ? 'Owner Control & Corporate Management' : `Team-scoped Management • ${currentUser.teamName || 'Assigned Team'}`}</p>
+        <div className="mx-auto max-w-7xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[.24em] text-slate-400">DD WORLD MARKETING</div>
+              <h1 className="mt-1 text-lg font-black text-white">Corporate Operations Portal</h1>
+              <p className="text-[11px] text-slate-300">{isOwner ? 'Owner Control • Workforce • Sales • Finance' : `Team Operations • ${currentUser.teamName || 'Assigned Team'}`}</p>
+            </div>
+            <span className="rounded-2xl border border-slate-700 bg-slate-900 px-3 py-2 text-[10px] font-black uppercase text-white">{currentUser.role.replace(/_/g, ' ')}</span>
           </div>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase">{currentUser.role.replace(/_/g, ' ')}</span>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"><div className="text-[9px] font-black uppercase tracking-wider text-slate-400">System</div><div className="text-xs font-black text-white">Operational</div></div>
+            <div className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"><div className="text-[9px] font-black uppercase tracking-wider text-slate-400">Access</div><div className="text-xs font-black text-white">Role Controlled</div></div>
+            <div className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2"><div className="text-[9px] font-black uppercase tracking-wider text-slate-400">Workspace</div><div className="text-xs font-black text-white">{isOwner ? 'All Operations' : 'Team Scope'}</div></div>
+          </div>
         </div>
       </header>
 
